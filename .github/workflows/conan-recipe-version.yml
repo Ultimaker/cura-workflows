@@ -89,5 +89,6 @@ jobs:
       - id: get-conan-broadcast-data
         name: Get Conan broadcast data
         run: |
-          gh release download --repo Ultimaker/cura-workflows --pattern 'scripts/get_conan_broadcast_data.py' --dir 'runner_scripts'
+          mkdir runner_scripts
+          wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/get_conan_broadcast_data.py -O runner_scripts/get_conan_broadcast_data.py
           python runner_scripts/get_conan_broadcast_data.py --user ${{ inputs.user }} --project_name ${{ inputs.project_name }} --event_name ${{ github.event_name }} --ref ${{ github.ref }} --ref_type ${{ github.ref_type }} --base_ref ${{ github.base_ref }} --additional_buildmetadata ${{ inputs.additional_buildmetadata }}
