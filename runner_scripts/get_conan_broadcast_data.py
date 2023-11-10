@@ -17,6 +17,7 @@ def get_conan_broadcast_data(args):
     buildmetadata = "" if args.additional_buildmetadata == "" else f"{args.additional_buildmetadata}_"
 
     channel = "testing"
+    actual_version = "0.0.1-alpha"
     if is_tag:
         branch_version = Version(ref_name)
         is_release_branch = True
