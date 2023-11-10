@@ -134,6 +134,7 @@ if __name__ == "__main__":
     parser.add_argument('--ref', type = str, help = 'Github reference')
     parser.add_argument('--ref_type', type = str, help = 'Github reference type')
     parser.add_argument('--base_ref', type = str, help = 'Github base reference')
+    parser.add_argument('--ref_name', type = str, help = 'Github name reference')
     parser.add_argument('--additional_buildmetadata', type = str, help = 'Additional build metadata')
 
     args = parser.parse_args()
