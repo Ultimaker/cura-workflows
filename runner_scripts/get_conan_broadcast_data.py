@@ -8,7 +8,7 @@ def get_conan_broadcast_data(args):
     version = conan_data["version"]
     project_name = args.project_name
 
-    if conan_data["release"]:
+    if args.release == "true":
         actual_version = version
         user = "_"
         channel = "_"
@@ -64,6 +64,7 @@ if __name__ == "__main__":
     parser.add_argument('--event_name', type = str, help = 'Github event name')
     parser.add_argument('--base_ref', type = str, help = 'Github base reference')
     parser.add_argument('--ref_name', type = str, help = 'Github name reference')
+    parser.add_argument('--release', type = str, help = 'Is a release')
 
     args = parser.parse_args()
     get_conan_broadcast_data(args)
