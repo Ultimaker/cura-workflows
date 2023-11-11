@@ -1,0 +1,128 @@
+name: Export Conan Recipe to server
+
+on:
+  workflow_call:
+    inputs:
+      recipe_id_full:
+        required: true
+        type: string
+
+      recipe_id_latest:
+        required: false
+        type: string
+
+      conan_export_binaries:
+        required: false
+        type: boolean
+
+      conan_internal:
+        required: false
+        default: false
+        type: boolean
+
+      conan_extra_args:
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  CONAN_LOGIN_USERNAME: ${{ secrets.CONAN_USER }}
+  CONAN_PASSWORD: ${{ secrets.CONAN_PASS }}
+  CONAN_PRIVATE_ARTIFACTORY_URL: ${{ secrets.CONAN_PRIVATE_ARTIFACTORY_URL }}
+
+jobs:
+  package-export:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        with:
+          fetch-depth: 1
+          ref: ${{ github.head_ref }}
+
+      - name: Checkout repo PR
+        uses: actions/checkout@v4
+        if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+        with:
+          fetch-depth: 1
+          ref: ${{ github.base_ref }}
+
+      #  FIXME: point to `main` once merged
+      - name: Sync pip requirements
+        run: wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/.github/workflows/requirements-runner.txt -O .github/workflows/requirements-runner.txt
+
+      - name: Setup Python and pip
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11.x
+          cache: pip
+          cache-dependency-path: .github/workflows/requirements-runner.txt
+
+      - name: Install Python requirements and Create default Conan profile
+        run: pip install -r .github/workflows/requirements-conan-package.txt
+
+      #  FIXME: point to `main` once merged
+      - name: Install Linux system requirements for building
+        if: ${{ inputs.conan_export_binaries }}
+        run: |
+          mkdir runner_scripts
+          wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/runner_scripts/ubuntu_setup.sh -O runner_scripts/ubuntu_setup.sh
+          chmod +x runner_scripts/ubuntu_setup.sh
+          sudo ./runner_scripts/ubuntu_setup.sh
+
+      - name: Create default Conan profile
+        run: conan profile new default --detect
+
+      - name: Get Conan configuration
+        run: |
+          conan config install https://github.com/Ultimaker/conan-config.git
+          conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/${{ runner.os }}/${{ runner.arch }}"
+
+      - name: Cache Conan packages
+        uses: actions/cache@v3
+        with:
+          path: $HOME/.conan/data
+          key: ${{ runner.os }}-conan-data-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-conan-data-
+
+      - name: Cache Conan downloads
+        uses: actions/cache@v3
+        with:
+          path: $HOME/.conan/downloads
+          key: ${{ runner.os }}-conan-downloads-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-conan-downloads-
+
+      - name: Add Cura private Artifactory remote
+        if: ${{ inputs.conan_internal }}
+        run: conan remote add cura-private https://ultimaker.jfrog.io/artifactory/api/conan/cura-private True
+
+      - name: Export the Package (binaries)
+        if: ${{ inputs.conan_export_binaries }}
+        run: conan create . ${{ inputs.recipe_id_full }} --build=missing --update -c tools.build:skip_test=True ${{ inputs.conan_extra_args }}
+
+      - name: Export the Package
+        if: ${{ !inputs.conan_export_binaries }}
+        run: conan export . ${{ inputs.recipe_id_full }} ${{ inputs.conan_extra_args }}
+
+      - name: Create the latest alias
+        if: always()
+        run: conan alias ${{ inputs.recipe_id_latest }} ${{ inputs.recipe_id_full }}
+
+      - name: Upload the Package(s)
+        if: ${{ always() }}
+        run: |
+          conan upload ${{ inputs.recipe_id_full }} -r cura --all -c
+          conan upload ${{ inputs.recipe_id_latest }} -r cura -c
+
+      - name: Upload the Package(s) to the private Artifactory
+        if: ${{ always() && ! inputs.conan_internal }}
+        run: |
+          conan upload ${{ inputs.recipe_id_full }} -r cura-private --all -c
+          conan upload ${{ inputs.recipe_id_latest }} -r cura-private -c
