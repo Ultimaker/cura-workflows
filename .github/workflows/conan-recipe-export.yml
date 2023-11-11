@@ -26,7 +26,7 @@ on:
         type: string
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   CONAN_LOGIN_USERNAME: ${{ secrets.CONAN_USER }}
