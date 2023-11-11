@@ -26,7 +26,7 @@ on:
         type: string
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   CONAN_LOGIN_USERNAME: ${{ secrets.CONAN_USER }}
@@ -64,7 +64,7 @@ jobs:
           cache-dependency-path: .github/workflows/requirements-runner.txt
 
       - name: Install Python requirements and Create default Conan profile
-        run: pip install -r .github/workflows/requirements-conan-package.txt
+        run: pip install -r .github/workflows/requirements-runner.txt
 
       #  FIXME: point to `main` once merged
       - name: Install Linux system requirements for building
