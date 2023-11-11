@@ -76,6 +76,9 @@ jobs:
         with:
           python-version: "3.12.x"
 
+      - name: Install pyyaml
+        run: pip install pyyaml
+
       # FIXME: Use `main` instead of `CURA-10831` once the branch is merged.
       - id: get-conan-broadcast-data
         name: Get Conan broadcast data
