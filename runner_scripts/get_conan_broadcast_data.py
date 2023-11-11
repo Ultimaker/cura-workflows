@@ -16,12 +16,12 @@ def get_conan_broadcast_data(args):
     else:
         actual_version = version if "+" in version else f"{version}+{args.sha[:6]}"
         user = args.user.lower()
-        if "beta" in version:
+        ref_name = args.base_ref if args.event_name == "pull_request" else args.ref_name
+        if "beta" in version and args.event_name != "pull_request" and  ref_name == '.'.join(version.split('.')[:2]):
             channel = "stable"
             is_release_branch = True
         else:
             is_release_branch = False
-            ref_name = args.base_ref if args.event_name == "pull_request" else args.ref_name
             if ref_name in ("main", "master"):
                 channel = 'testing'
             else:
