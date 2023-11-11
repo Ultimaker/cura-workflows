@@ -76,11 +76,6 @@ jobs:
         with:
           python-version: "3.12.x"
 
-      - name: Install Python requirements and Create default Conan profile
-        run: |
-          pip install -r .github/workflows/requirements-conan-package.txt
-          pip install gitpython
-
       # FIXME: Use `main` instead of `CURA-10831` once the branch is merged.
       - id: get-conan-broadcast-data
         name: Get Conan broadcast data
