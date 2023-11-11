@@ -59,14 +59,16 @@ jobs:
         uses: actions/checkout@v3
         if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         with:
-          fetch-depth: 0
+          fetch-depth: 1
+          sparse-checkout: 'conandata.yml'
           ref: ${{ github.head_ref }}
 
       - name: Checkout repo PR
         uses: actions/checkout@v3
         if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
         with:
-          fetch-depth: 0
+          fetch-depth: 1
+          sparse-checkout: 'conandata.yml'
           ref: ${{ github.base_ref }}
 
       - name: Setup Python and pip
@@ -81,9 +83,10 @@ jobs:
           pip install -r .github/workflows/requirements-conan-package.txt
           pip install gitpython
 
+      # FIXME: Use `main` instead of `CURA-10831` once the branch is merged.
       - id: get-conan-broadcast-data
         name: Get Conan broadcast data
         run: |
           mkdir runner_scripts
-          wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/get_conan_broadcast_data.py -O runner_scripts/get_conan_broadcast_data.py
+          wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/runner_scripts/get_conan_broadcast_data.py -O runner_scripts/get_conan_broadcast_data.py
           python runner_scripts/get_conan_broadcast_data.py --user ${{ inputs.user }} --project_name "${{ inputs.project_name }}" --sha "${{ github.sha }}" --event_name "${{ github.event_name }}" --base_ref "${{ github.base_ref }}" --ref_name "${{ github.ref_name }}"
