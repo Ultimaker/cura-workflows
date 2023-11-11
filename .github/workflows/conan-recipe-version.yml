@@ -12,11 +12,6 @@ on:
         default: ultimaker
         type: string
 
-      additional_buildmetadata:
-        required: false
-        default: ""
-        type: string
-
     outputs:
       recipe_id_full:
         description: "The full Conan recipe id: <name>/<version>@<user>/<channel>"
@@ -91,4 +86,4 @@ jobs:
         run: |
           mkdir runner_scripts
           wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/get_conan_broadcast_data.py -O runner_scripts/get_conan_broadcast_data.py
-          python runner_scripts/get_conan_broadcast_data.py --user ${{ inputs.user }} --project_name "${{ inputs.project_name }}" --event_name "${{ github.event_name }}" --ref "${{ github.ref }}" --ref_type "${{ github.ref_type }}" --base_ref "${{ github.base_ref }}" --ref_name "${{ github.ref_name }}" --additional_buildmetadata "${{ inputs.additional_buildmetadata }}"
+          python runner_scripts/get_conan_broadcast_data.py --user ${{ inputs.user }} --project_name "${{ inputs.project_name }}" --sha "${{ github.sha }}" --event_name "${{ github.event_name }}" --base_ref "${{ github.base_ref }}" --ref_name "${{ github.ref_name }}"
