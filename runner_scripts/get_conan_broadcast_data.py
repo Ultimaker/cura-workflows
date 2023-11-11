@@ -2,8 +2,6 @@ import argparse
 import os
 import yaml
 
-from conan.tools.scm import Version
-
 def get_conan_broadcast_data(args):
     with open("conandata.yml", "r") as f:
         conan_data = yaml.safe_load(f)
@@ -16,9 +14,9 @@ def get_conan_broadcast_data(args):
         channel = "_"
         is_release_branch = True
     else:
-        actual_version = version if Version(version).build else f"{version}+{args.sha[:6]}"
+        actual_version = version if "+" in version else f"{version}+{args.sha[:6]}"
         user = args.user.lower()
-        if "beta" in str(Version(version).pre):
+        if "beta" in version:
             channel = "stable"
             is_release_branch = True
         else:
