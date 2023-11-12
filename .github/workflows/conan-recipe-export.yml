@@ -13,6 +13,12 @@ on:
 
       conan_export_binaries:
         required: false
+        default: true
+        type: boolean
+
+      update_system_requirements:
+        required: false
+        default: false
         type: boolean
 
       conan_internal:
@@ -68,7 +74,7 @@ jobs:
 
       #  FIXME: point to `main` once merged
       - name: Install Linux system requirements for building
-        if: ${{ inputs.conan_export_binaries }}
+        if: ${{ inputs.update_system_requirements }}
         run: |
           mkdir runner_scripts
           wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/runner_scripts/ubuntu_setup.sh -O runner_scripts/ubuntu_setup.sh
@@ -105,7 +111,7 @@ jobs:
 
       - name: Export the Package (binaries)
         if: ${{ inputs.conan_export_binaries }}
-        run: conan create . ${{ inputs.recipe_id_full }} --build=missing --update -c tools.build:skip_test=True ${{ inputs.conan_extra_args }}
+        run: conan create . ${{ inputs.recipe_id_full }} --build=missing --update ${{ inputs.conan_extra_args }}
 
       - name: Export the Package
         if: ${{ !inputs.conan_export_binaries }}
