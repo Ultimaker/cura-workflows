@@ -16,11 +16,6 @@ on:
         default: true
         type: boolean
 
-      update_system_requirements:
-        required: false
-        default: false
-        type: boolean
-
       conan_internal:
         required: false
         default: false
@@ -74,7 +69,7 @@ jobs:
 
       #  FIXME: point to `main` once merged
       - name: Install Linux system requirements for building
-        if: ${{ inputs.update_system_requirements }}
+        if: ${{ inputs.conan_export_binaries }}
         run: |
           mkdir runner_scripts
           wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/runner_scripts/ubuntu_setup.sh -O runner_scripts/ubuntu_setup.sh
