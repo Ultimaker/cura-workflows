@@ -1,4 +1,4 @@
-name: Export Conan Recipe to server
+name: Conan package create Windows
 
 on:
   workflow_call:
@@ -30,8 +30,8 @@ env:
   CONAN_PRIVATE_ARTIFACTORY_URL: ${{ secrets.CONAN_PRIVATE_ARTIFACTORY_URL }}
 
 jobs:
-  package-export:
-    runs-on: ubuntu-latest
+  package-create:
+    runs-on: windows-2022
 
     steps:
       - name: Checkout repo
@@ -64,8 +64,9 @@ jobs:
 
       - name: Setup pipeline caches
         run: |
-          mkdir -p /home/runner/.conan/downloads
-          mkdir -p /home/runner/.conan/data
+          New-Item -ItemType Directory -Force -Path C:\Users\runneradmin\.conan\data
+          New-Item -ItemType Directory -Force -Path C:\.conan
+          New-Item -ItemType Directory -Force -Path C:\Users\runneradmin\.conan\downloads
 
       - name: Create default Conan profile
         run: conan profile new default --detect
@@ -78,7 +79,9 @@ jobs:
       - name: Cache Conan packages
         uses: actions/cache@v3
         with:
-          path: /home/runner/.conan/data
+          path: |
+            C:\Users\runneradmin\.conan\data
+            C:\.conan
           key: ${{ runner.os }}-conan-data-${{ github.run_id }}
           restore-keys: |
             ${{ runner.os }}-conan-data-
@@ -86,7 +89,7 @@ jobs:
       - name: Cache Conan downloads
         uses: actions/cache@v3
         with:
-          path: /home/runner/.conan/downloads
+          path: C:\Users\runneradmin\.conan\downloads
           key: ${{ runner.os }}-conan-downloads-${{ github.run_id }}
           restore-keys: |
             ${{ runner.os }}-conan-downloads-
@@ -95,8 +98,8 @@ jobs:
         if: ${{ inputs.conan_internal }}
         run: conan remote add cura-private $CONAN_PRIVATE_ARTIFACTORY_URL True
 
-      - name: Export the Package
-        run: conan export . ${{ inputs.recipe_id_full }} ${{ inputs.conan_extra_args }}
+      - name: Export the Package (binaries)
+        run: conan create . ${{ inputs.recipe_id_full }} --build=missing --update ${{ inputs.conan_extra_args }}
 
       - name: Create the latest alias
         if: always()

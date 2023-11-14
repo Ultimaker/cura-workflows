@@ -1,4 +1,4 @@
-name: Export Conan Recipe to server
+name: Conan package create Macos
 
 on:
   workflow_call:
@@ -30,8 +30,8 @@ env:
   CONAN_PRIVATE_ARTIFACTORY_URL: ${{ secrets.CONAN_PRIVATE_ARTIFACTORY_URL }}
 
 jobs:
-  package-export:
-    runs-on: ubuntu-latest
+  package-create:
+    runs-on: macos-11
 
     steps:
       - name: Checkout repo
@@ -62,10 +62,18 @@ jobs:
       - name: Install Python requirements and Create default Conan profile
         run: pip install -r .github/workflows/requirements-runner.txt
 
+      #  FIXME: point to `main` once merged
+      - name: Install Macos system requirements for building
+        run: |
+          mkdir runner_scripts
+          wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/runner_scripts/macos_setup.sh -O runner_scripts/macos_setup.sh
+          chmod +x runner_scripts/macos_setup.sh
+          ./runner_scripts/macos_setup.sh
+
       - name: Setup pipeline caches
         run: |
-          mkdir -p /home/runner/.conan/downloads
-          mkdir -p /home/runner/.conan/data
+          mkdir -p /Users/runner/.conan/downloads
+          mkdir -p /Users/runner/.conan/data
 
       - name: Create default Conan profile
         run: conan profile new default --detect
@@ -95,8 +103,8 @@ jobs:
         if: ${{ inputs.conan_internal }}
         run: conan remote add cura-private $CONAN_PRIVATE_ARTIFACTORY_URL True
 
-      - name: Export the Package
-        run: conan export . ${{ inputs.recipe_id_full }} ${{ inputs.conan_extra_args }}
+      - name: Export the Package (binaries)
+        run: conan create . ${{ inputs.recipe_id_full }} --build=missing --update ${{ inputs.conan_extra_args }}
 
       - name: Create the latest alias
         if: always()
