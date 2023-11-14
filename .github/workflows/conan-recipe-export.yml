@@ -76,6 +76,11 @@ jobs:
           chmod +x runner_scripts/ubuntu_setup.sh
           sudo ./runner_scripts/ubuntu_setup.sh
 
+      - name: Setup pipeline caches
+        run: |
+          mkdir -p $HOME/.conan/downloads
+          mkdir -p $HOME/.conan/data
+
       - name: Create default Conan profile
         run: conan profile new default --detect
 
@@ -87,7 +92,7 @@ jobs:
       - name: Cache Conan packages
         uses: actions/cache@v3
         with:
-          path: $HOME/.conan/data
+          path: /home/runner/.conan/data
           key: ${{ runner.os }}-conan-data-${{ github.run_id }}
           restore-keys: |
             ${{ runner.os }}-conan-data-
@@ -95,7 +100,7 @@ jobs:
       - name: Cache Conan downloads
         uses: actions/cache@v3
         with:
-          path: $HOME/.conan/downloads
+          path: /home/runner/.conan/downloads
           key: ${{ runner.os }}-conan-downloads-${{ github.run_id }}
           restore-keys: |
             ${{ runner.os }}-conan-downloads-
