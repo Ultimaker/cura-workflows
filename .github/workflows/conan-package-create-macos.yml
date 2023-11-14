@@ -7,10 +7,6 @@ on:
         required: true
         type: string
 
-      recipe_id_latest:
-        required: false
-        type: string
-
       conan_internal:
         required: false
         default: false
@@ -106,18 +102,12 @@ jobs:
       - name: Export the Package (binaries)
         run: conan create . ${{ inputs.recipe_id_full }} --build=missing --update ${{ inputs.conan_extra_args }}
 
-      - name: Create the latest alias
-        if: always()
-        run: conan alias ${{ inputs.recipe_id_latest }} ${{ inputs.recipe_id_full }}
-
       - name: Upload the Package(s)
         if: ${{ always() }}
         run: |
           conan upload ${{ inputs.recipe_id_full }} -r cura --all -c
-          conan upload ${{ inputs.recipe_id_latest }} -r cura -c
 
       - name: Upload the Package(s) to the private Artifactory
         if: ${{ always() && inputs.conan_internal }}
         run: |
           conan upload ${{ inputs.recipe_id_full }} -r cura-private --all -c
-          conan upload ${{ inputs.recipe_id_latest }} -r cura-private -c
