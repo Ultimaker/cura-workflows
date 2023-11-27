@@ -5,7 +5,7 @@ import yaml
 def get_conan_broadcast_data(args):
     with open("conandata.yml", "r") as f:
         conan_data = yaml.safe_load(f)
-    version = conan_data["version"]
+    version = conan_data["version"] if args.version == '' else args.version
     project_name = args.project_name
 
     if args.release == "true":
@@ -65,6 +65,7 @@ if __name__ == "__main__":
     parser.add_argument('--base_ref', type = str, help = 'Github base reference')
     parser.add_argument('--ref_name', type = str, help = 'Github name reference')
     parser.add_argument('--release', type = str, help = 'Is a release')
+    parser.add_argument('--version', type = str, help = 'User override version')
 
     args = parser.parse_args()
     get_conan_broadcast_data(args)

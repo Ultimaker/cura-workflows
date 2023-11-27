@@ -17,6 +17,11 @@ on:
         default: false
         type: boolean
 
+      version:
+        required: false
+        default: ''
+        type: string
+
     outputs:
       recipe_id_full:
         description: "The full Conan recipe id: <name>/<version>@<user>/<channel>"
@@ -90,4 +95,4 @@ jobs:
         run: |
           mkdir runner_scripts
           wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/runner_scripts/get_conan_broadcast_data.py -O runner_scripts/get_conan_broadcast_data.py
-          python runner_scripts/get_conan_broadcast_data.py --user ${{ inputs.user }} --project_name "${{ inputs.project_name }}" --sha "${{ github.sha }}" --event_name "${{ github.event_name }}" --base_ref "${{ github.base_ref }}" --ref_name "${{ github.ref_name }}" --release "${{ inputs.release }}"
+          python runner_scripts/get_conan_broadcast_data.py --user ${{ inputs.user }} --project_name "${{ inputs.project_name }}" --sha "${{ github.sha }}" --event_name "${{ github.event_name }}" --base_ref "${{ github.base_ref }}" --ref_name "${{ github.ref_name }}" --release "${{ inputs.release }}" --version "${{ inputs.version }}"
