@@ -7,7 +7,7 @@ from pathlib import Path
 
 def upload_changed_recipes(args):
     files = args.Files
-    cwd = Path(os.getcwd()).joinpath("recipes")
+    cwd = "recipes"
     configs = list({ c for c in { Path(cwd).joinpath(f.relative_to(cwd).parents[-2]).joinpath("config.yml") for f in files } if c.exists() })
 
     packages = []
