@@ -21,7 +21,7 @@ def upload_changed_recipes(args):
 
         for version, data in versions.items():
             conanfile = config.parent.joinpath(data["folder"], "conanfile.py")
-            name = str(conanfile.relative_to("recipes").parents[-2])
+            name = str(conanfile.relative_to(os.path.join(os.getcwd(), "recipes")).parents[-2])
             package = f"{name}/{version}@{args.user}/{channel}"
             create_cmd = f"conan create conanfile {package}"
             os.system(create_cmd)
