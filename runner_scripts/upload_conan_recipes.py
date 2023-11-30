@@ -1,5 +1,6 @@
 import argparse
 import os
+import re
 import yaml
 
 from pathlib import Path
@@ -11,6 +12,8 @@ def upload_changed_recipes(args):
 
     packages = []
 
+    channel = "stable" if "main" in args.branch else re.match(r"CURA-\d*", args.branch)[0]
+
     for config in configs:
         versions = {}
         with open(config, "r") as f:
@@ -18,7 +21,7 @@ def upload_changed_recipes(args):
 
         for version, data in versions.items():
             conanfile = config.parent.joinpath(data["folder"], "conanfile.py")
-            package = f"{conanfile}/{version}@{args.user}/{args.channel}"
+            package = f"{conanfile}/{version}@{args.user}/{channel}"
             create_cmd = f"conan create {package}"
             os.system(create_cmd)
             upload_cmd = f"conan upload {package} -r {args.remote} -c"
@@ -34,7 +37,7 @@ def upload_changed_recipes(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description = 'Upload all the changed recipes in the recipe folder')
     parser.add_argument('--user', type = str, help = 'User')
-    parser.add_argument('--channel', type = str, help = 'Channel')
+    parser.add_argument('--branch', type = str, help = 'Branch')
     parser.add_argument('--remote', type = str, help = 'Remote')
     parser.add_argument("Files", metavar="F", type=Path, nargs="+", help="Files or directories to format")
 
