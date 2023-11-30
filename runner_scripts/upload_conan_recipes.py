@@ -7,7 +7,7 @@ from pathlib import Path
 
 def upload_changed_recipes(args):
     files = args.Files
-    configs = dict(zip([ f.split("/")[1] for f in files ], [ Path(*f.split("/")[:2]).joinpath("config.yml") for f in files ]))
+    configs = dict(zip([ str(f).split("/")[1] for f in files ], [ Path(*str(f).split("/")[:2]).joinpath("config.yml") for f in files ]))
 
     packages = []
     channel = "stable" if "main" in args.branch else re.match(r"CURA-\d*", args.branch)[0]
