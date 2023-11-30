@@ -7,23 +7,23 @@ from pathlib import Path
 
 def upload_changed_recipes(args):
     files = args.Files
-    cwd = os.path.join(os.getcwd(), "recipes")
-    configs = list({ c for c in { Path(cwd).joinpath(f.relative_to(cwd).parents[-2]).joinpath("config.yml") for f in files } if c.exists() })
+    configs = dict(zip([ f.split("/")[1] for f in files ], [ Path(*f.split("/")[:2]).joinpath("config.yml") for f in files ]))
 
     packages = []
-
     channel = "stable" if "main" in args.branch else re.match(r"CURA-\d*", args.branch)[0]
 
-    for config in configs:
+    for name, config in configs.items():
+        if not config.exists():
+            continue
+
         versions = {}
         with open(config, "r") as f:
             versions = yaml.safe_load(f)["versions"]
 
         for version, data in versions.items():
             conanfile = config.parent.joinpath(data["folder"], "conanfile.py")
-            name = str(conanfile.relative_to(os.path.join(os.getcwd(), "recipes")).parents[-2])
             package = f"{name}/{version}@{args.user}/{channel}"
-            create_cmd = f"conan create conanfile {package}"
+            create_cmd = f"conan create {conanfile} {package}"
             os.system(create_cmd)
             upload_cmd = f"conan upload {package} -r {args.remote} -c"
             os.system(upload_cmd)
