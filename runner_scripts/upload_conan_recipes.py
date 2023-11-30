@@ -40,7 +40,7 @@ if __name__ == "__main__":
     parser.add_argument('--user', type = str, help = 'User')
     parser.add_argument('--branch', type = str, help = 'Branch')
     parser.add_argument('--remote', type = str, help = 'Remote')
-    parser.add_argument("Files", metavar="F", type=Path, nargs="+", help="Files or directories to format")
+    parser.add_argument("Files", metavar="F", type=str, nargs="+", help="Files or directories to format")
 
     args = parser.parse_args()
     upload_changed_recipes(args)
