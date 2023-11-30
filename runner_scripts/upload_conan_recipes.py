@@ -21,8 +21,9 @@ def upload_changed_recipes(args):
 
         for version, data in versions.items():
             conanfile = config.parent.joinpath(data["folder"], "conanfile.py")
-            package = f"{conanfile}/{version}@{args.user}/{channel}"
-            create_cmd = f"conan create {package}"
+            name = str(conanfile.relative_to("recipes").parents[-2])
+            package = f"{name}/{version}@{args.user}/{channel}"
+            create_cmd = f"conan create conanfile {package}"
             os.system(create_cmd)
             upload_cmd = f"conan upload {package} -r {args.remote} -c"
             os.system(upload_cmd)
@@ -32,7 +33,7 @@ def upload_changed_recipes(args):
     with open(summary_env, "w") as f:
         f.writelines("# Created and Uploaded to remote {args.remote}\n")
         for package in packages:
-            f.writelines(f"recipe_id_full={package}\n")
+            f.writelines(f"{package}\n")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description = 'Upload all the changed recipes in the recipe folder')
