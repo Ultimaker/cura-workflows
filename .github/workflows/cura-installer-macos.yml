@@ -164,7 +164,7 @@ jobs:
         run: conan remote remove cura-private || true
 
       - name: Create the Packages (Bash)
-        run: conan install $CURA_CONAN_VERSION ${{ inputs.conan_args }} --build=missing --update -if cura_inst -g VirtualPythonEnv -o cura:enterprise=$ENTERPRISE -o cura:staging=$STAGING -c tools.build:skip_test=True
+        run: conan install $CURA_CONAN_VERSION ${{ inputs.conan_args }} --build=missing --update -if cura_inst -g VirtualPythonEnv -o cura:enterprise=$ENTERPRISE -o cura:staging=$STAGING  -o cura:internal=${{ inputs.conan_internal }} -c tools.build:skip_test=True
 
       - name: Remove internal packages before uploading
         run: |
