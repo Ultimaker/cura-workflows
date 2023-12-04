@@ -49,8 +49,9 @@ permissions:
   contents: read
 
 env:
-  CONAN_LOGIN_USERNAME_CURA: ${{ secrets.CONAN_USER }}
-  CONAN_PASSWORD_CURA: ${{ secrets.CONAN_PASS }}
+  CONAN_LOGIN_USERNAME: ${{ secrets.CONAN_USER }}
+  CONAN_PASSWORD: ${{ secrets.CONAN_PASS }}
+  CONAN_PRIVATE_ARTIFACTORY_URL: ${{ secrets.CONAN_PRIVATE_ARTIFACTORY_URL }}
   GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
   CURA_CONAN_VERSION: ${{ inputs.cura_conan_version }}
   ENTERPRISE: ${{ inputs.enterprise }}
