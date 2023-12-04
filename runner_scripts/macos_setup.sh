@@ -1,3 +1,3 @@
 #!/bin/bash
 
-brew install autoconf automake ninja
+brew install autoconf automake ninja wget
