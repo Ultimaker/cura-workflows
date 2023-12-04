@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # Get the AppImage tool
 wget --no-check-certificate --quiet https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O $GITHUB_WORKSPACE/appimagetool
 chmod +x $GITHUB_WORKSPACE/appimagetool

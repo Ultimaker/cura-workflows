@@ -90,8 +90,7 @@ jobs:
           sudo ./runner_scripts/ubuntu_setup.sh
           
           wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/runner_scripts/appimage_setup.sh -O runner_scripts/appimage_setup.sh
-          chmod +x runner_scripts/appimage_setup.sh
-          sudo ./runner_scripts/appimage_setup.sh
+          source ./runner_scripts/appimage_setup.sh
 
       - name: Setup pipeline caches
         run: |
