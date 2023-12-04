@@ -84,7 +84,8 @@ jobs:
 
       #  FIXME: point to `main` once merged
       - name: Sync pip requirements
-        run: wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/.github/workflows/requirements-runner.txt -O .github/workflows/requirements-runner.txt
+        run: curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/.github/workflows/requirements-runner.txt
+        working-directory: .github\workflows
 
       - name: Setup Python and pip
         uses: actions/setup-python@v4
