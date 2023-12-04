@@ -1,0 +1,198 @@
+name: Linux Installer
+run-name: ${{ inputs.cura_conan_version }} for Linux-${{ inputs.architecture }} by @${{ github.actor }}
+
+on:
+  workflow_call:
+    inputs:
+      cura_conan_version:
+        description: 'Cura Conan Version'
+        default: 'cura/latest@ultimaker/testing'
+        required: true
+        type: string
+
+      conan_args:
+        description: 'Conan args: eq.: --require-override'
+        default: ''
+        required: false
+        type: string
+
+      enterprise:
+        description: 'Build Cura as an Enterprise edition'
+        default: false
+        required: true
+        type: boolean
+
+      staging:
+        description: 'Use staging API'
+        default: false
+        required: true
+        type: boolean
+
+      architecture:
+        description: 'Architecture'
+        required: true
+        default: 'X64'
+        type: string
+
+      operating_system:
+        description: 'OS'
+        required: true
+        default: 'ubuntu-22.04'
+        type: string
+
+      conan_internal:
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+env:
+  CONAN_LOGIN_USERNAME_CURA: ${{ secrets.CONAN_USER }}
+  CONAN_PASSWORD_CURA: ${{ secrets.CONAN_PASS }}
+  GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+  CURA_CONAN_VERSION: ${{ inputs.cura_conan_version }}
+  ENTERPRISE: ${{ inputs.enterprise }}
+  STAGING: ${{ inputs.staging }}
+
+jobs:
+  cura-installer-create:
+    runs-on: ${{ inputs.operating_system }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      #  FIXME: point to `main` once merged
+      - name: Sync pip requirements
+        run: wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/.github/workflows/requirements-runner.txt -O .github/workflows/requirements-runner.txt
+
+      - name: Setup Python and pip
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11.x
+          cache: pip
+          cache-dependency-path: .github/workflows/requirements-runner.txt
+
+      - name: Install Python requirements and Create default Conan profile
+        run: pip install -r .github/workflows/requirements-runner.txt
+
+      #  FIXME: point to `main` once merged
+      - name: Install Linux system requirements for building
+        run: |
+          mkdir runner_scripts
+          wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/runner_scripts/ubuntu_setup.sh -O runner_scripts/ubuntu_setup.sh
+          chmod +x runner_scripts/ubuntu_setup.sh
+          sudo ./runner_scripts/ubuntu_setup.sh
+          
+          wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/runner_scripts/appimage_setup.sh -O runner_scripts/appimage_setup.sh
+          chmod +x runner_scripts/appimage_setup.sh
+          sudo ./runner_scripts/appimage_setup.sh
+
+      - name: Setup pipeline caches
+        run: |
+          mkdir -p /home/runner/.conan/downloads
+          mkdir -p /home/runner/.conan/data
+
+      - name: Create default Conan profile
+        run: conan profile new default --detect
+
+      - name: Get Conan configuration
+        run: |
+          conan config install https://github.com/Ultimaker/conan-config.git
+          conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/${{ runner.os }}/${{ runner.arch }}"
+
+      - name: Cache Conan packages
+        uses: actions/cache@v3
+        with:
+          path: /home/runner/.conan/data
+          key: ${{ runner.os }}-conan-data-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-conan-data-
+
+      - name: Cache Conan downloads
+        uses: actions/cache@v3
+        with:
+          path: /home/runner/.conan/downloads
+          key: ${{ runner.os }}-conan-downloads-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-conan-downloads-
+
+      - name: Add Cura private Artifactory remote
+        if: ${{ inputs.conan_internal }}
+        run: conan remote add cura-private $CONAN_PRIVATE_ARTIFACTORY_URL True
+
+      - name: Configure GPG Key Linux (Bash)
+        run: echo -n "$GPG_PRIVATE_KEY" | base64 --decode | gpg --import
+
+      - name: Create the Packages (Bash)
+        run: conan install $CURA_CONAN_VERSION ${{ inputs.conan_args }} --build=missing --update -if cura_inst -g VirtualPythonEnv -o cura:enterprise=$ENTERPRISE -o cura:staging=$STAGING -c tools.build:skip_test=True
+
+      - name: Remove internal packages before uploading
+        run: |
+          conan remove "*@internal/*" -f || true
+          conan remove "cura_private_data*" -f || true
+
+      - name: Upload the Package(s)
+        if: ${{ always() && ! inputs.conan_internal }}
+        run: conan upload "*" -r cura --all -c
+
+      - name: Set Environment variables for Cura (bash)
+        run: |
+          . ./cura_inst/bin/activate_github_actions_env.sh
+          . ./cura_inst/bin/activate_github_actions_version_env.sh            
+
+      - name: Create the Cura dist
+        run: pyinstaller ./cura_inst/UltiMaker-Cura.spec
+
+        # FIXME: Change to `main` from `CURA-10831` once merged`
+      - name: Output the name file name and extension
+        id: filename
+        run: |
+          wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/runner_scripts/cura_installer_filename.py -O runner_scripts/cura_installer_filename.py
+          python runner_scripts/cura_installer_filename.py
+
+      - name: Summarize the used dependencies
+        run: |
+          wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/runner_scripts/summarize_used_dependencies.py -O runner_scripts/summarize_used_dependencies.py
+          python runner_scripts/summarize_used_dependencies.py
+
+      - name: Create the Linux AppImage (Bash)
+        run: |
+          python ../cura_inst/packaging/AppImage-builder/create_appimage.py ./UltiMaker-Cura $CURA_VERSION_FULL "${{ steps.filename.outputs.INSTALLER_FILENAME }}.AppImage"
+          chmod +x "${{ steps.filename.outputs.INSTALLER_FILENAME }}.AppImage"
+        working-directory: dist
+
+      - name: Upload the AppImage
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ steps.filename.outputs.INSTALLER_FILENAME }}-AppImage
+          path: |
+            dist/${{ steps.filename.outputs.INSTALLER_FILENAME }}.AppImage
+          retention-days: 5
+
+      - name: Upload the asc
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ steps.filename.outputs.INSTALLER_FILENAME }}-asc
+          path: |
+            dist/${{ steps.filename.outputs.INSTALLER_FILENAME }}.AppImage.asc
+          retention-days: 5
+
+      - name: Write the run info
+        shell: python
+        run: |
+          import os
+          with open("run_info.sh", "w") as f:
+              f.writelines(f'echo "CURA_VERSION_FULL={os.environ["CURA_VERSION_FULL"]}" >> $GITHUB_ENV\n')
+      - name: Upload the run info
+        uses: actions/upload-artifact@v3
+        with:
+          name: linux-run-info
+          path: |
+            run_info.sh
+          retention-days: 5
+
