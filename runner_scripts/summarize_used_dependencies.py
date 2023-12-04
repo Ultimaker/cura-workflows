@@ -13,7 +13,7 @@ def set_gh_output_used_dependencies(args):
 
     with open(summary_env, "w") as f:
         f.write(content)
-        f.writelines("# ${{ steps.filename.outputs.INSTALLER_FILENAME }}\n")
+        f.writelines(f"# {args.installer_filename}\n")
         f.writelines("## Conan packages:\n")
         for dep_name, dep_info in ConanInstalls.items():
             f.writelines(f"`{dep_name} {dep_info['version']} {dep_info['revision']}`\n")
