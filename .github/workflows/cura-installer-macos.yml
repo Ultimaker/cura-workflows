@@ -104,7 +104,7 @@ jobs:
           cd runner_scripts
           curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/runner_scripts/macos_setup.sh
           chmod +x macos_setup.sh
-          ./runner_scripts/macos_setup.sh
+          ./macos_setup.sh
 
       - name: Setup pipeline caches
         run: |
