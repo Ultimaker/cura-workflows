@@ -103,7 +103,7 @@ jobs:
         run: conan create . ${{ inputs.recipe_id_full }} --build=missing --update ${{ inputs.conan_extra_args }}
 
       - name: Upload the Package(s)
-        if: ${{ always() }}
+        if: ${{ always() && !inputs.conan_internal }}
         run: |
           conan upload ${{ inputs.recipe_id_full }} -r cura --all -c
 

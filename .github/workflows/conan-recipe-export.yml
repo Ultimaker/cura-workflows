@@ -103,7 +103,7 @@ jobs:
         run: conan alias ${{ inputs.recipe_id_latest }} ${{ inputs.recipe_id_full }}
 
       - name: Upload the Package(s)
-        if: ${{ always() }}
+        if: ${{ always() && !inputs.conan_internal}}
         run: |
           conan upload ${{ inputs.recipe_id_full }} -r cura --all -c
           conan upload ${{ inputs.recipe_id_latest }} -r cura -c
