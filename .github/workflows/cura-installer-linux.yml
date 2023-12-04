@@ -153,8 +153,9 @@ jobs:
         id: filename
         run: |
           wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/runner_scripts/cura_installer_filename.py -O runner_scripts/cura_installer_filename.py
-          python runner_scripts/cura_installer_filename.py
+          python runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --arch ${{ inputs.architecture }} --enterprise ${{ inputs.enterprise }} --internal ${{ inputs.conan_internal }}
 
+        # FIXME: Change to `main` from `CURA-10831` once merged`
       - name: Summarize the used dependencies
         run: |
           wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/runner_scripts/summarize_used_dependencies.py -O runner_scripts/summarize_used_dependencies.py
