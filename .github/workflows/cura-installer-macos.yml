@@ -137,7 +137,7 @@ jobs:
 
       - name: Add Cura private Artifactory remote
         if: ${{ inputs.conan_internal }}
-        run: conan remote add cura-private $CONAN_PRIVATE_ARTIFACTORY_URL True
+        run: conan remote add cura-private $CONAN_PRIVATE_ARTIFACTORY_URL True || true
 
       - name: Remove Macos keychain (Bash)
         run: security delete-keychain signing_temp.keychain || true
@@ -161,7 +161,7 @@ jobs:
 
       - name: Remove private Artifactory
         if: ${{ ! inputs.conan_internal }}
-        run: conan remote remove cura-private-conan-dev || true
+        run: conan remote remove cura-private || true
 
       - name: Create the Packages (Bash)
         run: conan install $CURA_CONAN_VERSION ${{ inputs.conan_args }} --build=missing --update -if cura_inst -g VirtualPythonEnv -o cura:enterprise=$ENTERPRISE -o cura:staging=$STAGING -c tools.build:skip_test=True
