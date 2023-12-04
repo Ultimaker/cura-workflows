@@ -112,7 +112,7 @@ jobs:
           mkdir -p /Users/runner/.conan/data
 
       - name: Create default Conan profile
-        run: conan profile new default --detect
+        run: conan profile new default --detect --force
 
       - name: Get Conan configuration
         run: |
