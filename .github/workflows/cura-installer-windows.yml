@@ -150,17 +150,19 @@ jobs:
         run: pyinstaller ./cura_inst/UltiMaker-Cura.spec
 
         # FIXME: Change to `main` from `CURA-10831` once merged`
+      - name: Get installer helper scripts
+        run: |
+          New-Item -ItemType Directory -Force -Path runner_scripts
+          cd runner_scripts
+          curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/runner_scripts/cura_installer_filename.py
+          curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/runner_scripts/summarize_used_dependencies.py
+
       - name: Output the name file name and extension
         id: filename
-        run: |
-          wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/runner_scripts/cura_installer_filename.py -O runner_scripts/cura_installer_filename.py
-          python runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --arch ${{ inputs.architecture }} --enterprise ${{ inputs.enterprise }} --internal ${{ inputs.conan_internal }}
+        run: python runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --arch ${{ inputs.architecture }} --enterprise ${{ inputs.enterprise }} --internal ${{ inputs.conan_internal }}
 
-        # FIXME: Change to `main` from `CURA-10831` once merged`
       - name: Summarize the used dependencies
-        run: |
-          wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/runner_scripts/summarize_used_dependencies.py -O runner_scripts/summarize_used_dependencies.py
-          python runner_scripts/summarize_used_dependencies.py --installer_filename ${{ steps.filename.outputs.INSTALLER_FILENAME }}
+        run: python runner_scripts/summarize_used_dependencies.py --installer_filename ${{ steps.filename.outputs.INSTALLER_FILENAME }}
 
       - name: Create PFX certificate from BASE64_PFX_CONTENT secret
         id: create-pfx
