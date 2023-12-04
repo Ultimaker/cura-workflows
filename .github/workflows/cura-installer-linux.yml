@@ -159,7 +159,7 @@ jobs:
       - name: Summarize the used dependencies
         run: |
           wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/runner_scripts/summarize_used_dependencies.py -O runner_scripts/summarize_used_dependencies.py
-          python runner_scripts/summarize_used_dependencies.py
+          python runner_scripts/summarize_used_dependencies.py --installer_filename ${{ steps.filename.outputs.INSTALLER_FILENAME }}
 
       - name: Create the Linux AppImage (Bash)
         run: |
