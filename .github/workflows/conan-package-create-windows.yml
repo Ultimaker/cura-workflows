@@ -73,6 +73,10 @@ jobs:
           conan config install https://github.com/Ultimaker/conan-config.git
           conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/${{ runner.os }}/${{ runner.arch }}"
 
+      - name: Add Cura private Artifactory remote
+        if: ${{ inputs.conan_internal }}
+        run: conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/internal"
+
       - name: Cache Conan packages
         uses: actions/cache@v3
         with:
@@ -90,10 +94,6 @@ jobs:
           key: ${{ runner.os }}-conan-downloads-${{ github.run_id }}
           restore-keys: |
             ${{ runner.os }}-conan-downloads-
-
-      - name: Add Cura private Artifactory remote
-        if: ${{ inputs.conan_internal }}
-        run: conan remote add cura-private $CONAN_PRIVATE_ARTIFACTORY_URL True
 
       - name: Export the Package (binaries)
         run: conan create . ${{ inputs.recipe_id_full }} --build=missing --update ${{ inputs.conan_extra_args }}
