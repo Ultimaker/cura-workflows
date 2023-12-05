@@ -118,6 +118,7 @@ jobs:
               . "./$file"
             fi
           done
+          echo "$PATH" >> $GITHUB_PATH
         working-directory: ${{ inputs.conan_generator_dir }}
 
       - name: Build
