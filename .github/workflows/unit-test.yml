@@ -17,6 +17,11 @@ on:
         required: true
         type: string
 
+      conan_generator_dir:
+        required: false
+        default: './build/Release/generators'
+        type: string
+
       unit_test_dir:
         required: true
         type: string
@@ -107,11 +112,13 @@ jobs:
         run: conan install . ${{ inputs.recipe_id_full }} -s build_type=Release --build=missing --update -g GitHubActionsRunEnv -g GitHubActionsBuildEnv ${{ inputs.conan_extra_args }}
 
       - name: Set Environment variables from Conan install (bash)
-        if: ${{ runner.os != 'Windows' }}
         run: |
-          . ./activate_github_actions_runenv.sh
-          . ./activate_github_actions_buildenv.sh
-        working-directory: build/Release/generators
+          for file in activate_github_actions*.sh; do
+            if [ -f "$file" ]; then
+              . "./$file"
+            fi
+          done
+        working-directory: ${{ inputs.conan_generator_dir }}
 
       - name: Build
         if: ${{ inputs.build == true }}
