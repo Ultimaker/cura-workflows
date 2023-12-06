@@ -69,6 +69,7 @@ def get_conan_broadcast_data(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description = 'Get Conan broadcast data')
     parser.add_argument('--user', type = str, help = 'User input')
+    parser.add_argument('--channel', type = str, help = 'User channel')
     parser.add_argument('--project_name', type = str, help = 'Name of the project')
     parser.add_argument('--sha', type = str, help = 'Commit SHA')
     parser.add_argument('--event_name', type = str, help = 'Github event name')
