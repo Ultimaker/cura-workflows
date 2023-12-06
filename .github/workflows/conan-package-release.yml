@@ -31,13 +31,13 @@ on:
           - pySavitar
 
       ref_name:
-        description: 'Git ref (e.q.: main, 5.7, sha, ...)'
+        description: 'Git ref (main, 5.7, sha)'
         required: false
         default: 'main'
         type: string
 
       version:
-        description: 'Semantic Version (e.q. 5.7, 0.1.0-beta.1, ...)'
+        description: 'Semantic Version (5.7, 0.1.0-beta.1)'
         required: true
         type: string
 
@@ -48,19 +48,19 @@ on:
         type: boolean
 
       conan_user:
-        description: 'Conan user (e.q.: _, ultimaker, internal, ...)'
+        description: 'Conan user (_, ultimaker, internal)'
         required: false
         default: '_'
         type: string
 
       conan_channel:
-        description: 'Conan channel (e.q.: _, testing, stable, ...)'
+        description: 'Conan channel (_, testing, stable)'
         required: false
         default: '_'
         type: string
 
       conan_internal:
-        description: 'UltiMaker private (user: internal)'
+        description: 'UltiMaker private (internal)'
         required: false
         default: false
         type: boolean
@@ -72,7 +72,7 @@ on:
         type: boolean
 
       conan_extra_args:
-        description: 'Conan args: (eq.: --require-override)'
+        description: 'Conan args: (--require-override)'
         required: false
         default: ''
         type: string
