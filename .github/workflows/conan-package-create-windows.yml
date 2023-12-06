@@ -23,7 +23,6 @@ permissions:
 env:
   CONAN_LOGIN_USERNAME: ${{ secrets.CONAN_USER }}
   CONAN_PASSWORD: ${{ secrets.CONAN_PASS }}
-  CONAN_PRIVATE_ARTIFACTORY_URL: ${{ secrets.CONAN_PRIVATE_ARTIFACTORY_URL }}
 
 jobs:
   package-create:
