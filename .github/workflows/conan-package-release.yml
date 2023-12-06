@@ -99,8 +99,8 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          repository: ${{ github.event.inputs.organization }}/${{ github.event.inputs.repository }}
-          ref: ${{ github.event.inputs.ref_name }}
+          repository: ${{ inputs.organization }}/${{ inputs.repository }}
+          ref: ${{ inputs.ref_name }}
           fetch-depth: 1
           token: ${{ secrets.CURA_CONAN_PACKAGE_RELEASE_PAT }}
 
@@ -135,7 +135,7 @@ jobs:
           conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/${{ runner.os }}/${{ runner.arch }}"
 
       - name: Add Cura private Artifactory remote
-        if: ${{ github.event.inputs.conan_internal }}
+        if: ${{ inputs.conan_internal }}
         run: conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/internal"
 
       - name: Cache Conan packages
@@ -160,7 +160,7 @@ jobs:
       - name: Get basic project info
         run: |
           echo "CONAN_PROJECT_NAME=$(conan inspect . | awk '/^name:/ {print $2}')" >> $GITHUB_ENV
-          if [ "${{ github.event.inputs.conan_internal }}" = "true" ]; then
+          if [ "${{ inputs.conan_internal }}" = "true" ]; then
             echo "CONAN_USER=internal" >> $GITHUB_ENV
           else
             echo "CONAN_USER=ultimaker" >> $GITHUB_ENV
@@ -172,23 +172,23 @@ jobs:
         run: |
           mkdir runner_scripts
           wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/runner_scripts/get_conan_broadcast_data.py -O runner_scripts/get_conan_broadcast_data.py
-          python runner_scripts/get_conan_broadcast_data.py --user $CONAN_USER --project_name $CONAN_PROJECT_NAME --release true --version ${{ github.event.inputs.version }}
+          python runner_scripts/get_conan_broadcast_data.py --user $CONAN_USER --project_name $CONAN_PROJECT_NAME --release true --version ${{ inputs.version }}
 
       - name: Export the Package
-        run: conan export . ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }} ${{ github.event.inputs.conan_extra_args }}
+        run: conan export . ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }} ${{ inputs.conan_extra_args }}
 
       - name: Create the latest alias
         if: always()
         run: conan alias ${{ steps.get-conan-broadcast-data.outputs.recipe_id_latest }} ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }}
 
       - name: Upload the Package(s)
-        if: ${{ always() && !github.event.inputs.conan_internal}}
+        if: ${{ always() && ! inputs.conan_internal}}
         run: |
           conan upload ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }} -r cura --all -c
           conan upload ${{ steps.get-conan-broadcast-data.outputs.recipe_id_latest }} -r cura -c
 
       - name: Upload the Package(s) to the private Artifactory
-        if: ${{ always() && github.event.inputs.conan_internal }}
+        if: ${{ always() && inputs.conan_internal }}
         run: |
           conan upload ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }} -r cura-private --all -c
           conan upload ${{ steps.get-conan-broadcast-data.outputs.recipe_id_latest }} -r cura-private -c
