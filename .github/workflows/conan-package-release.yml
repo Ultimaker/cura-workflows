@@ -2,84 +2,86 @@ name: Create Conan Package Release
 
 on:
   workflow_dispatch:
-    organization:
-      description: 'Organization'
-      required: false
-      default: Ultimaker
-      type: string
+    inputs:
+      organization:
+        description: 'Organization'
+        required: false
+        default: Ultimaker
+        type: string
 
-    repository:
-      description: 'repository'
-      required: true
-      default: 'Cura'
-      type: choice
-      options:
-        - Cura
-        - Uranium
-        - fdm_materials
-        - Cura-binary-data
-        - CuraEngine
-        - CuraEngine_grpc_definitions
-        - CuraEngine_plugin_gradual_flow
-        - synsepalum-dulcificum
-        - libArcus
-        - libnest2d
-        - libSavitar
-        - pyarcus
-        - pynest2d
-        - pySavitar
+      repository:
+        description: 'repository'
+        required: true
+        default: 'Cura'
+        type: choice
+        options:
+          - Cura
+          - Uranium
+          - fdm_materials
+          - Cura-binary-data
+          - CuraEngine
+          - CuraEngine_grpc_definitions
+          - CuraEngine_plugin_gradual_flow
+          - synsepalum-dulcificum
+          - libArcus
+          - libnest2d
+          - libSavitar
+          - pyarcus
+          - pynest2d
+          - pySavitar
 
-    ref_name:
-      description: 'Git ref (e.q.: main, 5.7, sha, ...)'
-      required: false
-      default: 'main'
-      type: string
+      ref_name:
+        description: 'Git ref (e.q.: main, 5.7, sha, ...)'
+        required: false
+        default: 'main'
+        type: string
 
-    version:
-      description: 'Semantic Version (e.q. 5.7, 0.1.0-beta.1, ...)'
-      required: true
-      type: string
+      version:
+        description: 'Semantic Version (e.q. 5.7, 0.1.0-beta.1, ...)'
+        required: true
+        type: string
 
-    conan_internal:
-      description: 'UltiMaker private (user: internal)'
-      required: false
-      default: false
-      type: boolean
+      conan_internal:
+        description: 'UltiMaker private (user: internal)'
+        required: false
+        default: false
+        type: boolean
 
-    conan_extra_args:
-      description: 'Conan args: (eq.: --require-override)'
-      required: false
-      default: ''
-      type: string
+      conan_extra_args:
+        description: 'Conan args: (eq.: --require-override)'
+        required: false
+        default: ''
+        type: string
 
   workflow_call:
-    organization:
-      required: false
-      default: Ultimaker
-      type: string
+    inputs:
+      organization:
+        required: false
+        default: Ultimaker
+        type: string
 
-    repository:
-      required: true
-      type: string
+      repository:
+        required: true
+        type: string
 
-    ref_name:
-      required: false
-      default: ''
-      type: string
+      ref_name:
+        required: false
+        default: ''
+        type: string
 
-    version:
-      required: true
-      type: string
+      version:
+        required: true
+        type: string
 
-    conan_internal:
-      required: false
-      default: false
-      type: boolean
+      conan_internal:
+        required: false
+        default: false
+        type: boolean
 
-    conan_extra_args:
-      required: false
-      default: ''
-      type: string
+      conan_extra_args:
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
