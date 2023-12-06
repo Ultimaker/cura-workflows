@@ -2,6 +2,92 @@ name: Create Conan Package Release
 
 on:
   workflow_dispatch:
+    organization:
+      description: 'Organization'
+      required: false
+      default: Ultimaker
+      type: string
+
+    repository:
+      description: 'repository'
+      required: true
+      default: 'Cura'
+      type: choice
+      options:
+        - Cura
+        - Uranium
+        - fdm_materials
+        - Cura-binary-data
+        - CuraEngine
+        - CuraEngine_grpc_definitions
+        - CuraEngine_plugin_gradual_flow
+        - synsepalum-dulcificum
+        - libArcus
+        - libnest2d
+        - libSavitar
+        - pyarcus
+        - pynest2d
+        - pySavitar
+
+    ref_name:
+      description: 'Git ref (e.q.: main, 5.7, sha, ...)'
+      required: false
+      default: 'main'
+      type: string
+
+    version:
+      description: 'Semantic Version (e.q. 5.7, 0.1.0-beta.1, ...)'
+      required: true
+      type: string
+
+    conan_internal:
+      description: 'UltiMaker private (user: internal)'
+      required: false
+      default: false
+      type: boolean
+
+    conan_extra_args:
+      description: 'Conan args: (eq.: --require-override)'
+      required: false
+      default: ''
+      type: string
+
+  workflow_call:
+    organization:
+      required: false
+      default: Ultimaker
+      type: string
+
+    repository:
+      required: true
+      type: string
+
+    ref_name:
+      required: false
+      default: ''
+      type: string
+
+    version:
+      required: true
+      type: string
+
+    conan_internal:
+      required: false
+      default: false
+      type: boolean
+
+    conan_extra_args:
+      required: false
+      default: ''
+      type: string
+
+permissions:
+  contents: read
+
+env:
+  CONAN_LOGIN_USERNAME: ${{ secrets.CONAN_USER }}
+  CONAN_PASSWORD: ${{ secrets.CONAN_PASS }}
+  CONAN_PRIVATE_ARTIFACTORY_URL: ${{ secrets.CONAN_PRIVATE_ARTIFACTORY_URL }}
 
 jobs:
   package-export:
@@ -10,3 +96,97 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.inputs.organization }}/${{ github.event.inputs.repository }}
+          ref: ${{ github.event.inputs.ref_name }}
+          fetch-depth: 1
+          token: ${{ secrets.CURA_CONAN_PACKAGE_RELEASE_PAT }}
+
+      #  FIXME: point to `main` once merged
+      - name: Sync pip requirements
+        run: |
+          mkdir -p .github/workflows
+          cd .github/workflows
+          curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/.github/workflows/requirements-runner.txt
+
+      - name: Setup Python and pip
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11.x
+          cache: pip
+          cache-dependency-path: .github/workflows/requirements-runner.txt
+
+      - name: Install Python requirements and Create default Conan profile
+        run: pip install -r .github/workflows/requirements-runner.txt
+
+      - name: Setup pipeline caches
+        run: |
+          mkdir -p /home/runner/.conan/downloads
+          mkdir -p /home/runner/.conan/data
+
+      - name: Create default Conan profile
+        run: conan profile new default --detect
+
+      - name: Get Conan configuration
+        run: |
+          conan config install https://github.com/Ultimaker/conan-config.git
+          conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/${{ runner.os }}/${{ runner.arch }}"
+
+      - name: Add Cura private Artifactory remote
+        if: ${{ github.event.inputs.conan_internal }}
+        run: conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/internal"
+
+      - name: Cache Conan packages
+        uses: actions/cache@v3
+        with:
+          path: /home/runner/.conan/data
+          key: ${{ runner.os }}-conan-data-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-conan-data-
+
+      - name: Cache Conan downloads
+        uses: actions/cache@v3
+        with:
+          path: /home/runner/.conan/downloads
+          key: ${{ runner.os }}-conan-downloads-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-conan-downloads-
+
+      - name: Install pyyaml
+        run: pip install pyyaml
+
+      - name: Get basic project info
+        run: |
+          echo "CONAN_PROJECT_NAME=$(conan inspect . | awk '/^name:/ {print $2}')" >> $GITHUB_ENV
+          if [ "${{ github.event.inputs.conan_internal }}" = "true" ]; then
+            echo "CONAN_USER=internal" >> $GITHUB_ENV
+          else
+            echo "CONAN_USER=ultimaker" >> $GITHUB_ENV
+          fi
+
+      # FIXME: Use `main` instead of `CURA-10831` once the branch is merged.
+      - id: get-conan-broadcast-data
+        name: Get Conan broadcast data
+        run: |
+          mkdir runner_scripts
+          wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/runner_scripts/get_conan_broadcast_data.py -O runner_scripts/get_conan_broadcast_data.py
+          python runner_scripts/get_conan_broadcast_data.py --user $CONAN_USER --project_name $CONAN_PROJECT_NAME --release true --version ${{ github.event.inputs.version }}
+
+      - name: Export the Package
+        run: conan export . ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }} ${{ github.event.inputs.conan_extra_args }}
+
+      - name: Create the latest alias
+        if: always()
+        run: conan alias ${{ steps.get-conan-broadcast-data.outputs.recipe_id_latest }} ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }}
+
+      - name: Upload the Package(s)
+        if: ${{ always() && !github.event.inputs.conan_internal}}
+        run: |
+          conan upload ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }} -r cura --all -c
+          conan upload ${{ steps.get-conan-broadcast-data.outputs.recipe_id_latest }} -r cura -c
+
+      - name: Upload the Package(s) to the private Artifactory
+        if: ${{ always() && github.event.inputs.conan_internal }}
+        run: |
+          conan upload ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }} -r cura-private --all -c
+          conan upload ${{ steps.get-conan-broadcast-data.outputs.recipe_id_latest }} -r cura-private -c
