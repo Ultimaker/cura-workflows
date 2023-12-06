@@ -218,14 +218,14 @@ jobs:
         if: ${{ ! inputs.conan_internal }}
         run: conan upload ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }} -r cura --all -c
 
-     - name: Upload the latest Package(s)
-       if: ${{ ! inputs.conan_internal && inputs.conan_latest }}
-       run: conan upload ${{ steps.get-conan-broadcast-data.outputs.recipe_id_latest }} -r cura -c
+      - name: Upload the latest Package(s)
+        if: ${{ ! inputs.conan_internal && inputs.conan_latest }}
+        run: conan upload ${{ steps.get-conan-broadcast-data.outputs.recipe_id_latest }} -r cura -c
 
       - name: Upload the Package(s) to the private Artifactory
         if: ${{ inputs.conan_internal }}
         run: conan upload ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }} -r cura-private --all -c
 
-     - name: Upload the latest Package(s) to the private Artifactory
-       if: ${{ inputs.conan_internal && inputs.conan_latest }}
-       run: conan upload ${{ steps.get-conan-broadcast-data.outputs.recipe_id_latest }} -r cura-private -c
+      - name: Upload the latest Package(s) to the private Artifactory
+        if: ${{ inputs.conan_internal && inputs.conan_latest }}
+        run: conan upload ${{ steps.get-conan-broadcast-data.outputs.recipe_id_latest }} -r cura-private -c
