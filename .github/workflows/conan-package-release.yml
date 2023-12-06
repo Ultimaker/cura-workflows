@@ -1,0 +1,12 @@
+name: Create Conan Package Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  package-export:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
