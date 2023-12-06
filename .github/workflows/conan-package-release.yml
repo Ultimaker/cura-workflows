@@ -41,6 +41,24 @@ on:
         required: true
         type: string
 
+      conan_release:
+        description: 'Create a release'
+        required: false
+        default: true
+        type: boolean
+
+      conan_user:
+        description: 'Conan user (e.q.: _, ultimaker, internal, ...)'
+        required: false
+        default: '_'
+        type: string
+
+      conan_channel:
+        description: 'Conan channel (e.q.: _, testing, stable, ...)'
+        required: false
+        default: '_'
+        type: string
+
       conan_internal:
         description: 'UltiMaker private (user: internal)'
         required: false
@@ -77,6 +95,16 @@ on:
 
       version:
         required: true
+        type: string
+
+      conan_user:
+        required: false
+        default: '_'
+        type: string
+
+      conan_channel:
+        required: false
+        default: '_'
         type: string
 
       conan_internal:
@@ -170,11 +198,6 @@ jobs:
       - name: Get basic project info
         run: |
           echo "CONAN_PROJECT_NAME=$(conan inspect . | awk '/^name:/ {print $2}')" >> $GITHUB_ENV
-          if [ "${{ inputs.conan_internal }}" = "true" ]; then
-            echo "CONAN_USER=internal" >> $GITHUB_ENV
-          else
-            echo "CONAN_USER=ultimaker" >> $GITHUB_ENV
-          fi
 
       # FIXME: Use `main` instead of `CURA-10831` once the branch is merged.
       - id: get-conan-broadcast-data
@@ -182,7 +205,7 @@ jobs:
         run: |
           mkdir runner_scripts
           wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/runner_scripts/get_conan_broadcast_data.py -O runner_scripts/get_conan_broadcast_data.py
-          python runner_scripts/get_conan_broadcast_data.py --user $CONAN_USER --project_name $CONAN_PROJECT_NAME --release true --version ${{ inputs.version }}
+          python runner_scripts/get_conan_broadcast_data.py --user ${{ inputs.conan_user }} --channel ${{ inputs.conan_channel }} --project_name $CONAN_PROJECT_NAME --release ${{ inputs.conan_release }} --version ${{ inputs.version }}
 
       - name: Export the Package
         run: conan export . ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }} ${{ inputs.conan_extra_args }}

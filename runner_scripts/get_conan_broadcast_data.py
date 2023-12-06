@@ -14,18 +14,28 @@ def get_conan_broadcast_data(args):
         channel = "_"
         is_release_branch = True
     else:
-        actual_version = version if "+" in version else f"{version}+{args.sha[:6]}"
+        build_metadata = ""
+        if "+" in version:
+            build_metadata += f"+{version.split('+')[1]}"
+            version = version.split("+")[0]
+        elif args.sha:
+            build_metadata += f"+{args.sha[:6]}"
+
+        actual_version = f"{version}{build_metadata}"
         user = args.user.lower()
-        ref_name = args.base_ref if args.event_name == "pull_request" else args.ref_name
-        if "beta" in version and args.event_name != "pull_request" and  ref_name == '.'.join(version.split('.')[:2]):
-            channel = "stable"
-            is_release_branch = True
+        is_release_branch = False
+        if args.channel:
+            channel = args.channel.lower()
         else:
-            is_release_branch = False
-            if ref_name in ("main", "master"):
-                channel = 'testing'
+            ref_name = args.base_ref if args.event_name == "pull_request" else args.ref_name
+            if "beta" in version and args.event_name != "pull_request" and ref_name == '.'.join(version.split('.')[:2]):
+                channel = "stable"
+                is_release_branch = True
             else:
-                channel = "_".join(ref_name.replace("-", "_").split("_")[:2]).lower()
+                if ref_name in ("main", "master"):
+                    channel = 'testing'
+                else:
+                    channel = "_".join(ref_name.replace("-", "_").split("_")[:2]).lower()
 
     # %% Set the environment output
     output_env = os.environ["GITHUB_OUTPUT"]
