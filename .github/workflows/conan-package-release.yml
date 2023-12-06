@@ -47,6 +47,12 @@ on:
         default: false
         type: boolean
 
+      conan_latest:
+        description: 'Create the latest alias'
+        required: false
+        default: true
+        type: boolean
+
       conan_extra_args:
         description: 'Conan args: (eq.: --require-override)'
         required: false
@@ -76,6 +82,11 @@ on:
       conan_internal:
         required: false
         default: false
+        type: boolean
+
+      conan_latest:
+        required: false
+        default: true
         type: boolean
 
       conan_extra_args:
@@ -178,17 +189,21 @@ jobs:
         run: conan export . ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }} ${{ inputs.conan_extra_args }}
 
       - name: Create the latest alias
-        if: always()
+        if: ${{ inputs.conan_latest }}
         run: conan alias ${{ steps.get-conan-broadcast-data.outputs.recipe_id_latest }} ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }}
 
       - name: Upload the Package(s)
-        if: ${{ always() && ! inputs.conan_internal}}
-        run: |
-          conan upload ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }} -r cura --all -c
-          conan upload ${{ steps.get-conan-broadcast-data.outputs.recipe_id_latest }} -r cura -c
+        if: ${{ ! inputs.conan_internal }}
+        run: conan upload ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }} -r cura --all -c
+
+     - name: Upload the latest Package(s)
+       if: ${{ ! inputs.conan_internal && inputs.conan_latest }}
+       run: conan upload ${{ steps.get-conan-broadcast-data.outputs.recipe_id_latest }} -r cura -c
 
       - name: Upload the Package(s) to the private Artifactory
-        if: ${{ always() && inputs.conan_internal }}
-        run: |
-          conan upload ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }} -r cura-private --all -c
-          conan upload ${{ steps.get-conan-broadcast-data.outputs.recipe_id_latest }} -r cura-private -c
+        if: ${{ inputs.conan_internal }}
+        run: conan upload ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }} -r cura-private --all -c
+
+     - name: Upload the latest Package(s) to the private Artifactory
+       if: ${{ inputs.conan_internal && inputs.conan_latest }}
+       run: conan upload ${{ steps.get-conan-broadcast-data.outputs.recipe_id_latest }} -r cura-private -c
