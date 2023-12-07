@@ -60,7 +60,7 @@ jobs:
       #  FIXME: point to `main` once merged
       - name: Install Macos system requirements for building
         run: |
-          mkdir runner_scripts
+          mkdir -p runner_scripts
           wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/runner_scripts/macos_setup.sh -O runner_scripts/macos_setup.sh
           chmod +x runner_scripts/macos_setup.sh
           ./runner_scripts/macos_setup.sh
