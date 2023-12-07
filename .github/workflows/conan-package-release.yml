@@ -77,6 +77,12 @@ on:
         default: ''
         type: string
 
+      conan_extra_args_create:
+        description: 'Conan args create: (--require-override)'
+        required: false
+        default: ''
+        type: string
+
   workflow_call:
     inputs:
       organization:
@@ -118,6 +124,11 @@ on:
         type: boolean
 
       conan_extra_args_export:
+        required: false
+        default: ''
+        type: string
+
+      conan_extra_args_create:
         required: false
         default: ''
         type: string
@@ -239,4 +250,5 @@ jobs:
     uses: ultimaker/cura-workflows/.github/workflows/conan-package-create-linux.yml@CURA-10831
     with:
       recipe_id_full: ${{ needs.conan-package-export.outputs.recipe_id_full }}
+      conan_extra_args: ${{ inputs.conan_extra_args_create }}
     secrets: inherit
