@@ -71,14 +71,8 @@ on:
         default: true
         type: boolean
 
-      conan_extra_args_export:
-        description: 'Conan args export: (--require-override)'
-        required: false
-        default: ''
-        type: string
-
-      conan_extra_args_create:
-        description: 'Conan args create: (--require-override)'
+      conan_extra_args:
+        description: 'Conan args: (--require-override)'
         required: false
         default: ''
         type: string
@@ -123,12 +117,7 @@ on:
         default: true
         type: boolean
 
-      conan_extra_args_export:
-        required: false
-        default: ''
-        type: string
-
-      conan_extra_args_create:
+      conan_extra_args:
         required: false
         default: ''
         type: string
@@ -141,12 +130,8 @@ env:
   CONAN_PASSWORD: ${{ secrets.CONAN_PASS }}
 
 jobs:
-  conan-package-export:
+  package-export:
     runs-on: ubuntu-latest
-
-    outputs:
-        recipe_id_full: ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }}
-        recipe_id_latest: ${{ steps.get-conan-broadcast-data.outputs.recipe_id_latest }}
 
     steps:
       - name: Checkout repo
@@ -223,7 +208,7 @@ jobs:
           python runner_scripts/get_conan_broadcast_data.py --user ${{ inputs.conan_user }} --channel ${{ inputs.conan_channel }} --project_name $CONAN_PROJECT_NAME --release ${{ inputs.conan_release }} --version ${{ inputs.version }}
 
       - name: Export the Package
-        run: conan export . ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }} ${{ inputs.conan_extra_args_export }}
+        run: conan export . ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }} ${{ inputs.conan_extra_args }}
 
       - name: Create the latest alias
         if: ${{ inputs.conan_latest }}
@@ -244,11 +229,3 @@ jobs:
       - name: Upload the latest Package(s) to the private Artifactory
         if: ${{ inputs.conan_internal && inputs.conan_latest }}
         run: conan upload ${{ steps.get-conan-broadcast-data.outputs.recipe_id_latest }} -r cura-private -c
-
-  conan-package-create-linux:
-    needs: [ conan-package-export ]
-    uses: ultimaker/cura-workflows/.github/workflows/conan-package-create-linux.yml@CURA-10831
-    with:
-      recipe_id_full: ${{ needs.conan-package-export.outputs.recipe_id_full }}
-      conan_extra_args: ${{ inputs.conan_extra_args_create }}
-    secrets: inherit
