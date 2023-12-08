@@ -130,15 +130,6 @@ jobs:
       - name: Create the Packages (Powershell)
         run: conan install $Env:CURA_CONAN_VERSION ${{ inputs.conan_args }} --build=missing --update -if cura_inst -g VirtualPythonEnv -o cura:enterprise=$Env:ENTERPRISE -o cura:staging=$Env:STAGING -o cura:internal=${{ inputs.conan_internal }} -c tools.build:skip_test=True
 
-      - name: Remove internal packages before uploading
-        run: |
-          conan remove "*@internal/*" -f || true
-          conan remove "cura_private_data*" -f || true
-
-      - name: Upload the Package(s)
-        if: ${{ always() && ! inputs.conan_internal }}
-        run: conan upload "*" -r cura --all -c
-
       - name: Set Environment variables for Cura (Powershell)
         run: |
           echo "${Env:WIX}\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
@@ -196,6 +187,15 @@ jobs:
         run: |
           & "C:/Program Files (x86)/Windows Kits/10/bin/10.0.17763.0/x86/signtool.exe" sign /f $Env:PFX_PATH /p "$Env:WIN_CERT_INSTALLER_CER_PASS" /fd SHA256 /t http://timestamp.digicert.com "${{steps.filename.outputs.INSTALLER_FILENAME }}.exe"
         working-directory: dist
+
+      - name: Remove internal packages before uploading
+        run: |
+          conan remove "*@internal/*" -f || true
+          conan remove "cura_private_data*" -f || true
+
+      - name: Upload the Package(s)
+        if: ${{ always() && ! inputs.conan_internal }}
+        run: conan upload "*" -r cura --all -c
 
       - name: Upload the msi
         uses: actions/upload-artifact@v3

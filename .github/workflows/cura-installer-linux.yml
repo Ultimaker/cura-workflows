@@ -132,15 +132,6 @@ jobs:
       - name: Create the Packages (Bash)
         run: conan install $CURA_CONAN_VERSION ${{ inputs.conan_args }} --build=missing --update -if cura_inst -g VirtualPythonEnv -o cura:enterprise=$ENTERPRISE -o cura:staging=$STAGING  -o cura:internal=${{ inputs.conan_internal }} -c tools.build:skip_test=True
 
-      - name: Remove internal packages before uploading
-        run: |
-          conan remove "*@internal/*" -f || true
-          conan remove "cura_private_data*" -f || true
-
-      - name: Upload the Package(s)
-        if: ${{ always() && ! inputs.conan_internal }}
-        run: conan upload "*" -r cura --all -c
-
       - name: Set Environment variables for Cura (bash)
         run: |
           . ./cura_inst/bin/activate_github_actions_env.sh
@@ -168,6 +159,15 @@ jobs:
           python ../cura_inst/packaging/AppImage-builder/create_appimage.py ./UltiMaker-Cura $CURA_VERSION_FULL "${{ steps.filename.outputs.INSTALLER_FILENAME }}.AppImage"
           chmod +x "${{ steps.filename.outputs.INSTALLER_FILENAME }}.AppImage"
         working-directory: dist
+
+      - name: Remove internal packages before uploading
+        run: |
+          conan remove "*@internal/*" -f || true
+          conan remove "cura_private_data*" -f || true
+
+      - name: Upload the Package(s)
+        if: ${{ always() && ! inputs.conan_internal }}
+        run: conan upload "*" -r cura --all -c
 
       - name: Upload the AppImage
         uses: actions/upload-artifact@v3
