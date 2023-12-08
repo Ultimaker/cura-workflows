@@ -213,6 +213,21 @@ jobs:
             dist/${{steps.filename.outputs.INSTALLER_FILENAME }}.exe
           retention-days: 5
 
+      - name: Setup Sentry CLI
+        uses: mathieu-bour/setup-sentry-cli@v1
+        with:
+          version: latest
+          token: ${{ secrets.CURAENGINE_SENTRY_TOKEN }}
+          organization: ultimaker-o7
+          project: curaengine
+
+      - name: Upload the debug symbols
+        run: |
+          sentry-cli debug-files upload CuraEngine.exe
+          sentry-cli debug-files upload Arcus.dll
+          sentry-cli debug-files upload polyclipping.dll
+        working-directory: dist/UltiMaker-Cura
+
       # NOTE: The extension is .sh, since this isn't going to build-environment, so not on the Win build image.
       - name: Write the run info
         shell: python

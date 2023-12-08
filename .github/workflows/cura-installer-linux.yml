@@ -185,12 +185,28 @@ jobs:
             dist/${{ steps.filename.outputs.INSTALLER_FILENAME }}.AppImage.asc
           retention-days: 5
 
+      - name: Setup Sentry CLI
+        uses: mathieu-bour/setup-sentry-cli@v1
+        with:
+          version: latest
+          token: ${{ secrets.CURAENGINE_SENTRY_TOKEN }}
+          organization: ultimaker-o7
+          project: curaengine
+
+      - name: Upload the debug symbols
+        run: |
+          sentry-cli debug-files upload CuraEngine
+          sentry-cli debug-files upload libArcus.*
+          sentry-cli debug-files upload libpolyclipping.*
+        working-directory: dist/UltiMaker-Cura
+
       - name: Write the run info
         shell: python
         run: |
           import os
           with open("run_info.sh", "w") as f:
               f.writelines(f'echo "CURA_VERSION_FULL={os.environ["CURA_VERSION_FULL"]}" >> $GITHUB_ENV\n')
+
       - name: Upload the run info
         uses: actions/upload-artifact@v3
         with:
