@@ -89,10 +89,9 @@ jobs:
       - name: Install pyyaml
         run: pip install pyyaml
 
-      # FIXME: Use `main` instead of `CURA-10831` once the branch is merged.
       - id: get-conan-broadcast-data
         name: Get Conan broadcast data
         run: |
           mkdir runner_scripts
-          wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/runner_scripts/get_conan_broadcast_data.py -O runner_scripts/get_conan_broadcast_data.py
+          wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/get_conan_broadcast_data.py -O runner_scripts/get_conan_broadcast_data.py
           python runner_scripts/get_conan_broadcast_data.py --user ${{ inputs.user }} --project_name "${{ inputs.project_name }}" --sha "${{ github.sha }}" --event_name "${{ github.event_name }}" --base_ref "${{ github.base_ref }}" --ref_name "${{ github.ref_name }}" --release "${{ inputs.release }}" --version "${{ inputs.version }}"

@@ -43,9 +43,8 @@ jobs:
           fetch-depth: 1
           ref: ${{ github.base_ref }}
 
-      #  FIXME: point to `main` once merged
       - name: Sync pip requirements
-        run: wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/.github/workflows/requirements-runner.txt -O .github/workflows/requirements-runner.txt
+        run: wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/.github/workflows/requirements-runner.txt -O .github/workflows/requirements-runner.txt
 
       - name: Setup Python and pip
         uses: actions/setup-python@v4
@@ -57,11 +56,10 @@ jobs:
       - name: Install Python requirements and Create default Conan profile
         run: pip install -r .github/workflows/requirements-runner.txt
 
-      #  FIXME: point to `main` once merged
       - name: Install Linux system requirements for building
         run: |
           mkdir -p runner_scripts
-          wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/runner_scripts/ubuntu_setup.sh -O runner_scripts/ubuntu_setup.sh
+          wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/ubuntu_setup.sh -O runner_scripts/ubuntu_setup.sh
           chmod +x runner_scripts/ubuntu_setup.sh
           sudo ./runner_scripts/ubuntu_setup.sh
 

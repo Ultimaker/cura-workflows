@@ -6,8 +6,15 @@ def set_installer_filename(args):
     os_name = {"Linux": "linux", "Windows": "win64", "macOS": "macos"}.get(args.os)
     enterprise = "-Enterprise" if args.enterprise == "true" else ""
     internal = "-Internal" if args.internal == "true" else ""
-
-    installer_filename = f"UltiMaker-Cura-{os.getenv('CURA_VERSION_FULL')}{enterprise}{internal}-{os_name}-{args.architecture}"
+    
+    installer_filename_args = ["UltiMaker-Cura", os.getenv('CURA_VERSION_FULL')]
+    if args.enterprise == "true":
+        installer_filename_args.append("Enterprise")
+    if args.internal == "true":
+        installer_filename_args.append("Internal")
+    installer_filename_args.append(os_name)
+    installer_filename_args.append(args.architecture0
+    installer_filename = "-".join(installer_filename_args)
     output_env = os.environ["GITHUB_OUTPUT"]
     content = ""
     if os.path.exists(output_env):

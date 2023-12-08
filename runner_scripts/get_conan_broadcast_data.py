@@ -39,13 +39,7 @@ def get_conan_broadcast_data(args):
 
     # %% Set the environment output
     output_env = os.environ["GITHUB_OUTPUT"]
-    content = ""
-    if os.path.exists(output_env):
-        with open(output_env, "r") as f:
-            content = f.read()
-
-    with open(output_env, "w") as f:
-        f.write(content)
+    with open(output_env, "a") as f:
         f.writelines(f"name={project_name}\n")
         f.writelines(f"version={actual_version}\n")
         f.writelines(f"channel={channel}\n")

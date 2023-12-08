@@ -81,9 +81,8 @@ jobs:
           fetch-depth: 1
           ref: ${{ github.base_ref }}
 
-      #  FIXME: point to `main` once merged
       - name: Sync pip requirements
-        run: curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/.github/workflows/requirements-runner.txt
+        run: curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/.github/workflows/requirements-runner.txt
         working-directory: .github/workflows
 
       - name: Setup Python and pip
@@ -96,12 +95,11 @@ jobs:
       - name: Install Python requirements and Create default Conan profile
         run: pip install -r .github/workflows/requirements-runner.txt
 
-      #  FIXME: point to `main` once merged
       - name: Install Macos system requirements for building
         run: |
           mkdir runner_scripts
           cd runner_scripts
-          curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/runner_scripts/macos_setup.sh
+          curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/macos_setup.sh
           chmod +x macos_setup.sh
           ./macos_setup.sh
 
@@ -178,11 +176,10 @@ jobs:
       - name: Create the Cura dist
         run: pyinstaller ./cura_inst/UltiMaker-Cura.spec
 
-      # FIXME: Change to `main` from `CURA-10831` once merged`
       - name: Get installer helper scripts
         run: |
-          curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/runner_scripts/cura_installer_filename.py
-          curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-10831/runner_scripts/summarize_used_dependencies.py
+          curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/cura_installer_filename.py
+          curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/summarize_used_dependencies.py
         working-directory: runner_scripts
 
       - name: Output the name file name and extension
