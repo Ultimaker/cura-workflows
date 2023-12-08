@@ -94,7 +94,6 @@ jobs:
       - name: Setup pipeline caches
         run: |
           mkdir -p /home/runner/.conan/downloads
-          mkdir -p /home/runner/.conan/data
 
       - name: Create default Conan profile
         run: conan profile new default --detect
@@ -107,14 +106,6 @@ jobs:
       - name: Add Cura private Artifactory remote
         if: ${{ inputs.conan_internal }}
         run: conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/internal"
-
-      - name: Cache Conan packages
-        uses: actions/cache@v3
-        with:
-          path: /home/runner/.conan/data
-          key: ${{ runner.os }}-conan-data-${{ github.run_id }}
-          restore-keys: |
-            ${{ runner.os }}-conan-data-
 
       - name: Cache Conan downloads
         uses: actions/cache@v3
