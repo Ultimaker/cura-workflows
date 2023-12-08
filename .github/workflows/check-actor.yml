@@ -1,0 +1,34 @@
+name: Check Actor
+
+on:
+  workflow_call:
+    outputs:
+      proceed:
+        description: "Is workflow started by a legit actor? No bots or forks"
+        value: ${{ jobs.check_actor.outputs.proceed }}
+
+permissions:
+  contents: read
+
+env:
+  CONAN_LOGIN_USERNAME: ${{ secrets.CONAN_USER }}
+  CONAN_PASSWORD: ${{ secrets.CONAN_PASS }}
+
+jobs:
+  check_actor:
+    runs-on: ubuntu-latest
+    outputs:
+      proceed: ${{ steps.skip_check.outputs.proceed }}
+    steps:
+      - id: skip_check
+        run: |
+          if [[ "${{ github.actor }}" == *"[bot]"* ]]; then
+            echo "proceed=true" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event.pull_request }}" == "" ]]; then 
+            echo "proceed=true" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event.pull_request.head.repo.fork }}" == "false" ]]; then 
+            echo "proceed=true" >> $GITHUB_OUTPUT
+          else
+            echo "proceed=false" >> $GITHUB_OUTPUT
+          fi
+        shell: bash

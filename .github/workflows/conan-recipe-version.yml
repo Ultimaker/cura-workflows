@@ -1,0 +1,97 @@
+name: Get Conan Recipe Version
+
+on:
+  workflow_call:
+    inputs:
+      project_name:
+        required: true
+        type: string
+
+      user:
+        required: false
+        default: ultimaker
+        type: string
+
+      release:
+        required: false
+        default: false
+        type: boolean
+
+      version:
+        required: false
+        default: ''
+        type: string
+
+    outputs:
+      recipe_id_full:
+        description: "The full Conan recipe id: <name>/<version>@<user>/<channel>"
+        value: ${{ jobs.get-semver.outputs.recipe_id_full }}
+
+      recipe_id_latest:
+        description: "The full Conan recipe aliased (latest) id: <name>/(latest)@<user>/<channel>"
+        value: ${{ jobs.get-semver.outputs.recipe_id_latest }}
+
+      recipe_semver_full:
+        description: "The full semver <Major>.<Minor>.<Patch>-<PreReleaseTag>+<BuildMetaData>"
+        value: ${{ jobs.get-semver.outputs.semver_full }}
+
+      is_release_branch:
+        description: "is current branch a release branch?"
+        value: ${{ jobs.get-semver.outputs.release_branch }}
+
+      user:
+        description: "The conan user"
+        value: ${{ jobs.get-semver.outputs.user }}
+
+      channel:
+        description: "The conan channel"
+        value: ${{ jobs.get-semver.outputs.channel }}
+
+      project_name:
+        description: "The conan projectname"
+        value: ${{ inputs.project_name }}
+
+jobs:
+  get-semver:
+
+    runs-on: ubuntu-latest
+
+    outputs:
+      recipe_id_full: ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }}
+      recipe_id_latest: ${{ steps.get-conan-broadcast-data.outputs.recipe_id_latest }}
+      semver_full: ${{ steps.get-conan-broadcast-data.outputs.semver_full }}
+      is_release_branch: ${{ steps.get-conan-broadcast-data.outputs.is_release_branch }}
+      user: ${{ steps.get-conan-broadcast-data.outputs.user }}
+      channel: ${{ steps.get-conan-broadcast-data.outputs.channel }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        with:
+          fetch-depth: 1
+          sparse-checkout: 'conandata.yml'
+          ref: ${{ github.head_ref }}
+
+      - name: Checkout repo PR
+        uses: actions/checkout@v4
+        if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+        with:
+          fetch-depth: 1
+          sparse-checkout: 'conandata.yml'
+          ref: ${{ github.base_ref }}
+
+      - name: Setup Python and pip
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12.x"
+
+      - name: Install pyyaml
+        run: pip install pyyaml
+
+      - id: get-conan-broadcast-data
+        name: Get Conan broadcast data
+        run: |
+          mkdir runner_scripts
+          wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/get_conan_broadcast_data.py -O runner_scripts/get_conan_broadcast_data.py
+          python runner_scripts/get_conan_broadcast_data.py --user ${{ inputs.user }} --project_name "${{ inputs.project_name }}" --sha "${{ github.sha }}" --event_name "${{ github.event_name }}" --base_ref "${{ github.base_ref }}" --ref_name "${{ github.ref_name }}" --release "${{ inputs.release }}" --version "${{ inputs.version }}"
