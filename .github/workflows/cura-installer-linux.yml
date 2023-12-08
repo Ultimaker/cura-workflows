@@ -141,7 +141,8 @@ jobs:
         run: |
           sentry-cli debug-files upload UltiMaker-Cura/CuraEngine
           sentry-cli debug-files upload UltiMaker-Cura/libArcus.*
-          sentry-cli debug-files upload UltiMaker-Cura/libpolyclipping.*
+          sentry-cli debug-files upload UltiMaker-Cura/libc.*
+          sentry-cli debug-files upload UltiMaker-Cura/libstdc++.*
         working-directory: dist
 
       - name: Get installer helper scripts
