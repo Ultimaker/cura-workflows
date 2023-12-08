@@ -13,7 +13,7 @@ def set_installer_filename(args):
     if args.internal == "true":
         installer_filename_args.append("Internal")
     installer_filename_args.append(os_name)
-    installer_filename_args.append(args.architecture0
+    installer_filename_args.append(args.architecture)
     installer_filename = "-".join(installer_filename_args)
     output_env = os.environ["GITHUB_OUTPUT"]
     content = ""
