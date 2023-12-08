@@ -223,10 +223,10 @@ jobs:
 
       - name: Upload the debug symbols
         run: |
-          sentry-cli debug-files upload CuraEngine.exe
-          sentry-cli debug-files upload Arcus.dll
-          sentry-cli debug-files upload polyclipping.dll
-        working-directory: dist/UltiMaker-Cura
+          sentry-cli debug-files upload .\UltiMaker-Cura\CuraEngine.exe
+          sentry-cli debug-files upload .\UltiMaker-Cura\Arcus.dll
+          sentry-cli debug-files upload .\UltiMaker-Cura\polyclipping.dll
+        working-directory: dist
 
       # NOTE: The extension is .sh, since this isn't going to build-environment, so not on the Win build image.
       - name: Write the run info

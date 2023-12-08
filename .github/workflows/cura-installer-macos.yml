@@ -231,10 +231,10 @@ jobs:
 
       - name: Upload the debug symbols
         run: |
-          sentry-cli debug-files upload CuraEngine
-          sentry-cli debug-files upload libArcus.*
-          sentry-cli debug-files upload libpolyclipping.*
-        working-directory: dist/UltiMaker-Cura
+          sentry-cli debug-files upload UltiMaker-Cura/CuraEngine
+          sentry-cli debug-files upload UltiMaker-Cura/libArcus.*
+          sentry-cli debug-files upload UltiMaker-Cura/libpolyclipping.*
+        working-directory: dist
 
       - name: Write the run info
         shell: python
