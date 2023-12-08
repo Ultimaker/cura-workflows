@@ -136,9 +136,9 @@ jobs:
 
       - name: Upload the debug symbols
         run: |
-          sentry-cli debug-files upload ./UltiMaker-Cura/CuraEngine.exe
-          sentry-cli debug-files upload ./UltiMaker-Cura/Arcus.dll
-          sentry-cli debug-files upload ./UltiMaker-Cura/polyclipping.dll
+          sentry-cli debug-files upload .\UltiMaker-Cura\CuraEngine.exe
+          sentry-cli debug-files upload .\UltiMaker-Cura\Arcus.dll
+          sentry-cli debug-files upload .\UltiMaker-Cura\polyclipping.dll
         working-directory: dist
 
       - name: Get installer helper scripts
