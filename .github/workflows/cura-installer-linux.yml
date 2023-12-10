@@ -141,8 +141,7 @@ jobs:
         run: |
           sentry-cli debug-files upload UltiMaker-Cura/CuraEngine
           sentry-cli debug-files upload UltiMaker-Cura/libArcus.*
-          sentry-cli debug-files upload UltiMaker-Cura/libc.*
-          sentry-cli debug-files upload UltiMaker-Cura/libstdc++.*
+          sentry-cli debug-files upload UltiMaker-Cura/libpolyclipping.*
         working-directory: dist
 
       - name: Get installer helper scripts
@@ -162,6 +161,12 @@ jobs:
         run: |
           python ../cura_inst/packaging/AppImage-builder/create_appimage.py ./UltiMaker-Cura $CURA_VERSION_FULL "${{ steps.filename.outputs.INSTALLER_FILENAME }}.AppImage"
           chmod +x "${{ steps.filename.outputs.INSTALLER_FILENAME }}.AppImage"
+        working-directory: dist
+
+      - name: Upload the lib(std)c(++) debug symbols
+        run: |
+          sentry-cli debug-files upload AppDir/libc.*
+          sentry-cli debug-files upload AppDir/libstdc++.*
         working-directory: dist
 
       - name: Remove internal packages before uploading
