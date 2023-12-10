@@ -141,6 +141,12 @@ jobs:
           sentry-cli debug-files upload .\UltiMaker-Cura\polyclipping.dll
         working-directory: dist
 
+      - name: Print directory contents
+        run: |
+          ls
+          ls .\UltiMaker-Cura\
+        working-directory: dist
+
       - name: Get installer helper scripts
         run: |
           New-Item -ItemType Directory -Force -Path runner_scripts
