@@ -165,8 +165,8 @@ jobs:
 
       - name: Upload the lib(std)c(++) debug symbols
         run: |
-          sentry-cli debug-files upload AppDir/libc.*
-          sentry-cli debug-files upload AppDir/libstdc++.*
+          find AppDir/ -name 'libc.*' -exec sentry-cli debug-files upload {} \;
+          find AppDir/ -name 'libstdc++.*' -exec sentry-cli debug-files upload {} \;
         working-directory: dist
 
       - name: Remove internal packages before uploading
