@@ -115,7 +115,7 @@ jobs:
             ${{ runner.os }}-conan-downloads-
 
       - name: Create the Packages (Powershell)
-        run: conan install $Env:CURA_CONAN_VERSION ${{ inputs.conan_args }} --build=missing --update -if cura_inst -g VirtualPythonEnv -o cura:enterprise=$Env:ENTERPRISE -o cura:staging=$Env:STAGING -o cura:internal=${{ inputs.conan_internal }} -c tools.build:skip_test=True
+        run: conan install $Env:CURA_CONAN_VERSION ${{ inputs.conan_args }} --build=missing --update -if cura_inst -g VirtualPythonEnv -o cura:enterprise=$Env:ENTERPRISE -o cura:staging=$Env:STAGING -o cura:internal=${{ inputs.conan_internal }} -c tools.build:skip_test=True -s curaengine:build_type=RelWithDebInfo
 
       - name: Set Environment variables for Cura (Powershell)
         run: |
@@ -134,17 +134,12 @@ jobs:
           organization: ultimaker-o7
           project: curaengine
 
-      - name: Upload the debug symbols
+      - name: Upload and remove debug symbols
         run: |
           sentry-cli debug-files upload .\UltiMaker-Cura\CuraEngine.exe
           sentry-cli debug-files upload .\UltiMaker-Cura\Arcus.dll
           sentry-cli debug-files upload .\UltiMaker-Cura\polyclipping.dll
-        working-directory: dist
-
-      - name: Print directory contents
-        run: |
-          ls
-          ls .\UltiMaker-Cura\
+          del .\UltiMaker-Cura\*.pdb
         working-directory: dist
 
       - name: Get installer helper scripts
