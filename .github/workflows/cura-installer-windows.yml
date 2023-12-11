@@ -137,6 +137,7 @@ jobs:
       - name: Upload and remove debug symbols
         run: |
           sentry-cli debug-files upload .\UltiMaker-Cura\CuraEngine.exe
+          sentry-cli debug-files upload .\UltiMaker-Cura\CuraEngine.pdb
           sentry-cli debug-files upload .\UltiMaker-Cura\Arcus.dll
           sentry-cli debug-files upload .\UltiMaker-Cura\polyclipping.dll
 #          del .\UltiMaker-Cura\*.pdb
