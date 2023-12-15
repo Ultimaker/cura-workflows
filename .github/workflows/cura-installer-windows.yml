@@ -90,10 +90,6 @@ jobs:
       - name: Install Python requirements and Create default Conan profile
         run: pip install -r .\.github\workflows\requirements-runner.txt
 
-      - name: Setup pipeline caches
-        run: |
-          New-Item -ItemType Directory -Force -Path C:\Users\runneradmin\.conan\downloads
-
       - name: Create default Conan profile
         run: conan profile new default --detect
 
@@ -105,14 +101,6 @@ jobs:
       - name: Add Cura private Artifactory remote
         if: ${{ inputs.conan_internal }}
         run: conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/internal"
-
-      - name: Cache Conan downloads
-        uses: actions/cache@v3
-        with:
-          path: C:\Users\runneradmin\.conan\downloads
-          key: ${{ runner.os }}-conan-downloads-${{ github.run_id }}
-          restore-keys: |
-            ${{ runner.os }}-conan-downloads-
 
       - name: Create the Packages (Powershell)
         run: conan install $Env:CURA_CONAN_VERSION ${{ inputs.conan_args }} --build=missing --update -if cura_inst -g VirtualPythonEnv -o cura:enterprise=$Env:ENTERPRISE -o cura:staging=$Env:STAGING -o cura:internal=${{ inputs.conan_internal }} -c tools.build:skip_test=True -s curaengine:build_type=RelWithDebInfo
