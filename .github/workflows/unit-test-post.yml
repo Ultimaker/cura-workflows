@@ -28,7 +28,7 @@ jobs:
       - name: Download analysis results
         uses: actions/github-script@v3.1.0
         with:
-        github-token: ${{ secrets.CURA_UNIT_TESTS_POST_PAT }}
+          github-token: ${{ secrets.CURA_UNIT_TESTS_POST_PAT }}
           script: |
             let artifacts = await github.actions.listWorkflowRunArtifacts({
                 owner: context.repo.owner,
