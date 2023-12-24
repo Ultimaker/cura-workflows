@@ -20,7 +20,7 @@ env:
 
 jobs:
   publish-test-results:
-    if: ${{ inputs.event == 'pull_request' && inputs.conclusion == 'success' }}
+    if: ${{ inputs.event == 'pull_request' }}
     runs-on: ubuntu-latest
 
     steps:
