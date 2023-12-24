@@ -13,6 +13,7 @@ on:
 
 permissions:
   issues: write
+  pull-requests: write
 
 env:
   CONAN_LOGIN_USERNAME: ${{ secrets.CONAN_USER }}
@@ -27,6 +28,7 @@ jobs:
       - name: Download analysis results
         uses: actions/github-script@v3.1.0
         with:
+        github-token: ${{ secrets.CURA_UNIT_TESTS_POST_PAT }}
           script: |
             let artifacts = await github.actions.listWorkflowRunArtifacts({
                 owner: context.repo.owner,
@@ -62,6 +64,7 @@ jobs:
       - name: Redownload analysis results
         uses: actions/github-script@v3.1.0
         with:
+          github-token: ${{ secrets.CURA_UNIT_TESTS_POST_PAT }}
           script: |
             let artifacts = await github.actions.listWorkflowRunArtifacts({
                 owner: context.repo.owner,
