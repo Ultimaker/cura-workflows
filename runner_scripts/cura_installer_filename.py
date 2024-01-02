@@ -7,11 +7,11 @@ def set_installer_filename(args):
     enterprise = "-Enterprise" if args.enterprise == "true" else ""
     internal = "-Internal" if args.internal == "true" else ""
     
-    installer_filename_args = ["UltiMaker-Cura", os.getenv('CURA_VERSION_FULL')]
-    if args.enterprise == "true":
-        installer_filename_args.append("Enterprise")
-    if args.internal == "true":
-        installer_filename_args.append("Internal")
+    installer_filename_args = ["Go3dPrintPro", os.getenv('CURA_VERSION_FULL')]
+    # if args.enterprise == "true":
+    #     installer_filename_args.append("Enterprise")
+    # if args.internal == "true":
+    #     installer_filename_args.append("Internal")
     installer_filename_args.append(os_name)
     installer_filename_args.append(args.architecture)
     installer_filename = "-".join(installer_filename_args)
