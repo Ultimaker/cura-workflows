@@ -151,17 +151,17 @@ jobs:
           Set-Content $pfxPath -Value $encodedBytes -AsByteStream;
           echo "PFX_PATH=$pfxPath" >> $env:GITHUB_OUTPUT;
 
-      - name: Create the Windows msi installer (Powershell)
-        run: |
-          python ..\cura_inst\packaging\msi\create_windows_msi.py ..\cura_inst .\UltiMaker-Cura "${{steps.filename.outputs.INSTALLER_FILENAME }}.msi" "$Env:CURA_APP_NAME"
-        working-directory: dist
+      # - name: Create the Windows msi installer (Powershell)
+      #   run: |
+      #     python ..\cura_inst\packaging\msi\create_windows_msi.py ..\cura_inst .\UltiMaker-Cura "${{steps.filename.outputs.INSTALLER_FILENAME }}.msi" "$Env:CURA_APP_NAME"
+      #   working-directory: dist
 
-      - name: Sign the Windows msi installer (Powershell)
-        env:
-          PFX_PATH: ${{ steps.create-pfx.outputs.PFX_PATH }}
-        run: |
-          & "C:/Program Files (x86)/Windows Kits/10/bin/10.0.17763.0/x86/signtool.exe" sign /f $Env:PFX_PATH /p "$Env:WIN_CERT_INSTALLER_CER_PASS" /fd SHA256 /t http://timestamp.digicert.com "${{steps.filename.outputs.INSTALLER_FILENAME }}.msi"
-        working-directory: dist
+      # - name: Sign the Windows msi installer (Powershell)
+      #   env:
+      #     PFX_PATH: ${{ steps.create-pfx.outputs.PFX_PATH }}
+      #   run: |
+      #     & "C:/Program Files (x86)/Windows Kits/10/bin/10.0.17763.0/x86/signtool.exe" sign /f $Env:PFX_PATH /p "$Env:WIN_CERT_INSTALLER_CER_PASS" /fd SHA256 /t http://timestamp.digicert.com "${{steps.filename.outputs.INSTALLER_FILENAME }}.msi"
+      #   working-directory: dist
 
       - name: Create the Windows exe installer (Powershell)
         run: |
@@ -184,13 +184,13 @@ jobs:
         if: ${{ always() && ! inputs.conan_internal }}
         run: conan upload "*" -r cura --all -c
 
-      - name: Upload the msi
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{steps.filename.outputs.INSTALLER_FILENAME }}-msi
-          path: |
-            dist/${{steps.filename.outputs.INSTALLER_FILENAME }}.msi
-          retention-days: 5
+      # - name: Upload the msi
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: ${{steps.filename.outputs.INSTALLER_FILENAME }}-msi
+      #     path: |
+      #       dist/${{steps.filename.outputs.INSTALLER_FILENAME }}.msi
+      #     retention-days: 5
 
       - name: Upload the exe
         uses: actions/upload-artifact@v3
