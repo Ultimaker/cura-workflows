@@ -107,7 +107,11 @@ jobs:
           project: go3dprintpro
 
       - name: Create the Packages (Powershell)
-        run: conan install $Env:CURA_CONAN_VERSION ${{ inputs.conan_args }} --build=missing --update -if cura_inst -g VirtualPythonEnv -o cura:enterprise=$Env:ENTERPRISE -o cura:staging=$Env:STAGING -o cura:internal=${{ inputs.conan_internal }} -c tools.build:skip_test=True -s curaengine:build_type=RelWithDebInfo
+        run: |
+          conan create . local/test --build=missing --update -c tools.build:skip_test=True
+          conan install cura/5.6.1-beta.0@local/test  ${{ inputs.conan_args }} --build=missing --update -if cura_inst -g VirtualPythonEnv -o cura:enterprise=False -o cura:staging=False -o cura:internal=False -c tools.build:skip_test=True -s curaengine:build_type=RelWithDebInfo
+          # run:  |
+          # conan install $Env:CURA_CONAN_VERSION ${{ inputs.conan_args }} --build=missing --update -if cura_inst -g VirtualPythonEnv -o cura:enterprise=$Env:ENTERPRISE -o cura:staging=$Env:STAGING -o cura:internal=${{ inputs.conan_internal }} -c tools.build:skip_test=True -s curaengine:build_type=RelWithDebInfo
 
       - name: Set Environment variables for Cura (Powershell)
         run: |
