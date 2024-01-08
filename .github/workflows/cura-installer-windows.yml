@@ -108,16 +108,6 @@ jobs:
 
       - name: Create the Packages (Powershell)
         run: |
-          $originalPath = Get-Location
-          [Environment]::SetEnvironmentVariable("ORIGINAL_PATH", $originalPath, [System.EnvironmentVariableTarget]::Process)
-          Set-Location -Path "C:\Users\runneradmin\.conan"
-          # Search for "openssl/1.1.1l" and replace with "openssl/3.2.0" in all .py files recursively
-          Get-ChildItem -Recurse -Filter *.py | ForEach-Object {
-              (Get-Content $_.FullName) | ForEach-Object {
-                  $_ -replace "openssl/3.2.0", "openssl/1.1.1l"
-              } | Set-Content $_.FullName
-          }
-          Set-Location -Path $originalPath
           conan install $Env:CURA_CONAN_VERSION ${{ inputs.conan_args }} --build=missing --update -if cura_inst -g VirtualPythonEnv -o cura:enterprise=$Env:ENTERPRISE -o cura:staging=$Env:STAGING -o cura:internal=${{ inputs.conan_internal }} -c tools.build:skip_test=True -s curaengine:build_type=RelWithDebInfo
 
       - name: Set Environment variables for Cura (Powershell)
