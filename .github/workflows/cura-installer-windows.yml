@@ -172,11 +172,13 @@ jobs:
         working-directory: dist
 
       - name: Create the Windows exe installer (Powershell)
+        if: ${{ always() }}
         run: |
           python ..\cura_inst\packaging\NSIS\create_windows_installer.py ../cura_inst . "${{steps.filename.outputs.INSTALLER_FILENAME }}.exe"
         working-directory: dist
 
       - name: Sign the Windows exe installer (Powershell)
+        if: ${{ always() }}
         env:
           PFX_PATH: ${{ steps.create-pfx.outputs.PFX_PATH }}
         run: |
@@ -188,6 +190,7 @@ jobs:
         working-directory: dist
 
       - name: Remove internal packages before uploading
+        if: ${{ always() }}
         run: |
           conan remove "*@internal/*" -f || true
           conan remove "cura_private_data*" -f || true
@@ -197,6 +200,7 @@ jobs:
         run: conan upload "*" -r cura --all -c
 
       - name: Upload the msi
+        if: ${{ always() }}
         uses: actions/upload-artifact@v3
         with:
           name: ${{steps.filename.outputs.INSTALLER_FILENAME }}-msi
@@ -205,6 +209,7 @@ jobs:
           retention-days: 5
 
       - name: Upload the exe
+        if: ${{ always() }}
         uses: actions/upload-artifact@v3
         with:
           name: ${{steps.filename.outputs.INSTALLER_FILENAME }}-exe
@@ -214,6 +219,7 @@ jobs:
 
       # NOTE: The extension is .sh, since this isn't going to build-environment, so not on the Win build image.
       - name: Write the run info
+        if: ${{ always() }}
         shell: python
         run: |
           import os
@@ -222,6 +228,7 @@ jobs:
 
       # NOTE: The extension is .sh, since this isn't going to build-environment, so not on the Win build image.
       - name: Upload the run info
+        if: ${{ always() }}
         uses: actions/upload-artifact@v3
         with:
           name: windows-run-info
