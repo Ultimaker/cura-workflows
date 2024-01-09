@@ -37,6 +37,16 @@ on:
         default: false
         type: boolean
 
+      alert_comment_cc_users:
+        required: false
+        default: ""
+        type: string
+
+      alert_threshold:
+        required: false
+        default: "150%"
+        type: string
+
 permissions:
   contents: write
   deployments: write
@@ -154,3 +164,6 @@ jobs:
           github-token: ${{ secrets.CURA_BENCHMARK_PAT }}
           auto-push: true
           max-items-in-chart: 250
+          alert-threshold: ${{ inputs.alert_threshold }}
+          comment-on-alert: ${{ inputs.alert_comment_cc_users != '' }}
+          alert-comment-cc-users: ${{ inputs.alert_comment_cc_users }}
