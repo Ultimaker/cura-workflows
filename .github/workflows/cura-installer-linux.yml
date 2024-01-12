@@ -144,7 +144,6 @@ jobs:
 
       - name: Upload the debug symbols
         run: |
-          sentry-cli debug-files upload UltiMaker-Cura/libArcus.*
           sentry-cli debug-files upload UltiMaker-Cura/libpolyclipping.*
         working-directory: dist
 
