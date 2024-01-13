@@ -75,13 +75,6 @@ jobs:
           ref: ${{ inputs.ref_name }}
           fetch-depth: 1
 
-      - name: Checkout repo PR
-        uses: actions/checkout@v4
-        if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
-        with:
-          fetch-depth: 1
-          ref: ${{ github.base_ref }}
-
       - name: Sync pip requirements
         run: curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/.github/workflows/requirements-runner.txt
         working-directory: .github\workflows
