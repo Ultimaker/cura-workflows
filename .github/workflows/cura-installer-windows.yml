@@ -95,6 +95,7 @@ jobs:
 
       - name: Get Conan configuration
         run: |
+          $env:CURA_APP_NAME = "Go3dPrintPro"
           conan config install https://github.com/Ultimaker/conan-config.git
           conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/${{ runner.os }}/${{ runner.arch }}"
 
