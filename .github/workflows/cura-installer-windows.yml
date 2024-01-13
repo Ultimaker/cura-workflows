@@ -64,10 +64,10 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         with:
+          repository: Go3dInnovation/Go3dPrintPro
+          ref: ${{ inputs.ref_name }}
           fetch-depth: 1
-          ref: ${{ github.head_ref }}
 
       - name: Checkout repo PR
         uses: actions/checkout@v4
