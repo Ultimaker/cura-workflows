@@ -21,6 +21,12 @@ on:
         default: false
         required: true
         type: boolean
+        
+      ref_name:
+        description: 'Git ref (main, 5.7, sha)'
+        required: false
+        default: 'main'
+        type: string
 
       staging:
         description: 'Use staging API'
