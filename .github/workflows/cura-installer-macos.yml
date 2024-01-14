@@ -69,7 +69,7 @@ jobs:
     steps:
       - name: Check Mac Arch
         run: |
-          current_arch=$(arch)
+          current_arch=$(system_profiler SPHardwareDataType)
           echo "Current macOS architecture: $current_arch"
           if [ "$current_arch" == "arm64" ]; then
             echo "Running on Apple Silicon (arm64)"
