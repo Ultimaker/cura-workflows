@@ -69,9 +69,15 @@ jobs:
     steps:
       - name: Check Mac Arch
         run: |
-          uname -p
-          exit 1
-          
+          current_arch=$(arch)
+          echo "Current macOS architecture: $current_arch"
+          if [ "$current_arch" == "arm64" ]; then
+            echo "Running on Apple Silicon (arm64)"
+          elif [ "$current_arch" == "x86_64" ]; then
+            echo "Running on Intel (x86_64)"
+          else
+            echo "Unknown architecture: $current_arch"
+          fi
       # - name: Checkout repo
       #   uses: actions/checkout@v4
       #   if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
