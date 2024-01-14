@@ -67,174 +67,179 @@ jobs:
     runs-on: ${{ inputs.operating_system }}
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
-        with:
-          fetch-depth: 1
-          ref: ${{ github.head_ref }}
-
-      - name: Checkout repo PR
-        uses: actions/checkout@v4
-        if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
-        with:
-          fetch-depth: 1
-          ref: ${{ github.base_ref }}
-
-      - name: Sync pip requirements
-        run: curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/.github/workflows/requirements-runner.txt
-        working-directory: .github/workflows
-
-      - name: Setup Python and pip
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.11.x
-          cache: pip
-          cache-dependency-path: .github/workflows/requirements-runner.txt
-
-      - name: Install Python requirements and Create default Conan profile
-        run: pip install -r .github/workflows/requirements-runner.txt
-
-      - name: Install Macos system requirements for building
+      - name: Check Mac Arch
         run: |
-          mkdir runner_scripts
-          cd runner_scripts
-          curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/macos_setup.sh
-          chmod +x macos_setup.sh
-          ./macos_setup.sh
+          uname -p
+          exit 1
+          
+      # - name: Checkout repo
+      #   uses: actions/checkout@v4
+      #   if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+      #   with:
+      #     fetch-depth: 1
+      #     ref: ${{ github.head_ref }}
 
-      - name: Setup pipeline caches
-        run: |
-          mkdir -p /Users/runner/.conan/downloads
+      # - name: Checkout repo PR
+      #   uses: actions/checkout@v4
+      #   if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+      #   with:
+      #     fetch-depth: 1
+      #     ref: ${{ github.base_ref }}
 
-      - name: Create default Conan profile
-        run: conan profile new default --detect --force
+      # - name: Sync pip requirements
+      #   run: curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/.github/workflows/requirements-runner.txt
+      #   working-directory: .github/workflows
 
-      - name: Get Conan configuration
-        run: |
-          conan config install https://github.com/Ultimaker/conan-config.git
-          conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/${{ runner.os }}/${{ runner.arch }}"
+      # - name: Setup Python and pip
+      #   uses: actions/setup-python@v4
+      #   with:
+      #     python-version: 3.11.x
+      #     cache: pip
+      #     cache-dependency-path: .github/workflows/requirements-runner.txt
 
-      - name: Add Cura private Artifactory remote
-        if: ${{ inputs.conan_internal }}
-        run: conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/internal"
+      # - name: Install Python requirements and Create default Conan profile
+      #   run: pip install -r .github/workflows/requirements-runner.txt
 
-      - name: Cache Conan downloads
-        uses: actions/cache@v3
-        with:
-          path: /home/runner/.conan/downloads
-          key: ${{ runner.os }}-conan-downloads-${{ github.run_id }}
-          restore-keys: |
-            ${{ runner.os }}-conan-downloads-
+      # - name: Install Macos system requirements for building
+      #   run: |
+      #     mkdir runner_scripts
+      #     cd runner_scripts
+      #     curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/macos_setup.sh
+      #     chmod +x macos_setup.sh
+      #     ./macos_setup.sh
 
-      - name: Remove Macos keychain (Bash)
-        run: security delete-keychain signing_temp.keychain || true
+      # - name: Setup pipeline caches
+      #   run: |
+      #     mkdir -p /Users/runner/.conan/downloads
 
-      - name: Configure Macos keychain Developer Cert(Bash)
-        id: macos-keychain-developer-cert
-        uses: apple-actions/import-codesign-certs@v1
-        with:
-          keychain-password: ${{ secrets.MACOS_KEYCHAIN_PASSWORD }}
-          p12-file-base64: ${{ secrets.MACOS_CERT_P12 }}
-          p12-password: ${{ secrets.MACOS_CERT_PASSPHRASE }}
+      # - name: Create default Conan profile
+      #   run: conan profile new default --detect --force
 
-      - name: Configure Macos keychain Installer Cert (Bash)
-        id: macos-keychain-installer-cert
-        uses: apple-actions/import-codesign-certs@v1
-        with:
-          keychain-password: ${{ secrets.MACOS_KEYCHAIN_PASSWORD }}
-          create-keychain: false # keychain is created in previous use of action.
-          p12-file-base64: ${{ secrets.MACOS_CERT_INSTALLER_P12 }}
-          p12-password: ${{ secrets.MACOS_CERT_PASSPHRASE }}
+      # - name: Get Conan configuration
+      #   run: |
+      #     conan config install https://github.com/Ultimaker/conan-config.git
+      #     conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/${{ runner.os }}/${{ runner.arch }}"
 
-      - name: Remove private Artifactory
-        if: ${{ ! inputs.conan_internal }}
-        run: conan remote remove cura-private || true
+      # - name: Add Cura private Artifactory remote
+      #   if: ${{ inputs.conan_internal }}
+      #   run: conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/internal"
 
-      - name: Create the Packages (Bash)
-        run: conan install $CURA_CONAN_VERSION ${{ inputs.conan_args }} --build=missing --update -if cura_inst -g VirtualPythonEnv -o cura:enterprise=$ENTERPRISE -o cura:staging=$STAGING  -o cura:internal=${{ inputs.conan_internal }} -c tools.build:skip_test=True
+      # - name: Cache Conan downloads
+      #   uses: actions/cache@v3
+      #   with:
+      #     path: /home/runner/.conan/downloads
+      #     key: ${{ runner.os }}-conan-downloads-${{ github.run_id }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-conan-downloads-
 
-      - name: Set Environment variables for Cura (bash)
-        run: |
-          . ./cura_inst/bin/activate_github_actions_env.sh
-          . ./cura_inst/bin/activate_github_actions_version_env.sh
+      # - name: Remove Macos keychain (Bash)
+      #   run: security delete-keychain signing_temp.keychain || true
 
-      - name: Unlock Macos keychain (Bash)
-        run: security unlock -p $TEMP_KEYCHAIN_PASSWORD signing_temp.keychain
-        env:
-          TEMP_KEYCHAIN_PASSWORD: ${{  steps.macos-keychain-developer-cert.outputs.keychain-password }}
+      # - name: Configure Macos keychain Developer Cert(Bash)
+      #   id: macos-keychain-developer-cert
+      #   uses: apple-actions/import-codesign-certs@v1
+      #   with:
+      #     keychain-password: ${{ secrets.MACOS_KEYCHAIN_PASSWORD }}
+      #     p12-file-base64: ${{ secrets.MACOS_CERT_P12 }}
+      #     p12-password: ${{ secrets.MACOS_CERT_PASSPHRASE }}
 
-      - name: Create the Cura dist
-        run: pyinstaller ./cura_inst/UltiMaker-Cura.spec
+      # - name: Configure Macos keychain Installer Cert (Bash)
+      #   id: macos-keychain-installer-cert
+      #   uses: apple-actions/import-codesign-certs@v1
+      #   with:
+      #     keychain-password: ${{ secrets.MACOS_KEYCHAIN_PASSWORD }}
+      #     create-keychain: false # keychain is created in previous use of action.
+      #     p12-file-base64: ${{ secrets.MACOS_CERT_INSTALLER_P12 }}
+      #     p12-password: ${{ secrets.MACOS_CERT_PASSPHRASE }}
 
-      - name: Setup Sentry CLI
-        uses: mathieu-bour/setup-sentry-cli@v1
-        with:
-          version: latest
-          token: ${{ secrets.CURAENGINE_SENTRY_TOKEN }}
-          organization: ultimaker-o7
-          project: curaengine
+      # - name: Remove private Artifactory
+      #   if: ${{ ! inputs.conan_internal }}
+      #   run: conan remote remove cura-private || true
 
-      - name: Upload the debug symbols
-        run: |
-          sentry-cli debug-files upload UltiMaker-Cura/CuraEngine
-          sentry-cli debug-files upload UltiMaker-Cura/libArcus.*
-          sentry-cli debug-files upload UltiMaker-Cura/libpolyclipping.*
-        working-directory: dist
+      # - name: Create the Packages (Bash)
+      #   run: conan install $CURA_CONAN_VERSION ${{ inputs.conan_args }} --build=missing --update -if cura_inst -g VirtualPythonEnv -o cura:enterprise=$ENTERPRISE -o cura:staging=$STAGING  -o cura:internal=${{ inputs.conan_internal }} -c tools.build:skip_test=True
 
-      - name: Get installer helper scripts
-        run: |
-          curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/cura_installer_filename.py
-          curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/summarize_used_dependencies.py
-        working-directory: runner_scripts
+      # - name: Set Environment variables for Cura (bash)
+      #   run: |
+      #     . ./cura_inst/bin/activate_github_actions_env.sh
+      #     . ./cura_inst/bin/activate_github_actions_version_env.sh
 
-      - name: Output the name file name and extension
-        id: filename
-        run: python runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --arch ${{ inputs.architecture }} --enterprise ${{ inputs.enterprise }} --internal ${{ inputs.conan_internal }}
+      # - name: Unlock Macos keychain (Bash)
+      #   run: security unlock -p $TEMP_KEYCHAIN_PASSWORD signing_temp.keychain
+      #   env:
+      #     TEMP_KEYCHAIN_PASSWORD: ${{  steps.macos-keychain-developer-cert.outputs.keychain-password }}
 
-      - name: Summarize the used dependencies
-        run: python runner_scripts/summarize_used_dependencies.py --installer_filename ${{ steps.filename.outputs.INSTALLER_FILENAME }}
+      # - name: Create the Cura dist
+      #   run: pyinstaller ./cura_inst/UltiMaker-Cura.spec
 
-      - name: Create the Macos dmg (Bash)
-        run: python ../cura_inst/packaging/MacOS/build_macos.py --source_path ../cura_inst --dist_path . --cura_conan_version $CURA_CONAN_VERSION --filename "${{ steps.filename.outputs.INSTALLER_FILENAME }}" --build_dmg --build_pkg --app_name "$CURA_APP_NAME"
-        working-directory: dist
+      # - name: Setup Sentry CLI
+      #   uses: mathieu-bour/setup-sentry-cli@v1
+      #   with:
+      #     version: latest
+      #     token: ${{ secrets.CURAENGINE_SENTRY_TOKEN }}
+      #     organization: ultimaker-o7
+      #     project: curaengine
 
-      - name: Remove internal packages before uploading
-        run: |
-          conan remove "*@internal/*" -f || true
-          conan remove "cura_private_data*" -f || true
+      # - name: Upload the debug symbols
+      #   run: |
+      #     sentry-cli debug-files upload UltiMaker-Cura/CuraEngine
+      #     sentry-cli debug-files upload UltiMaker-Cura/libArcus.*
+      #     sentry-cli debug-files upload UltiMaker-Cura/libpolyclipping.*
+      #   working-directory: dist
 
-      - name: Upload the Package(s)
-        if: ${{ always() && ! inputs.conan_internal }}
-        run: conan upload "*" -r cura --all -c
+      # - name: Get installer helper scripts
+      #   run: |
+      #     curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/cura_installer_filename.py
+      #     curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/summarize_used_dependencies.py
+      #   working-directory: runner_scripts
 
-      - name: Upload the dmg
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ steps.filename.outputs.INSTALLER_FILENAME }}-dmg
-          path: |
-            dist/${{ steps.filename.outputs.INSTALLER_FILENAME }}.dmg
-          retention-days: 5
+      # - name: Output the name file name and extension
+      #   id: filename
+      #   run: python runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --arch ${{ inputs.architecture }} --enterprise ${{ inputs.enterprise }} --internal ${{ inputs.conan_internal }}
 
-      - name: Upload the pkg
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ steps.filename.outputs.INSTALLER_FILENAME }}-pkg
-          path: |
-            dist/${{ steps.filename.outputs.INSTALLER_FILENAME }}.pkg
-          retention-days: 5
+      # - name: Summarize the used dependencies
+      #   run: python runner_scripts/summarize_used_dependencies.py --installer_filename ${{ steps.filename.outputs.INSTALLER_FILENAME }}
 
-      - name: Write the run info
-        shell: python
-        run: |
-          import os
-          with open("run_info.sh", "w") as f:
-              f.writelines(f'echo "CURA_VERSION_FULL={os.environ["CURA_VERSION_FULL"]}" >> $GITHUB_ENV\n')
+      # - name: Create the Macos dmg (Bash)
+      #   run: python ../cura_inst/packaging/MacOS/build_macos.py --source_path ../cura_inst --dist_path . --cura_conan_version $CURA_CONAN_VERSION --filename "${{ steps.filename.outputs.INSTALLER_FILENAME }}" --build_dmg --build_pkg --app_name "$CURA_APP_NAME"
+      #   working-directory: dist
 
-      - name: Upload the run info
-        uses: actions/upload-artifact@v3
-        with:
-          name: macos-run-info
-          path: |
-            run_info.sh
-          retention-days: 5
+      # - name: Remove internal packages before uploading
+      #   run: |
+      #     conan remove "*@internal/*" -f || true
+      #     conan remove "cura_private_data*" -f || true
+
+      # - name: Upload the Package(s)
+      #   if: ${{ always() && ! inputs.conan_internal }}
+      #   run: conan upload "*" -r cura --all -c
+
+      # - name: Upload the dmg
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: ${{ steps.filename.outputs.INSTALLER_FILENAME }}-dmg
+      #     path: |
+      #       dist/${{ steps.filename.outputs.INSTALLER_FILENAME }}.dmg
+      #     retention-days: 5
+
+      # - name: Upload the pkg
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: ${{ steps.filename.outputs.INSTALLER_FILENAME }}-pkg
+      #     path: |
+      #       dist/${{ steps.filename.outputs.INSTALLER_FILENAME }}.pkg
+      #     retention-days: 5
+
+      # - name: Write the run info
+      #   shell: python
+      #   run: |
+      #     import os
+      #     with open("run_info.sh", "w") as f:
+      #         f.writelines(f'echo "CURA_VERSION_FULL={os.environ["CURA_VERSION_FULL"]}" >> $GITHUB_ENV\n')
+
+      # - name: Upload the run info
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: macos-run-info
+      #     path: |
+      #       run_info.sh
+      #     retention-days: 5
