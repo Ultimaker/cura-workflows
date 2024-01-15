@@ -76,11 +76,8 @@ jobs:
           fetch-depth: 1
           ref: ${{ github.base_ref }}
 
-      - name: remove Powershell curl alias
-        run: Remove-Item Alias:curl -Force
-
       - name: Sync pip requirements
-        run: curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/.github/workflows/requirements-runner.txt
+        run: curl.exe -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/.github/workflows/requirements-runner.txt
         working-directory: .github\workflows
 
       - name: Setup Python and pip
@@ -134,8 +131,8 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path runner_scripts
           cd runner_scripts
-          curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/cura_installer_filename.py
-          curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/summarize_used_dependencies.py
+          curl.exe -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/cura_installer_filename.py
+          curl.exe -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/summarize_used_dependencies.py
 
       - name: Output the name file name and extension
         id: filename
