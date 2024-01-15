@@ -141,24 +141,12 @@ jobs:
       - name: Summarize the used dependencies
         run: python runner_scripts/summarize_used_dependencies.py --installer_filename ${{ steps.filename.outputs.INSTALLER_FILENAME }}
 
-      - name: Create PFX certificate from BASE64_PFX_CONTENT secret
-        id: create-pfx
-        env:
-          PFX_CONTENT: ${{ secrets.WIN_CERT_INSTALLER_CER }}
-        run: |
-          $pfxPath = Join-Path -Path $env:RUNNER_TEMP -ChildPath "cert.pfx"; 
-          $encodedBytes = [System.Convert]::FromBase64String($env:PFX_CONTENT); 
-          Set-Content $pfxPath -Value $encodedBytes -AsByteStream;
-          echo "PFX_PATH=$pfxPath" >> $env:GITHUB_OUTPUT;
-
       - name: Create the Windows msi installer (Powershell)
         run: |
           python ..\cura_inst\packaging\msi\create_windows_msi.py ..\cura_inst .\UltiMaker-Cura "${{steps.filename.outputs.INSTALLER_FILENAME }}.msi" "$Env:CURA_APP_NAME"
         working-directory: dist
 
       - name: Sign the Windows msi installer (Powershell)
-        env:
-          PFX_PATH: ${{ steps.create-pfx.outputs.PFX_PATH }}
         run: |
           & "C:/Program Files (x86)/Windows Kits/10/bin/10.0.17763.0/x86/signtool.exe" sign /f $Env:PFX_PATH /p "$Env:WIN_CERT_INSTALLER_CER_PASS" /fd SHA256 /t http://timestamp.digicert.com "${{steps.filename.outputs.INSTALLER_FILENAME }}.msi" || echo "::warning title=Signing installer failed!::The `msi` couldn't be signed."
         working-directory: dist
@@ -171,8 +159,6 @@ jobs:
 
       - name: Sign the Windows exe installer (Powershell)
         if: ${{ always() }}
-        env:
-          PFX_PATH: ${{ steps.create-pfx.outputs.PFX_PATH }}
         run: |
           & "C:/Program Files (x86)/Windows Kits/10/bin/10.0.17763.0/x86/signtool.exe" sign /f $Env:PFX_PATH /p "$Env:WIN_CERT_INSTALLER_CER_PASS" /fd SHA256 /t http://timestamp.digicert.com "${{steps.filename.outputs.INSTALLER_FILENAME }}.exe" || echo "::warning title=Signing installer failed!::The `exe` couldn't be signed."
         working-directory: dist
