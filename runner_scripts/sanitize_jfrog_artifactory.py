@@ -75,9 +75,9 @@ def main():
 
     for (artifact_path, include_depth_2) in ARTIFACT_PATHS.items():
         number_files_deleted = 0
-        number_files_deleted = process_artifact(artifactory_client, artifact_path, number_files_deleted, artifact_path, depth=1)
+        number_files_deleted = process_artifact(artifactory_client, artifact_path, number_files_deleted, depth=1)
         if (include_depth_2):
-            process_artifact(artifactory_client, artifact_path, number_files_deleted, artifact_path, depth=2)
+            process_artifact(artifactory_client, artifact_path, number_files_deleted, depth=2)
 
 if __name__ == "__main__":
     main()
