@@ -148,9 +148,7 @@ jobs:
 
       - name: Sign the Windows msi installer (Powershell)
         run: |
-          [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("${{ secrets.WIN_CERT_INSTALLER_CER }}")) > code_sign.cer
-          & signtool sign /v /fd sha256 /tr http://timestamp.digicert.com /td sha256 /f code_sign.cer /csp "eToken Base Cryptographic Provider" /kc ${{ secrets.WIN_TOKEN_CONTAINER }} "${{steps.filename.outputs.INSTALLER_FILENAME }}.msi"
-          del code_sign.cer
+          & signtool sign /v /fd sha256 /tr http://timestamp.digicert.com /td sha256 /f C:\actions-runner\code_sign.cer /csp "eToken Base Cryptographic Provider" /kc ${{ secrets.WIN_TOKEN_CONTAINER }} "${{steps.filename.outputs.INSTALLER_FILENAME }}.msi"
         working-directory: dist
 
       - name: Create the Windows exe installer (Powershell)
@@ -162,9 +160,7 @@ jobs:
       - name: Sign the Windows exe installer (Powershell)
         if: ${{ always() }}
         run: |
-          [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("${{ secrets.WIN_CERT_INSTALLER_CER }}")) > code_sign.cer
-          & signtool sign /v /fd sha256 /tr http://timestamp.digicert.com /td sha256 /f code_sign.cer /csp "eToken Base Cryptographic Provider" /kc ${{ secrets.WIN_TOKEN_CONTAINER }} "${{steps.filename.outputs.INSTALLER_FILENAME }}.exe"
-          del code_sign.cer
+          & signtool sign /v /fd sha256 /tr http://timestamp.digicert.com /td sha256 /f C:\actions-runner\code_sign.cer /csp "eToken Base Cryptographic Provider" /kc ${{ secrets.WIN_TOKEN_CONTAINER }} "${{steps.filename.outputs.INSTALLER_FILENAME }}.exe"
         working-directory: dist
 
       - name: Remove internal packages before uploading
