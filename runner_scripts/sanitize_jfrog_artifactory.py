@@ -1,10 +1,19 @@
+###
+#USAGE:
+#       library "pyartifactory" is needed to run the script
+#       install it by "pip install pyartifactory"
+# for running:
+#       python sanitize_jfrog_artifactory.py USERNAME PASSWORD
+###
+
 import pyartifactory
 import sys
 
 ARTIFACTORY_BASE_URL = "https://cura.jfrog.io/artifactory"
 
 if len(sys.argv) != 3:
-    print("Usage: python your_script.py USERNAME PASSWORD")
+    print("Usage: python sanitize_jfrog_artifactory.py USERNAME PASSWORD\n"
+          "Also needs pyartifactory library to run this script")
     exit()
 
 USERNAME = sys.argv[1]
@@ -49,7 +58,7 @@ def artifact_modified_by_anonymous(artifactory_client, artifact_path):
     return str(artifactory_client.artifacts.info(artifact_path).createdBy) == "anonymous"
 
 
-def process_artifact(artifactory_client, artifact_path, sequence_nr, file, depth):
+def process_artifact(artifactory_client, artifact_path, sequence_nr, depth):
     artifact_files =  list_artifacts(artifactory_client, artifact_path, depth)
     for artifact in artifact_files:
         artifact_file_path = f"{artifact_path}{artifact.uri}"
