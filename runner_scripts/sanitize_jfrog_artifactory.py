@@ -10,9 +10,6 @@ if len(sys.argv) != 3:
 USERNAME = sys.argv[1]
 PASSWORD = sys.argv[2]
 
-if not USERNAME or not PASSWORD:
-    print("Please set the USERNAME and PASSWORD environment variables.")
-    exit()
 def initialize_artifactory():
     return pyartifactory.Artifactory(url=ARTIFACTORY_BASE_URL, auth=(USERNAME, PASSWORD))
 
