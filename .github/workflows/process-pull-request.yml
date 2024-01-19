@@ -7,6 +7,12 @@ on:
         required: false
         default: "PR: Community Contribution :crown:"
         type: string
+  workflow_dispatch:
+    inputs:
+      labels:
+        required: false
+        default: "PR: Community Contribution :crown:"
+        type: string
 
 permissions:
   contents: read
