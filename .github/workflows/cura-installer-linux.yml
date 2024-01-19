@@ -55,6 +55,7 @@ env:
   CURA_CONAN_VERSION: ${{ inputs.cura_conan_version }}
   ENTERPRISE: ${{ inputs.enterprise }}
   STAGING: ${{ inputs.staging }}
+  SENTRY_TOKEN: ${{ secrets.CURAENGINE_SENTRY_TOKEN }}
 
 jobs:
   cura-installer-create:
@@ -155,8 +156,8 @@ jobs:
 
       - name: Upload the lib(std)c(++) debug symbols
         run: |
-          find AppDir/ -name 'libc.*' -exec sentry-cli debug-files upload {} \;
-          find AppDir/ -name 'libstdc++.*' -exec sentry-cli debug-files upload {} \;
+          find AppDir/ -name 'libc.*' -exec sentry-cli --auth-token $SENTRY_TOKEN debug-files upload {} \;
+          find AppDir/ -name 'libstdc++.*' -exec sentry-cli --auth-token $SENTRY_TOKEN debug-files upload {} \;
         working-directory: dist
 
       - name: Remove internal packages before uploading
