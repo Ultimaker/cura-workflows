@@ -197,11 +197,11 @@ jobs:
           python runner_scripts/get_conan_broadcast_data.py --user ${{ inputs.conan_user }} --channel ${{ inputs.conan_channel }} --project_name $CONAN_PROJECT_NAME --release ${{ inputs.conan_release }} --version ${{ inputs.version }}
 
       - name: Export the Package
-        if: ${{ inputs.repository != "Cura" && inputs.repository!="Uranium" }}
+        if: ${{ inputs.repository != 'Cura' && inputs.repository!='Uranium' }}
         run: conan export . ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }} ${{ inputs.conan_extra_args }}
 
       - name: Create conan for Uranium and Cura
-        if: ${{ inputs.repository == "Cura" || inputs.repository== "Uranium" }}
+        if: ${{ inputs.repository == 'Cura' || inputs.repository== 'Uranium' }}
         run: conan create . ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }} ${{ inputs.conan_extra_args }} -o *:enable_i18n=True -c user.i18n:options={'extract':True, 'build':True}
 
       - name: Create the latest alias
