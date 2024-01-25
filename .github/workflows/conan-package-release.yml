@@ -200,9 +200,16 @@ jobs:
         if: ${{ inputs.repository != 'Cura' && inputs.repository!='Uranium' }}
         run: conan export . ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }} ${{ inputs.conan_extra_args }}
 
+      - name: Install system requirements for building
+        run: |
+          mkdir -p runner_scripts
+          wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/ubuntu_setup.sh -O runner_scripts/ubuntu_setup.sh
+          chmod +x runner_scripts/ubuntu_setup.sh
+          sudo ./runner_scripts/ubuntu_setup.sh
+
       - name: Create conan for Uranium and Cura
         if: ${{ inputs.repository == 'Cura' || inputs.repository== 'Uranium' }}
-        run: conan create . ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }} ${{ inputs.conan_extra_args }} -o *:enable_i18n=True -b missing -c user.i18n:options="{'extract':True,'build':True}"
+        run: conan create . ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }} ${{ inputs.conan_extra_args }} -o *:enable_i18n=True -b missing -u -o cura:devtools=True -c user.i18n:options="{'extract':True,'build':True}"
 
       - name: Create the latest alias
         if: ${{ inputs.conan_latest }}
