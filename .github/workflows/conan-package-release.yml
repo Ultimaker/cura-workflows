@@ -202,7 +202,7 @@ jobs:
 
       - name: Create conan for Uranium and Cura
         if: ${{ inputs.repository == 'Cura' || inputs.repository== 'Uranium' }}
-        run: conan create . ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }} ${{ inputs.conan_extra_args }} -o *:enable_i18n=True -c user.i18n:options={'extract':True,'build':True}
+        run: conan create . ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }} ${{ inputs.conan_extra_args }} -o *:enable_i18n=True -c user.i18n:options="{'extract':True,'build':True}"
 
       - name: Create the latest alias
         if: ${{ inputs.conan_latest }}
