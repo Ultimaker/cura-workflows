@@ -90,7 +90,7 @@ async def main():
     github = GitHubAPI(token=token)
 
     last_page = False
-    page = 2
+    page = 1
     new_issues = []
     while not last_page:
         last_page, page, issues = await get_issues(github, args.repository, page)
