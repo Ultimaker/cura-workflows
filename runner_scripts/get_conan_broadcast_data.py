@@ -3,11 +3,11 @@ import os
 import yaml
 
 def get_conan_broadcast_data(args):
-    try:
+    if os.path.exists("conandata.yml"):
         with open("conandata.yml", "r") as f:
             conan_data = yaml.safe_load(f)
             version = conan_data["version"] if args.version == '' else args.version
-    except FileNotFoundError:
+    else:
         version = args.version
 
     project_name = args.project_name
