@@ -201,7 +201,7 @@ jobs:
           name: ${{steps.filename.outputs.INSTALLER_FILENAME }}-exe
           path: |
             dist/${{steps.filename.outputs.INSTALLER_FILENAME }}.exe
-          retention-days: 5
+          retention-days: 90
 
       # NOTE: The extension is .sh, since this isn't going to build-environment, so not on the Win build image.
       - name: Write the run info
@@ -218,4 +218,4 @@ jobs:
           name: windows-run-info
           path: |
             run_info.sh
-          retention-days: 5
+          retention-days: 90
