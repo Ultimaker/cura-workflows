@@ -23,10 +23,6 @@ on:
         required: true
         type: string
 
-      recipe_id_latest:
-        required: false
-        type: string
-
       conan_internal:
         required: false
         default: false
