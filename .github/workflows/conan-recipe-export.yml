@@ -108,9 +108,9 @@ jobs:
       - name: Upload the Package(s)
         if: ${{ always() && !inputs.conan_internal}}
         run: |
-          conan upload ${{ inputs.recipe_id_full }} -r cura-conan-v2 --all -c
+          conan upload ${{ inputs.recipe_id_full }} -r cura-conan-v2 -c
 
       - name: Upload the Package(s) to the private Artifactory
         if: ${{ always() && inputs.conan_internal }}
         run: |
-          conan upload ${{ inputs.recipe_id_full }} -r cura-private --all -c
+          conan upload ${{ inputs.recipe_id_full }} -r cura-private -c
