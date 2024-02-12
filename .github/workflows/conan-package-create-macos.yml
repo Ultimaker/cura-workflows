@@ -60,7 +60,7 @@ jobs:
           fetch-depth: 1
           ref: ${{ github.base_ref }}
 
-        # FIXME: use main once merged
+# FIXME: use main once merged
       - name: Sync pip requirements
         run: wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-11622_conan_v2/.github/workflows/requirements-runner.txt -O .github/workflows/requirements-runner.txt
 
@@ -88,12 +88,12 @@ jobs:
       - name: Create default Conan profile
         run: conan profile detect -f
 
-      # FIXME: use runner.os/runner.arch after merge: conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/${{ runner.os }}/${{ runner.arch }}"
+# FIXME: use runner.os/runner.arch after merge: conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/runner.os/runner.arch"
       - name: Get Conan configuration
         run: |
           conan config install https://github.com/Ultimaker/conan-config.git -a "-b CURA-11622_conan_v2"
-#          conan remote disable cura-private-conan-v2
           conan remote login -p ${{ secrets.CONAN_PASS }} cura-conan-v2 ${{ secrets.CONAN_USER }}
+          #conan remote disable cura-private-conan-v2
 
       - name: Add Cura private Artifactory remote
         if: ${{ inputs.conan_internal }}
