@@ -3,6 +3,22 @@ name: Conan package create Windows
 on:
   workflow_call:
     inputs:
+      recipe_id_name:
+        required: true
+        type: string
+
+      recipe_id_version:
+        required: true
+        type: string
+
+      recipe_id_user:
+        required: true
+        type: string
+
+      recipe_id_channel:
+        required: true
+        type: string
+
       recipe_id_full:
         required: true
         type: string
