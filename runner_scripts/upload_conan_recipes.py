@@ -10,7 +10,7 @@ def upload_changed_recipes(args):
     configs = dict(zip([ str(f).split("/")[1] for f in files ], [ Path(*str(f).split("/")[:2]).joinpath("config.yml") for f in files ]))
 
     packages = []
-    channel = "stable" if "main" in args.branch else re.match(r"CURA-\d*", args.branch)[0].lower().replace("-", "_")
+    channel = "stable" if "main" in args.branch else re.match(r"(CURA|NP|PP)-\d*", args.branch)[0].lower().replace("-", "_")
 
     for name, config in configs.items():
         if not config.exists():
@@ -23,7 +23,7 @@ def upload_changed_recipes(args):
         for version, data in versions.items():
             conanfile = config.parent.joinpath(data["folder"], "conanfile.py")
             package = f"{name}/{version}@{args.user}/{channel}"
-            create_cmd = f"conan create {conanfile} {package}"
+            create_cmd = f"conan create {conanfile} --name {name} --version {version} --user {args.user} --channel {channel}"
             os.system(create_cmd)
             upload_cmd = f"conan upload {package} -r {args.remote} -c"
             os.system(upload_cmd)

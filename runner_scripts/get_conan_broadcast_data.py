@@ -18,14 +18,7 @@ def get_conan_broadcast_data(args):
         channel = "_"
         is_release_branch = True
     else:
-        build_metadata = ""
-        if "+" in version:
-            build_metadata += f"+{version.split('+')[1]}"
-            version = version.split("+")[0]
-        elif args.sha:
-            build_metadata += f"+{args.sha[:6]}"
-
-        actual_version = f"{version}{build_metadata}"
+        actual_version = version
         user = args.user.lower()
         is_release_branch = False
         if args.channel:
