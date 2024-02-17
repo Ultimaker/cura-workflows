@@ -95,9 +95,6 @@ jobs:
           conan config install https://github.com/Ultimaker/conan-config.git
           conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/${{ runner.os }}/${{ runner.arch }}"
 
-      - name: Add runner credentials to cura remote
-        run: conan user -p ${{ secrets.CONAN_PASS }} -r cura ${{ secrets.CONAN_USER }}
-
       - name: Add Cura private Artifactory remote
         if: ${{ inputs.conan_internal }}
         run: |
