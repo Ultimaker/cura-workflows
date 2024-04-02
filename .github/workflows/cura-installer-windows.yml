@@ -106,6 +106,19 @@ jobs:
           organization: go3d
           project: go3dprintpro
 
+      # New step to checkout another repository
+      - name: Checkout fdm_materials repo
+        uses: actions/checkout@v4
+        with:
+          repository: Go3DInnovation/fdm_materials
+          ref: master
+          path: fdm_materials # Specifies the directory where the repo should be checked out
+
+      # Additional step to run the conan create command
+      - name: Run Conan create command
+        run: conan create fdm_materials fdm_materials/5.7.2-alpha.0+331490@go3d/testing --build=missing --update
+        working-directory: fdm_materials
+
       - name: Create the Packages (Powershell)
         run: |
           conan remote add conancenter https://center.conan.io
