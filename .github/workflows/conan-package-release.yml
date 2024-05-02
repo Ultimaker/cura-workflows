@@ -77,6 +77,12 @@ on:
         default: ''
         type: string
 
+      conan_recipe_root:
+        required: false
+        default: "."
+        description: 'location of the conanfile.py defaults to `.`'
+        type: string
+
   workflow_call:
     inputs:
       organization:
@@ -199,7 +205,7 @@ jobs:
 
       - name: Export the Package
         if: ${{ inputs.repository != 'Cura' && inputs.repository!='Uranium' }}
-        run: conan export . ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }} ${{ inputs.conan_extra_args }}
+        run: conan export ${{ inputs.conan_recipe_root }} ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }} ${{ inputs.conan_extra_args }}
 
       - name: Install system requirements for building
         run: |
