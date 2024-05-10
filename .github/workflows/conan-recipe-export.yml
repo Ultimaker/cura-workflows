@@ -21,6 +21,11 @@ on:
         default: ""
         type: string
 
+      conan_recipe_root:
+        required: false
+        default: "."
+        type: string
+
 permissions:
   contents: read
 
@@ -97,7 +102,7 @@ jobs:
             ${{ runner.os }}-conan-downloads-
 
       - name: Export the Package
-        run: conan export . ${{ inputs.recipe_id_full }} ${{ inputs.conan_extra_args }}
+        run: conan export ${{ inputs.conan_recipe_root }} ${{ inputs.recipe_id_full }} ${{ inputs.conan_extra_args }}
 
       - name: Create the latest alias
         if: always()
