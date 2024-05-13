@@ -47,16 +47,10 @@ on:
         default: true
         type: boolean
 
-      conan_user:
-        description: 'Conan user (_, ultimaker, internal)'
+      conan_user_channel:
+        description: 'Conan user and channel (_/_, ultimaker/testing, internal/testings)'
         required: false
-        default: '_'
-        type: string
-
-      conan_channel:
-        description: 'Conan channel (_, testing, stable)'
-        required: false
-        default: '_'
+        default: '_/_'
         type: string
 
       conan_internal:
@@ -103,14 +97,9 @@ on:
         required: true
         type: string
 
-      conan_user:
+      conan_user_channel:
         required: false
-        default: '_'
-        type: string
-
-      conan_channel:
-        required: false
-        default: '_'
+        default: '_/_'
         type: string
 
       conan_internal:
@@ -201,7 +190,7 @@ jobs:
         run: |
           mkdir runner_scripts
           wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/get_conan_broadcast_data.py -O runner_scripts/get_conan_broadcast_data.py
-          python runner_scripts/get_conan_broadcast_data.py --user ${{ inputs.conan_user }} --channel ${{ inputs.conan_channel }} --project_name $CONAN_PROJECT_NAME --release ${{ inputs.conan_release }} --version ${{ inputs.version }}
+          python runner_scripts/get_conan_broadcast_data.py --user_channel ${{ inputs.conan_user_channel }} --project_name $CONAN_PROJECT_NAME --release ${{ inputs.conan_release }} --version ${{ inputs.version }}
 
       - name: Export the Package
         if: ${{ inputs.repository != 'Cura' && inputs.repository!='Uranium' }}

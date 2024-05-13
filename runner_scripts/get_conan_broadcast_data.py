@@ -26,10 +26,10 @@ def get_conan_broadcast_data(args):
             build_metadata += f"+{args.sha[:6]}"
 
         actual_version = f"{version}{build_metadata}"
-        user = args.user.lower()
+        user = args.user.lower() if args.user else args.user_channel.split("/")[0].lower()
         is_release_branch = False
-        if args.channel:
-            channel = args.channel.lower()
+        if args.channel or args.user_channel:
+            channel = args.channel.lower() if args.channel else args.user_channel.split("/")[1].lower()
         else:
             ref_name = args.base_ref if args.event_name == "pull_request" else args.ref_name
             if "beta" in version and args.event_name != "pull_request" and ref_name == '.'.join(version.split('.')[:2]):
@@ -68,6 +68,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description = 'Get Conan broadcast data')
     parser.add_argument('--user', type = str, help = 'User input')
     parser.add_argument('--channel', type = str, help = 'User channel')
+    parser.add_argument('--user_channel', type = str, help = 'User and Channel in format `user/channel` ')
     parser.add_argument('--project_name', type = str, help = 'Name of the project')
     parser.add_argument('--sha', type = str, help = 'Commit SHA')
     parser.add_argument('--event_name', type = str, help = 'Github event name')
