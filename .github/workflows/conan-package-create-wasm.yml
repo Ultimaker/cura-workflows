@@ -1,0 +1,113 @@
+name: Conan package create Wasm
+
+on:
+  workflow_call:
+    inputs:
+      recipe_id_full:
+        required: true
+        type: string
+
+      conan_internal:
+        required: false
+        default: false
+        type: boolean
+
+      conan_extra_args:
+        required: false
+        default: ""
+        type: string
+
+      conan_recipe_root:
+        required: false
+        default: "."
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  CONAN_LOGIN_USERNAME: ${{ secrets.CONAN_USER }}
+  CONAN_PASSWORD: ${{ secrets.CONAN_PASS }}
+  SENTRY_TOKEN: ${{ secrets.CURAENGINE_SENTRY_TOKEN }}
+
+jobs:
+  package-create:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        with:
+          fetch-depth: 1
+          ref: ${{ github.head_ref }}
+
+      - name: Checkout repo PR
+        uses: actions/checkout@v4
+        if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+        with:
+          fetch-depth: 1
+          ref: ${{ github.base_ref }}
+
+      - name: Sync pip requirements
+        run: wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/.github/workflows/requirements-runner.txt -O .github/workflows/requirements-runner.txt
+
+      - name: Setup Python and pip
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11.x
+          cache: pip
+          cache-dependency-path: .github/workflows/requirements-runner.txt
+
+      - name: Install Python requirements and Create default Conan profile
+        run: pip install -r .github/workflows/requirements-runner.txt
+
+      - name: Install Linux system requirements for building
+        run: |
+          mkdir -p runner_scripts
+          wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/ubuntu_setup.sh -O runner_scripts/ubuntu_setup.sh
+          chmod +x runner_scripts/ubuntu_setup.sh
+          sudo ./runner_scripts/ubuntu_setup.sh
+
+      - name: Setup pipeline caches
+        run: |
+          mkdir -p /home/runner/.conan/downloads
+
+      - name: Create default Conan profile
+        run: conan profile new default --detect
+
+      - name: Get Conan configuration
+        run: |
+          conan config install https://github.com/Ultimaker/conan-config.git
+          conan config install https://github.com/Ultimaker/conan-config.git -a "-b NP-202_conan_wasm_package"
+# FIXME: After merging  https://github.com/Ultimaker/conan-config/pull/13 use -> conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/${{ runner.os }}/${{ runner.arch }}"
+
+      - name: Add runner credentials to cura remote
+        run: conan user -p ${{ secrets.CONAN_PASS }} -r cura ${{ secrets.CONAN_USER }}
+
+      - name: Add Cura private Artifactory remote
+        if: ${{ inputs.conan_internal }}
+        run: |
+          conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/internal"
+          conan user -p ${{ secrets.CONAN_PASS }} -r cura-private ${{ secrets.CONAN_USER }}
+
+      - name: Cache Conan downloads
+        uses: actions/cache@v3
+        with:
+          path: /home/runner/.conan/downloads
+          key: ${{ runner.os }}-conan-downloads-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-conan-downloads-
+
+      - name: Export the Package (binaries)
+        run: conan create ${{ inputs.conan_recipe_root }} ${{ inputs.recipe_id_full }} --build=missing --update ${{ inputs.conan_extra_args }} -p:h cura_wasm.jinja
+
+      - name: Upload the Package(s)
+        if: ${{ always() && !inputs.conan_internal }}
+        run: |
+          conan upload ${{ inputs.recipe_id_full }} -r cura --all -c
+
+      - name: Upload the Package(s) to the private Artifactory
+        if: ${{ always() && inputs.conan_internal }}
+        run: |
+          conan upload ${{ inputs.recipe_id_full }} -r cura-private --all -c
