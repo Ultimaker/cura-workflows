@@ -100,7 +100,7 @@ jobs:
             ${{ runner.os }}-conan-downloads-
 
       - name: Export the Package (binaries)
-        run: conan create ${{ inputs.conan_recipe_root }} ${{ inputs.recipe_id_full }} --build=missing --update ${{ inputs.conan_extra_args }} -p:h cura_wasm.jinja
+        run: conan create ${{ inputs.conan_recipe_root }} ${{ inputs.recipe_id_full }} --build=missing --update ${{ inputs.conan_extra_args }} -pr:h cura_wasm.jinja
 
       - name: Upload the Package(s)
         if: ${{ always() && !inputs.conan_internal }}
