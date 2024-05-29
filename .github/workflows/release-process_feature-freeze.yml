@@ -8,6 +8,12 @@ on:
         description: 'Cura version major.minor, e.g. 5.7'
         required: true
         type: string
+  pull_request:
+    branches:
+      - CURA-10769_automate_release_action
+  issue_comment:
+    types: [created]
+    if: ${{ github.event.issue.number }} == 20 && ${{ github.event.comment.user.login }} == 'wawanbreton' && contains(${{ github.event.comment.body }}, '/run-workflow')
 
 env:
   STAGING: ${{ inputs.staging || false }}
