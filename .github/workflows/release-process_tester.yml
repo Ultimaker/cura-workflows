@@ -8,5 +8,7 @@ jobs:
   test-feature-freeze:
     uses: ultimaker/cura-workflows/.github/workflows/release-process_feature-freeze.yml@CURA-10769_automate_release_action
     with:
-      cura_version: 1000.42
+      cura_version_major: 1000
+      cura_version_minor: 42
+      cura_version_patch: 123
     secrets: inherit

@@ -4,8 +4,16 @@ run-name: Feature freeze Cura ${{ inputs.cura_version }} by @${{ github.actor }}
 on:
   workflow_call:
     inputs:
-      cura_version:
-        description: 'Cura version major.minor, e.g. 5.7'
+      cura_version_major:
+        description: 'Cura major version number, e.g. 5 for 5.7.2'
+        required: true
+        type: string
+      cura_version_minor:
+        description: 'Cura major version number, e.g. 7 for 5.7.2'
+        required: true
+        type: string
+      cura_version_patch:
+        description: 'Cura patch version number, e.g. 2 for 5.7.2'
         required: true
         type: string
 
@@ -14,12 +22,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        repository: [cura-binary-data, CuraEngine]
+        #repository: [Cura, Uranium, CuraEngine, cura-binary-data, fdm_materials]
+        repository: [cura-binary-data]
     steps:
       - name: Create cura-binary-data release branch
         uses: GuillaumeFalourd/create-other-repo-branch-action@v1.5
         with:
           repository_owner: Ultimaker
           repository_name: ${{ matrix.repository }}
-          new_branch_name: ${{ inputs.cura_version }}
+          new_branch_name: ${{ inputs.cura_version_major }}.${{ inputs.cura_version_minor }}
           access_token: ${{ secrets.CURA_AUTORELEASE_PAT }}
