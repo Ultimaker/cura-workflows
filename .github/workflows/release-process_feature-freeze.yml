@@ -20,3 +20,11 @@ jobs:
           repository_name: cura-binary-data
           new_branch_name: ${{ inputs.cura_version }}
           access_token: ${{ secrets.ACCESS_TOKEN}}
+
+      - name: Create CuraEngine release branch
+        uses: GuillaumeFalourd/create-other-repo-branch-action@v1.5
+        with:
+          repository_owner: Ultimaker
+          repository_name: CuraEngine
+          new_branch_name: ${{ inputs.cura_version }}
+          access_token: ${{ secrets.ACCESS_TOKEN}}
