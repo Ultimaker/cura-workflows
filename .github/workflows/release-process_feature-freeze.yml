@@ -8,7 +8,9 @@ on:
         description: 'Cura version major.minor, e.g. 5.7'
         required: true
         type: string
-  push
+
+  push:
+    branhes: [CURA-10769_automate_release_action]
 
 jobs:
   feature-freeze:
