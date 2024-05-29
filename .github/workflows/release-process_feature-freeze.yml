@@ -3,15 +3,11 @@ run-name: Feature freeze Cura ${{ inputs.cura_version }} by @${{ github.actor }}
 
 on:
   workflow_dispatch:
-    branches: [main]
     inputs:
       cura_version:
         description: 'Cura version major.minor, e.g. 5.7'
         required: true
         type: string
-
-  push:
-    branhes: [CURA-10769_automate_release_action]
 
 jobs:
   feature-freeze:
