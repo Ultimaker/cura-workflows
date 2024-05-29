@@ -2,7 +2,7 @@ name: Feature Freeze
 run-name: Feature freeze Cura ${{ inputs.cura_version }} by @${{ github.actor }}
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       cura_version:
         description: 'Cura version major.minor, e.g. 5.7'
