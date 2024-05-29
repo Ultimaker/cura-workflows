@@ -10,7 +10,7 @@ on:
         type: string
 
 jobs:
-  feature-freeze:
+  create-branch-cura-binary-data:
     runs-on: ubuntu-latest
     steps:
       - name: Create cura-binary-data release branch
@@ -21,6 +21,9 @@ jobs:
           new_branch_name: ${{ inputs.cura_version }}
           access_token: ${{ secrets.CURA_AUTORELEASE_PAT }}
 
+  create-branch-curaengine:
+    runs-on: ubuntu-latest
+    steps:
       - name: Create CuraEngine release branch
         uses: GuillaumeFalourd/create-other-repo-branch-action@v1.5
         with:
