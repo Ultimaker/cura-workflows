@@ -1,0 +1,14 @@
+name: Test release actions
+run-name: Test
+
+on:
+  push
+
+jobs:
+  test-feature-freeze:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test feature freeze
+        uses: ultimaker/cura-workflows/.github/workflows/release-process_feature-freeze.yml@CURA-10769_automate_release_action
+        with:
+          cura_version: 1000.42
