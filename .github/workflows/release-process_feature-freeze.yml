@@ -32,7 +32,7 @@ jobs:
           git config user.name github-actions
           git config user.email github-actions@github.com
           PACKAGE_VERSION=${{ steps.version_parser.outputs.major }}.${{ steps.version_parser.outputs.minor }}.${{ steps.version_parser.outputs.patch }}
-          sed -i 's/version:.*/version: "$PACKAGE_VERSION"/g' conandata.yml
+          sed -i "s/version:.*/version: \"$PACKAGE_VERSION\"/g" conandata.yml
           git add conandata.yml
           git commit -m "Set conan package version $PACKAGE_VERSION"
           git push origin `git branch --show-current`
