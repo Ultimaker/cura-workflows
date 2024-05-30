@@ -29,7 +29,7 @@ jobs:
     strategy:
       matrix:
         #repository: [Cura, Uranium, CuraEngine, cura-binary-data, fdm_materials]
-        repository: [cura-binary-data]
+        repository: [Cura]
     steps:
       - name: Create branch and update conan package version
         run: |

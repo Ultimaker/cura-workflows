@@ -1,0 +1,46 @@
+name: Prepare Release Candidate
+run-name: Realse Candidate for Cura ${{ inputs.cura_version }} by @${{ github.actor }}
+
+on:
+  workflow_call:
+    inputs:
+      cura_version:
+        description: 'Cura version number, e.g. 5.7.2'
+        required: true
+        type: string
+
+jobs:
+  parse-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version_major: ${{ steps.version_parser.outputs.major }}
+      version_minor: ${{ steps.version_parser.outputs.minor }}
+      version_patch: ${{ steps.version_parser.outputs.patch }}
+    steps:
+      - name: Parse version string
+        id: version_parser
+        uses: booxmedialtd/ws-action-parse-semver@v1.4.7
+        with:
+          input_string: ${{ inputs.cura_version }}
+
+  update-cura-dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - name:
+        run: |
+          git clone https://${{ secrets.CURA_AUTORELEASE_PAT }}@github.com/Ultimaker/Cura.git
+          cd Cura
+          BRANCH_NAME=${{ needs.parse-version.outputs.version_major }}.${{ needs.parse-version.outputs.version_minor }}
+          git checkout $BRANCH_NAME
+          PACKAGE_VERSION=${{ needs.parse-version.outputs.version_major }}.${{ needs.parse-version.outputs.version_minor }}.${{ needs.parse-version.outputs.version_patch }}
+          sed -i "s/\"uranium\/.*/\"uranium\/$PACKAGE_VERSION\"/g" conandata.yml
+          sed -i "s/\"cura_resources\/.*/\"cura_resources\/$PACKAGE_VERSION\"/g" conandata.yml
+          sed -i "s/\"curaengine\/.*/\"curaengine\/$PACKAGE_VERSION\"/g" conandata.yml
+          sed -i "s/\"cura_binary_data\/.*/\"cura_binary_data\/$PACKAGE_VERSION\"/g" conandata.yml
+          sed -i "s/\"fdm_materials\/.*/\"fdm_materials\/$PACKAGE_VERSION\"/g" conandata.yml
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add conandata.yml
+          git commit -m "Set dependencies version $PACKAGE_VERSION"
+          git push origin `git branch --show-current`
+
