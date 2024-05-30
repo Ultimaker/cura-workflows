@@ -22,8 +22,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        #repository: [Cura, Uranium, CuraEngine, Cura-binary-data, fdm_materials]
-        repository: [Cura-binary-data]
+        #repository: [Cura, Uranium, CuraEngine, cura-binary-data, fdm_materials]
+        repository: [cura-binary-data]
     steps:
       - name: Create branch and update conan package version
         run: |
@@ -33,5 +33,6 @@ jobs:
           git config user.name github-actions
           git config user.email github-actions@github.com
           sed -i 's/version:.*/version: "${{ inputs.cura_version_major }}.${{ inputs.cura_version_minor }}.${{ inputs.cura_version_patch }}"/g' conandata.yml
+          git add conandata.yml
           git commit -m ""
           git push origin `git branch --show-current`
