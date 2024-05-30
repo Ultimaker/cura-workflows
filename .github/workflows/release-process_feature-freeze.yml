@@ -22,13 +22,16 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        #repository: [Cura, Uranium, CuraEngine, cura-binary-data, fdm_materials]
-        repository: [cura-binary-data]
+        #repository: [Cura, Uranium, CuraEngine, Cura-binary-data, fdm_materials]
+        repository: [Cura-binary-data]
     steps:
-      - name: Create cura-binary-data release branch
-        uses: GuillaumeFalourd/create-other-repo-branch-action@v1.5
-        with:
-          repository_owner: Ultimaker
-          repository_name: ${{ matrix.repository }}
-          new_branch_name: ${{ inputs.cura_version_major }}.${{ inputs.cura_version_minor }}
-          access_token: ${{ secrets.CURA_AUTORELEASE_PAT }}
+      - name: Create branch and update conan package version
+        run: |
+          git clone https://${{ secrets.CURA_AUTORELEASE_PAT }}@github.com/Ultimaker/${{ matrix.repository }}.git
+          cd ${{ matrix.repository }}
+          git checkout -b ${{ inputs.cura_version_major }}.${{ inputs.cura_version_minor }}
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          sed -i 's/version:.*/version: "${{ inputs.cura_version_major }}.${{ inputs.cura_version_minor }}.${{ inputs.cura_version_patch }}"/g' conandata.yml
+          git commit -m ""
+          git push origin `git branch --show-current`
