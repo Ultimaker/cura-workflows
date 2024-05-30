@@ -4,16 +4,8 @@ run-name: Feature freeze Cura ${{ inputs.cura_version }} by @${{ github.actor }}
 on:
   workflow_call:
     inputs:
-      cura_version_major:
-        description: 'Cura major version number, e.g. 5 for 5.7.2'
-        required: true
-        type: string
-      cura_version_minor:
-        description: 'Cura major version number, e.g. 7 for 5.7.2'
-        required: true
-        type: string
-      cura_version_patch:
-        description: 'Cura patch version number, e.g. 2 for 5.7.2'
+      cura_version:
+        description: 'Cura version number, e.g. 5.7.2'
         required: true
         type: string
 
@@ -25,14 +17,22 @@ jobs:
         #repository: [Cura, Uranium, CuraEngine, cura-binary-data, fdm_materials]
         repository: [cura-binary-data]
     steps:
+      - name: Parse version string
+        id: version_parser
+        uses: booxmedialtd/ws-action-parse-semver@v1.4.7
+        with:
+          input_string: ${{ inputs.cura_version }}
+
       - name: Create branch and update conan package version
         run: |
           git clone https://${{ secrets.CURA_AUTORELEASE_PAT }}@github.com/Ultimaker/${{ matrix.repository }}.git
           cd ${{ matrix.repository }}
-          git checkout -b ${{ inputs.cura_version_major }}.${{ inputs.cura_version_minor }}
+          BRANCH_NAME=${{ steps.version_parser.outputs.major }}.${{ steps.version_parser.outputs.minor }}
+          git checkout -b $BRANCH_NAME
           git config user.name github-actions
           git config user.email github-actions@github.com
-          sed -i 's/version:.*/version: "${{ inputs.cura_version_major }}.${{ inputs.cura_version_minor }}.${{ inputs.cura_version_patch }}"/g' conandata.yml
+          PACKAGE_VERSION=${{ steps.version_parser.outputs.major }}.${{ steps.version_parser.outputs.minor }}.${{ steps.version_parser.outputs.patch }}
+          sed -i 's/version:.*/version: "$PACKAGE_VERSION"/g' conandata.yml
           git add conandata.yml
-          git commit -m "Set conan package version ${{ inputs.cura_version_major }}.${{ inputs.cura_version_minor }}.${{ inputs.cura_version_patch }}"
+          git commit -m "Set conan package version $PACKAGE_VERSION"
           git push origin `git branch --show-current`
