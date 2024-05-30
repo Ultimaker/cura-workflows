@@ -13,7 +13,9 @@ jobs:
   parse-version:
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.version_parser.outputs }}
+      version_major: ${{ steps.version_parser.outputs.major }}
+      version_minor: ${{ steps.version_parser.outputs.minor }}
+      version_patch: ${{ steps.version_parser.outputs.patch }}
     steps:
       - name: Parse version string
         id: version_parser
@@ -33,11 +35,11 @@ jobs:
         run: |
           git clone https://${{ secrets.CURA_AUTORELEASE_PAT }}@github.com/Ultimaker/${{ matrix.repository }}.git
           cd ${{ matrix.repository }}
-          BRANCH_NAME=${{ needs.parse-version.version.major }}.${{ needs.parse-version.version.minor }}
+          BRANCH_NAME=${{ needs.parse-version.outputs.version_major }}.${{ needs.parse-version.outputs.version_minor }}
           git checkout -b $BRANCH_NAME
           git config user.name github-actions
           git config user.email github-actions@github.com
-          PACKAGE_VERSION=${{ needs.parse-version.version.major }}.${{ needs.parse-version.version.minor }}.${{ needs.parse-version.version.patch }}
+          PACKAGE_VERSION=${{ needs.parse-version.outputs.version_major }}.${{ needs.parse-version.outputs.version_minor }}.${{ needs.parse-version.outputs.version_patch }}
           sed -i "s/version:.*/version: \"$PACKAGE_VERSION\"/g" conandata.yml
           git add conandata.yml
           git commit -m "Set conan package version $PACKAGE_VERSION"
