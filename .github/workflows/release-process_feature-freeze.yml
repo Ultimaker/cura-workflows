@@ -34,5 +34,5 @@ jobs:
           git config user.email github-actions@github.com
           sed -i 's/version:.*/version: "${{ inputs.cura_version_major }}.${{ inputs.cura_version_minor }}.${{ inputs.cura_version_patch }}"/g' conandata.yml
           git add conandata.yml
-          git commit -m ""
+          git commit -m "Set conan package version ${{ inputs.cura_version_major }}.${{ inputs.cura_version_minor }}.${{ inputs.cura_version_patch }}"
           git push origin `git branch --show-current`
