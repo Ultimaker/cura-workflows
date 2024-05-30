@@ -10,12 +10,8 @@ on:
         type: string
 
 jobs:
-  create-branch:
+  parse-version:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        #repository: [Cura, Uranium, CuraEngine, cura-binary-data, fdm_materials]
-        repository: [cura-binary-data]
     steps:
       - name: Parse version string
         id: version_parser
@@ -23,15 +19,23 @@ jobs:
         with:
           input_string: ${{ inputs.cura_version }}
 
+  feature-freeze:
+    runs-on: ubuntu-latest
+    needs: [parse-version]
+    strategy:
+      matrix:
+        #repository: [Cura, Uranium, CuraEngine, cura-binary-data, fdm_materials]
+        repository: [cura-binary-data]
+    steps:
       - name: Create branch and update conan package version
         run: |
           git clone https://${{ secrets.CURA_AUTORELEASE_PAT }}@github.com/Ultimaker/${{ matrix.repository }}.git
           cd ${{ matrix.repository }}
-          BRANCH_NAME=${{ steps.version_parser.outputs.major }}.${{ steps.version_parser.outputs.minor }}
+          BRANCH_NAME=${{ needs.parse-version.outputs.major }}.${{ needs.parse-version.outputs.minor }}
           git checkout -b $BRANCH_NAME
           git config user.name github-actions
           git config user.email github-actions@github.com
-          PACKAGE_VERSION=${{ steps.version_parser.outputs.major }}.${{ steps.version_parser.outputs.minor }}.${{ steps.version_parser.outputs.patch }}
+          PACKAGE_VERSION=${{ needs.parse-version.outputs.major }}.${{ needs.parse-version.outputs.minor }}.${{ needs.parse-version.outputs.patch }}
           sed -i "s/version:.*/version: \"$PACKAGE_VERSION\"/g" conandata.yml
           git add conandata.yml
           git commit -m "Set conan package version $PACKAGE_VERSION"
