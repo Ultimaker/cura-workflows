@@ -25,6 +25,7 @@ jobs:
 
   update-cura-dependencies:
     runs-on: ubuntu-latest
+    needs: [parse-version]
     steps:
       - name:
         run: |
