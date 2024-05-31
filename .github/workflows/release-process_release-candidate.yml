@@ -74,7 +74,7 @@ jobs:
           git push origin tag "$TAG_NAME"
 
   create-dependencies-packages:
-    uses: ultimaker/cura-workflows/.github/workflows/conan-package-release.yml@main
+    uses: ultimaker/cura-workflows/.github/workflows/conan-package-release.yml@CURA-10769_automate_release_action
     needs: [parse-version, update-cura-dependencies]
     strategy:
       matrix:
