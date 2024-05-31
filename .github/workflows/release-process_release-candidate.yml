@@ -5,7 +5,7 @@ on:
   workflow_call:
     inputs:
       cura_version:
-        description: 'Cura version number, e.g. 5.7.2'
+        description: 'Cura version number, e.g. 5.7.2 or 5.8.0-beta.1'
         required: true
         type: string
 
@@ -16,6 +16,7 @@ jobs:
       version_major: ${{ steps.version_parser.outputs.major }}
       version_minor: ${{ steps.version_parser.outputs.minor }}
       version_patch: ${{ steps.version_parser.outputs.patch }}
+      branch_name: ${{ steps.version_parser.outputs.major }}.${{ steps.version_parser.outputs.minor }}
     steps:
       - name: Parse version string
         id: version_parser
@@ -27,21 +28,69 @@ jobs:
     runs-on: ubuntu-latest
     needs: [parse-version]
     steps:
-      - name:
+      - name: Update Cura dependencies
         run: |
           git clone https://${{ secrets.CURA_AUTORELEASE_PAT }}@github.com/Ultimaker/Cura.git
           cd Cura
-          BRANCH_NAME=${{ needs.parse-version.outputs.version_major }}.${{ needs.parse-version.outputs.version_minor }}
-          git checkout $BRANCH_NAME
-          PACKAGE_VERSION=${{ needs.parse-version.outputs.version_major }}.${{ needs.parse-version.outputs.version_minor }}.${{ needs.parse-version.outputs.version_patch }}
+
+          git checkout ${{ jobs.parse-version.outputs.branch_name }}
+
+          PACKAGE_VERSION=${{ inputs.cura_version }}
           sed -i "s/\"uranium\/.*/\"uranium\/$PACKAGE_VERSION\"/g" conandata.yml
           sed -i "s/\"cura_resources\/.*/\"cura_resources\/$PACKAGE_VERSION\"/g" conandata.yml
           sed -i "s/\"curaengine\/.*/\"curaengine\/$PACKAGE_VERSION\"/g" conandata.yml
           sed -i "s/\"cura_binary_data\/.*/\"cura_binary_data\/$PACKAGE_VERSION\"/g" conandata.yml
           sed -i "s/\"fdm_materials\/.*/\"fdm_materials\/$PACKAGE_VERSION\"/g" conandata.yml
+
           git config user.name github-actions
           git config user.email github-actions@github.com
           git add conandata.yml
-          git commit -m "Set dependencies version $PACKAGE_VERSION"
+          git commit -m "Set dependencies version $PACKAGE_VERSION" || echo "Packages versions were unchanged"
           git push origin `git branch --show-current`
 
+  create-tags:
+    runs-on: ubuntu-latest
+    needs: [update-cura-dependencies]
+    strategy:
+      matrix:
+        #repository: [Cura, Uranium, CuraEngine, cura-binary-data, fdm_materials]
+        repository: [Cura, cura-binary-data]
+    steps:
+      - name: Create tag
+        run: |
+          git clone https://${{ secrets.CURA_AUTORELEASE_PAT }}@github.com/Ultimaker/${{ matrix.repository }}.git
+          cd ${{ matrix.repository }}
+
+          VERSION=${{ inputs.cura_version }}
+
+          RC_INDEX=0
+          while
+            RC_INDEX=$((RC_INDEX+1))
+            TAG_NAME="$VERSION-RC$RC_INDEX"
+            [[ $(git tag -l "$TAG_NAME") ]]
+          do true; done
+
+          git tag "$TAG_NAME" ${{ jobs.parse-version.outputs.branch_name }}
+          git push origin tag "$TAG_NAME"
+
+  create-dependencies-packages:
+    uses: ultimaker/cura-workflows/.github/workflows/conan-package-release.yml@main
+    needs: [update-cura-dependencies]
+    strategy:
+      matrix:
+        #repository: [Cura, Uranium, CuraEngine, cura-binary-data, fdm_materials]
+        repository: [cura-binary-data]
+        include:
+          - conan_recipe_root: "."
+          - repository: Cura
+            conan_recipe_root: "resources"
+    with:
+      repository: ${{ matrix.repository }}
+      ref_name: ${{ jobs.parse-version.outputs.branch_name }}
+      version: ${{ inputs.cura_version }}
+      conan_release: true
+      conan_user_channel: ultimaker/stable
+      conan_internal: false
+      conan_latest: true
+      conan_recipe_root: ${{ matrix.conan_recipe_root }}
+    secrets: inherit
