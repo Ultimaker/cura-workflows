@@ -97,6 +97,11 @@ on:
         required: true
         type: string
 
+      conan_release:
+        required: false
+        default: true
+        type: boolean
+
       conan_user_channel:
         required: false
         default: '_/_'
@@ -115,6 +120,11 @@ on:
       conan_extra_args:
         required: false
         default: ''
+        type: string
+
+      conan_recipe_root:
+        required: false
+        default: "."
         type: string
 
 permissions:
