@@ -37,7 +37,7 @@ jobs:
           git clone https://${{ secrets.CURA_AUTORELEASE_PAT }}@github.com/Ultimaker/${{ matrix.repository }}.git
           cd ${{ matrix.repository }}
 
-          git checkout ${{ needs.parse-version.outputs.branch_name }}
+          git checkout -b ${{ needs.parse-version.outputs.branch_name }}
 
           PACKAGE_VERSION=${{ needs.parse-version.outputs.version_major }}.${{ needs.parse-version.outputs.version_minor }}.${{ needs.parse-version.outputs.version_patch }}
           sed -i "s/version:.*/version: \"$PACKAGE_VERSION\"/g" conandata.yml
