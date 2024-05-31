@@ -168,22 +168,38 @@ jobs:
 #        if: ${{ always() && ! inputs.conan_internal }}
 #        run: conan upload "*" -r cura --all -c
 
-      - name: Upload the msi
+      - name: Upload the installer msi
         if: ${{ always() }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4.3.3
         with:
           name: ${{steps.filename.outputs.INSTALLER_FILENAME }}-msi
           path: |
             dist/${{steps.filename.outputs.INSTALLER_FILENAME }}.msi
           retention-days: 5
 
-      - name: Upload the exe
+      - name: Upload the installer exe
         if: ${{ always() }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4.3.3
         with:
           name: ${{steps.filename.outputs.INSTALLER_FILENAME }}-exe
           path: |
             dist/${{steps.filename.outputs.INSTALLER_FILENAME }}.exe
+          retention-days: 5
+
+      - name: Upload the application exe
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4.3.3
+        with:
+          name: UltiMaker-Cura.exe
+          path: dist/UltiMaker-Cura.exe
+          retention-days: 5
+
+      - name: Upload the engine exe
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4.3.3
+        with:
+          name: CuraEngine.exe
+          path: dist/CuraEngine.exe
           retention-days: 5
 
       # NOTE: The extension is .sh, since this isn't going to build-environment, so not on the Win build image.
@@ -198,7 +214,7 @@ jobs:
       # NOTE: The extension is .sh, since this isn't going to build-environment, so not on the Win build image.
       - name: Upload the run info
         if: ${{ always() }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4.3.3
         with:
           name: windows-run-info
           path: |
