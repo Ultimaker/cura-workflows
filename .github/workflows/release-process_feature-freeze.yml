@@ -31,12 +31,17 @@ jobs:
       matrix:
         #repository: [Cura, Uranium, CuraEngine, cura-binary-data, fdm_materials]
         repository: [Cura, cura-binary-data]
+        include:
+          - main_branch: "main"
+          - repository: Cura
+            main_branch: "CURA-10769_automate_release_action"
     steps:
       - name: Create branch and update conan package version
         run: |
           git clone https://${{ secrets.CURA_AUTORELEASE_PAT }}@github.com/Ultimaker/${{ matrix.repository }}.git
           cd ${{ matrix.repository }}
 
+          git checkout ${{ matrix.main_branch }}
           git checkout -b ${{ needs.parse-version.outputs.branch_name }}
 
           PACKAGE_VERSION=${{ needs.parse-version.outputs.version_major }}.${{ needs.parse-version.outputs.version_minor }}.${{ needs.parse-version.outputs.version_patch }}
