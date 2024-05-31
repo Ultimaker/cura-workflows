@@ -111,3 +111,6 @@ jobs:
     needs: [parse-version, create-cura-package]
     with:
       cura_conan_version: cura/${{ inputs.cura_version }}@/
+      enterprise: false
+      staging: false
+      nightly: false
