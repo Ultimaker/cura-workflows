@@ -53,8 +53,7 @@ jobs:
     needs: [parse-version, update-cura-dependencies]
     strategy:
       matrix:
-        #repository: [Cura, Uranium, CuraEngine, cura-binary-data, fdm_materials]
-        repository: [Cura, cura-binary-data]
+        repository: [Cura, Uranium, CuraEngine, cura-binary-data, fdm_materials]
     steps:
       - name: Create tag
         run: |
@@ -78,8 +77,7 @@ jobs:
     needs: [parse-version, update-cura-dependencies]
     strategy:
       matrix:
-        #repository: [Cura, Uranium, CuraEngine, cura-binary-data, fdm_materials]
-        repository: [Cura, cura-binary-data]
+        repository: [Cura, Uranium, CuraEngine, cura-binary-data, fdm_materials]
         include:
           - conan_recipe_root: "."
           - repository: Cura

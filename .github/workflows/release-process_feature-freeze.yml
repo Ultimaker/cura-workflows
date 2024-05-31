@@ -29,12 +29,13 @@ jobs:
     needs: [parse-version]
     strategy:
       matrix:
-        #repository: [Cura, Uranium, CuraEngine, cura-binary-data, fdm_materials]
-        repository: [Cura, cura-binary-data]
+        repository: [Cura, Uranium, CuraEngine, cura-binary-data, fdm_materials]
         include:
-          - main_branch: "main"
+          - main_branch: main
           - repository: Cura
-            main_branch: "CURA-10769_automate_release_action"
+            main_branch: CURA-10769_automate_release_action
+          - repository: fdm_materials
+            main_branch: master
     steps:
       - name: Create branch and update conan package version
         run: |
