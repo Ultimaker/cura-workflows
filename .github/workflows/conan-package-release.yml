@@ -193,7 +193,7 @@ jobs:
 
       - name: Get basic project info
         run: |
-          echo "CONAN_PROJECT_NAME=$(conan inspect . | awk '/^name:/ {print $2}')" >> $GITHUB_ENV
+          echo "CONAN_PROJECT_NAME=$(conan inspect ${{ inputs.conan_recipe_root }} | awk '/^name:/ {print $2}')" >> $GITHUB_ENV
 
       - id: get-conan-broadcast-data
         name: Get Conan broadcast data
