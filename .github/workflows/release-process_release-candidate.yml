@@ -70,7 +70,7 @@ jobs:
             [[ $(git tag -l "$TAG_NAME") ]]
           do true; done
 
-          git tag "$TAG_NAME" ${{ needs.parse-version.outputs.branch_name }}
+          git tag "$TAG_NAME" origin/${{ needs.parse-version.outputs.branch_name }}
           git push origin tag "$TAG_NAME"
 
   create-dependencies-packages:
