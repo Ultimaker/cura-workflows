@@ -5,7 +5,7 @@ on:
   workflow_call:
     inputs:
       cura_version:
-        description: 'Cura version number, e.g. 5.7.2 or 5.8.0-beta.1'
+        description: 'Cura version number, e.g. 5.7.2 or 5.8.0-beta.2'
         required: true
         type: string
 
@@ -107,7 +107,7 @@ jobs:
     secrets: inherit
 
   create-installers:
-    uses: ultimaker/cura/.github/workflows/installers.yml@main
+    uses: ultimaker/cura/.github/workflows/installers.yml@CURA-10769_automate_release_action
     needs: [parse-version, create-cura-package]
     with:
       cura_conan_version: cura/${{ inputs.cura_version }}@/
