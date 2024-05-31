@@ -33,7 +33,7 @@ jobs:
           git clone https://${{ secrets.CURA_AUTORELEASE_PAT }}@github.com/Ultimaker/Cura.git
           cd Cura
 
-          git checkout ${{ jobs.parse-version.outputs.branch_name }}
+          git checkout ${{ needs.parse-version.outputs.branch_name }}
 
           PACKAGE_VERSION=${{ inputs.cura_version }}
           sed -i "s/\"uranium\/.*/\"uranium\/$PACKAGE_VERSION\"/g" conandata.yml
@@ -50,7 +50,7 @@ jobs:
 
   create-tags:
     runs-on: ubuntu-latest
-    needs: [update-cura-dependencies]
+    needs: [parse-version, update-cura-dependencies]
     strategy:
       matrix:
         #repository: [Cura, Uranium, CuraEngine, cura-binary-data, fdm_materials]
@@ -70,12 +70,12 @@ jobs:
             [[ $(git tag -l "$TAG_NAME") ]]
           do true; done
 
-          git tag "$TAG_NAME" ${{ jobs.parse-version.outputs.branch_name }}
+          git tag "$TAG_NAME" ${{ needs.parse-version.outputs.branch_name }}
           git push origin tag "$TAG_NAME"
 
   create-dependencies-packages:
     uses: ultimaker/cura-workflows/.github/workflows/conan-package-release.yml@main
-    needs: [update-cura-dependencies]
+    needs: [parse-version, update-cura-dependencies]
     strategy:
       matrix:
         #repository: [Cura, Uranium, CuraEngine, cura-binary-data, fdm_materials]
@@ -86,7 +86,7 @@ jobs:
             conan_recipe_root: "resources"
     with:
       repository: ${{ matrix.repository }}
-      ref_name: ${{ jobs.parse-version.outputs.branch_name }}
+      ref_name: ${{ needs.parse-version.outputs.branch_name }}
       version: ${{ inputs.cura_version }}
       conan_release: true
       conan_user_channel: ultimaker/stable
