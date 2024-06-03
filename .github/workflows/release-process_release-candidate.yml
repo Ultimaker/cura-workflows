@@ -86,16 +86,17 @@ jobs:
       matrix:
         repository: [Cura, Uranium, CuraEngine, cura-binary-data, fdm_materials]
     steps:
-      - name: Create tag
-        uses: joutvhu/create-tag@v1.0.2
+      - name: Checkout repo
+        uses: actions/checkout@v4
         with:
-          owner: Ultimaker
-          repo: ${{ matrix.repository }}
-          tag_name: ${{ needs.create-tag-name.outputs.tag_name }}
-          tag_sha: ${{ needs.parse-version.outputs.branch_name }}
-          on_tag_exists: warn
-        env:
-          GITHUB_TOKEN: ${{ secrets.CURA_AUTORELEASE_PAT }}
+          repository: Ultimaker/${{ matrix.repository }}
+          ref: ${{ needs.parse-version.outputs.branch_name }}
+          token: ${{ secrets.CURA_AUTORELEASE_PAT }}
+
+      - name: Create tag
+        run: |
+          git tag ${{ needs.create-tag-name.outputs.tag_name }}
+          git push origin tag ${{ needs.create-tag-name.outputs.tag_name }}
 
   create-dependencies-packages:
     name: Create conan packages for dependencies
