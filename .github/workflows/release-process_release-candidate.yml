@@ -26,7 +26,7 @@ jobs:
           input_string: ${{ inputs.cura_version }}
 
   update-cura-dependencies:
-    name: Update version of Cura packages dependencies
+    name: Update version of Cura dependencies
     runs-on: ubuntu-latest
     needs: [parse-version]
     steps:
@@ -81,23 +81,21 @@ jobs:
   create-tags:
     name: Create tags
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     needs: [parse-version, create-tag-name, update-cura-dependencies]
     strategy:
       matrix:
         repository: [Cura, Uranium, CuraEngine, cura-binary-data, fdm_materials]
     steps:
-      - name: Create tag
-        uses: joutvhu/create-tag@v1.0.2
+      - name: Checkout repo
+        uses: actions/checkout@v4
         with:
-          owner: Ultimaker
-          repo: ${{ matrix.repository }}
-          tag_name: ${{ needs.create-tag-name.outputs.tag_name }}
-          tag_sha: ${{ needs.parse-version.outputs.branch_name }}
-          on_tag_exists: warn
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          repository: Ultimaker/${{ matrix.repository }}
+          ref: ${{ needs.parse-version.outputs.branch_name }}
+
+      - name: Create tag
+        run: |
+          git tag ${{ needs.create-tag-name.outputs.tag_name }}
+          git push origin tag ${{ needs.create-tag-name.outputs.tag_name }}
 
   create-dependencies-packages:
     name: Create conan packages for dependencies
