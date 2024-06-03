@@ -50,9 +50,11 @@ jobs:
           sed -i "s/\"cura_binary_data\/.*/\"cura_binary_data\/$PACKAGE_VERSION\"/g" conandata.yml
           sed -i "s/\"fdm_materials\/.*/\"fdm_materials\/$PACKAGE_VERSION\"/g" conandata.yml
 
-          git add conandata.yml
-          git commit -m "Set dependencies version $PACKAGE_VERSION" || echo "Packages versions were unchanged"
-          git push origin `git branch --show-current`
+      - name: Commit new dependencies versioning
+        uses: stefanzweifel/git-auto-commit-action@v5.0.1
+        with:
+          commit_message: Set dependencies version ${{ inputs.cura_version }}
+          file_pattern: conandata.yml
 
       - name: Find available tag name
         id: find-available-tag-name

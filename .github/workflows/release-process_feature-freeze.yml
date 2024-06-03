@@ -14,9 +14,7 @@ jobs:
     name: Parse input version string
     runs-on: ubuntu-latest
     outputs:
-      version_major: ${{ steps.version_parser.outputs.major }}
-      version_minor: ${{ steps.version_parser.outputs.minor }}
-      version_patch: ${{ steps.version_parser.outputs.patch }}
+      package_version: ${{ steps.version_parser.outputs.major }}.${{ steps.version_parser.outputs.minor }}.${{ steps.version_parser.outputs.patch }}
       branch_name: ${{ steps.version_parser.outputs.major }}.${{ steps.version_parser.outputs.minor }}
     steps:
       - name: Parse version string
@@ -39,19 +37,22 @@ jobs:
           - repository: fdm_materials
             main_branch: master
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          repository: Ultimaker/${{ matrix.repository }}
+          ref: ${{ matrix.main_branch }}
+          token: ${{ secrets.CURA_AUTORELEASE_PAT }}
+
       - name: Create branch and update conan package version
         run: |
-          git clone https://${{ secrets.CURA_AUTORELEASE_PAT }}@github.com/Ultimaker/${{ matrix.repository }}.git
-          cd ${{ matrix.repository }}
-
-          git checkout ${{ matrix.main_branch }}
           git checkout -b ${{ needs.parse-version.outputs.branch_name }}
 
-          PACKAGE_VERSION=${{ needs.parse-version.outputs.version_major }}.${{ needs.parse-version.outputs.version_minor }}.${{ needs.parse-version.outputs.version_patch }}
+          PACKAGE_VERSION=${{ needs.parse-version.outputs.package_version }}
           sed -i "s/version:.*/version: \"$PACKAGE_VERSION\"/g" conandata.yml
 
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-          git add conandata.yml
-          git commit -m "Set conan package version $PACKAGE_VERSION"
-          git push origin `git branch --show-current`
+      - name: Commit new package version
+        uses: stefanzweifel/git-auto-commit-action@v5.0.1
+        with:
+          commit_message: Set conan package version ${{ needs.parse-version.outputs.package_version }}
+          file_pattern: conandata.yml
