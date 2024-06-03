@@ -81,6 +81,8 @@ jobs:
   create-tags:
     name: Create tags
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     needs: [parse-version, create-tag-name, update-cura-dependencies]
     strategy:
       matrix:
