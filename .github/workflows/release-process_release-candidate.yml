@@ -62,6 +62,7 @@ jobs:
         with:
           repository: Ultimaker/Cura
           fetch-tags: true
+          fetch-depth: 0
 
       - name: Find available tag name
         id: find-available-tag-name
@@ -92,6 +93,7 @@ jobs:
           repo: ${{ matrix.repository }}
           tag_name: ${{ needs.create-tag-name.outputs.tag_name }}
           tag_sha: ${{ needs.parse-version.outputs.branch_name }}
+          on_tag_exists: warn
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
