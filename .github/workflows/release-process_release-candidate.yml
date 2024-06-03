@@ -11,6 +11,7 @@ on:
 
 jobs:
   parse-version:
+    name: Parse input version string
     runs-on: ubuntu-latest
     outputs:
       version_major: ${{ steps.version_parser.outputs.major }}
@@ -25,6 +26,7 @@ jobs:
           input_string: ${{ inputs.cura_version }}
 
   update-cura-dependencies:
+    name: Update version of Cura packages dependencies
     runs-on: ubuntu-latest
     needs: [parse-version]
     steps:
@@ -48,18 +50,18 @@ jobs:
           git commit -m "Set dependencies version $PACKAGE_VERSION" || echo "Packages versions were unchanged"
           git push origin `git branch --show-current`
 
-  create-tags:
+  create-tag-name:
+    name: Create the new tag name
     runs-on: ubuntu-latest
     needs: [parse-version, update-cura-dependencies]
-    strategy:
-      matrix:
-        repository: [Cura, Uranium, CuraEngine, cura-binary-data, fdm_materials]
     steps:
-      - name: Create tag
-        run: |
-          git clone https://${{ secrets.CURA_AUTORELEASE_PAT }}@github.com/Ultimaker/${{ matrix.repository }}.git
-          cd ${{ matrix.repository }}
+      - name: Checkout Cura repo
+        uses: actions/checkout@v4
+        with:
+          repository: Ultimaker/Cura
 
+      - name: Find available tag name
+        run: |
           VERSION=${{ inputs.cura_version }}
 
           RC_INDEX=0
@@ -69,10 +71,26 @@ jobs:
             [[ $(git tag -l "$TAG_NAME") ]]
           do true; done
 
-          git tag "$TAG_NAME" origin/${{ needs.parse-version.outputs.branch_name }}
-          git push origin tag "$TAG_NAME"
+          echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
+
+  create-tags:
+    name: Create tags
+    runs-on: ubuntu-latest
+    needs: [parse-version, create-tag-name, update-cura-dependencies]
+    strategy:
+      matrix:
+        repository: [Cura, Uranium, CuraEngine, cura-binary-data, fdm_materials]
+    steps:
+      - name: Create tag
+        uses: joutvhu/create-tag@v1.0.2
+        with:
+          owner: Ultimaker
+          repo: ${{ matrix.repository }}
+          tag_name: ${{ needs.create-tag-name.outputs.tag_name }}
+          tag_sha: ${{ needs.parse-version.outputs.branch_name }}
 
   create-dependencies-packages:
+    name: Create conan packages for dependencies
     uses: ultimaker/cura-workflows/.github/workflows/conan-package-release.yml@CURA-10769_automate_release_action
     needs: [parse-version, update-cura-dependencies]
     strategy:
@@ -94,6 +112,7 @@ jobs:
     secrets: inherit
 
   create-cura-package:
+    name: Create conan package for Cura
     uses: ultimaker/cura-workflows/.github/workflows/conan-package-release.yml@CURA-10769_automate_release_action
     needs: [parse-version, create-dependencies-packages]
     with:
@@ -107,6 +126,7 @@ jobs:
     secrets: inherit
 
   create-installers:
+    name: Create installers
     uses: ultimaker/cura/.github/workflows/installers.yml@CURA-10769_automate_release_action
     needs: [parse-version, create-cura-package]
     with:
