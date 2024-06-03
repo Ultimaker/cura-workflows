@@ -54,6 +54,8 @@ jobs:
     name: Create the new tag name
     runs-on: ubuntu-latest
     needs: [parse-version, update-cura-dependencies]
+    outputs:
+      tag_name: ${{ steps.find-available-tag-name.outputs.tag_name }}
     steps:
       - name: Checkout Cura repo
         uses: actions/checkout@v4
@@ -61,6 +63,7 @@ jobs:
           repository: Ultimaker/Cura
 
       - name: Find available tag name
+        id: find-available-tag-name
         run: |
           VERSION=${{ inputs.cura_version }}
 
