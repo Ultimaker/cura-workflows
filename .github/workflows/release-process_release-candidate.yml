@@ -140,3 +140,4 @@ jobs:
       enterprise: false
       staging: false
       nightly: false
+    secrets: inherit
