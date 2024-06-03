@@ -91,6 +91,7 @@ jobs:
         with:
           repository: Ultimaker/${{ matrix.repository }}
           ref: ${{ needs.parse-version.outputs.branch_name }}
+          token: ${{ secrets.CURA_AUTORELEASE_PAT }}
 
       - name: Create tag
         run: |
