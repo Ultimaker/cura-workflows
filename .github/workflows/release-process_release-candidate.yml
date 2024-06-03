@@ -25,18 +25,24 @@ jobs:
         with:
           input_string: ${{ inputs.cura_version }}
 
-  update-cura-dependencies:
-    name: Update version of Cura dependencies
+  prepare-cura-repo:
+    name: Update dependencies and find RC tag name
     runs-on: ubuntu-latest
     needs: [parse-version]
+    outputs:
+      tag_name: ${{ steps.find-available-tag-name.outputs.tag_name }}
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          repository: Ultimaker/Cura
+          ref: ${{ needs.parse-version.outputs.branch_name }}
+          token: ${{ secrets.CURA_AUTORELEASE_PAT }}
+          fetch-tags: true
+          fetch-depth: 0
+
       - name: Update Cura dependencies
         run: |
-          git clone https://${{ secrets.CURA_AUTORELEASE_PAT }}@github.com/Ultimaker/Cura.git
-          cd Cura
-
-          git checkout ${{ needs.parse-version.outputs.branch_name }}
-
           PACKAGE_VERSION=${{ inputs.cura_version }}
           sed -i "s/\"uranium\/.*/\"uranium\/$PACKAGE_VERSION\"/g" conandata.yml
           sed -i "s/\"cura_resources\/.*/\"cura_resources\/$PACKAGE_VERSION\"/g" conandata.yml
@@ -44,25 +50,9 @@ jobs:
           sed -i "s/\"cura_binary_data\/.*/\"cura_binary_data\/$PACKAGE_VERSION\"/g" conandata.yml
           sed -i "s/\"fdm_materials\/.*/\"fdm_materials\/$PACKAGE_VERSION\"/g" conandata.yml
 
-          git config user.name github-actions
-          git config user.email github-actions@github.com
           git add conandata.yml
           git commit -m "Set dependencies version $PACKAGE_VERSION" || echo "Packages versions were unchanged"
           git push origin `git branch --show-current`
-
-  create-tag-name:
-    name: Create the new tag name
-    runs-on: ubuntu-latest
-    needs: [parse-version, update-cura-dependencies]
-    outputs:
-      tag_name: ${{ steps.find-available-tag-name.outputs.tag_name }}
-    steps:
-      - name: Checkout Cura repo
-        uses: actions/checkout@v4
-        with:
-          repository: Ultimaker/Cura
-          fetch-tags: true
-          fetch-depth: 0
 
       - name: Find available tag name
         id: find-available-tag-name
@@ -81,7 +71,7 @@ jobs:
   create-tags:
     name: Create tags
     runs-on: ubuntu-latest
-    needs: [parse-version, create-tag-name, update-cura-dependencies]
+    needs: [parse-version, prepare-cura-repo]
     strategy:
       matrix:
         repository: [Cura, Uranium, CuraEngine, cura-binary-data, fdm_materials]
@@ -95,13 +85,13 @@ jobs:
 
       - name: Create tag
         run: |
-          git tag ${{ needs.create-tag-name.outputs.tag_name }}
-          git push origin tag ${{ needs.create-tag-name.outputs.tag_name }}
+          git tag ${{ needs.prepare-cura-repo.outputs.tag_name }}
+          git push origin tag ${{ needs.prepare-cura-repo.outputs.tag_name }}
 
   create-dependencies-packages:
     name: Create conan packages for dependencies
     uses: ultimaker/cura-workflows/.github/workflows/conan-package-release.yml@CURA-10769_automate_release_action
-    needs: [parse-version, update-cura-dependencies]
+    needs: [parse-version, prepare-cura-repo]
     strategy:
       matrix:
         repository: [Cura, Uranium, CuraEngine, cura-binary-data, fdm_materials]
