@@ -91,6 +91,8 @@ jobs:
           repo: ${{ matrix.repository }}
           tag_name: ${{ needs.create-tag-name.outputs.tag_name }}
           tag_sha: ${{ needs.parse-version.outputs.branch_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   create-dependencies-packages:
     name: Create conan packages for dependencies
