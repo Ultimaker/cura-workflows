@@ -63,33 +63,28 @@ jobs:
     runs-on: ${{ inputs.operating_system }}
 
     steps:
-      - name: Checkout repo
+      - name: Checkout Cura repo
         uses: actions/checkout@v4
-        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         with:
-          fetch-depth: 1
-          ref: ${{ github.head_ref }}
+          repository: Ultimaker/Cura
+          ref: CURA-10769_automate_release_action
 
-      - name: Checkout repo PR
+      - name: Checkout Cura-workflows repo
         uses: actions/checkout@v4
-        if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
         with:
-          fetch-depth: 1
-          ref: ${{ github.base_ref }}
-
-      - name: Sync pip requirements
-        run: curl.exe -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/.github/workflows/requirements-runner.txt
-        working-directory: .github\workflows
+          repository: Ultimaker/Cura-workflows
+          path: Cura-workflows
+          ref: CURA-10769_automate_release_action
 
       - name: Setup Python and pip
         uses: actions/setup-python@v4
         with:
           python-version: 3.11.x
           cache: pip
-          cache-dependency-path: .\.github\workflows\requirements-runner.txt
+          cache-dependency-path: .\Cura-workflows\.github\workflows\requirements-runner.txt
 
       - name: Install Python requirements and Create default Conan profile
-        run: pip install -r .\.github\workflows\requirements-runner.txt
+        run: pip install -r .\Cura-workflows\.github\workflows\requirements-runner.txt
 
       - name: Create default Conan profile
         run: conan profile new default --detect --force
@@ -120,19 +115,12 @@ jobs:
       - name: Create the Cura dist
         run: pyinstaller ./cura_inst/UltiMaker-Cura.spec
 
-      - name: Get installer helper scripts
-        run: |
-          New-Item -ItemType Directory -Force -Path runner_scripts
-          cd runner_scripts
-          curl.exe -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/cura_installer_filename.py
-          curl.exe -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/summarize_used_dependencies.py
-
       - name: Output the name file name and extension
         id: filename
-        run: python runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --arch ${{ inputs.architecture }} --enterprise ${{ inputs.enterprise }} --internal ${{ inputs.conan_internal }}
+        run: python Cura-workflows/runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --arch ${{ inputs.architecture }} --enterprise ${{ inputs.enterprise }} --internal ${{ inputs.conan_internal }}
 
       - name: Summarize the used dependencies
-        run: python runner_scripts/summarize_used_dependencies.py --installer_filename ${{ steps.filename.outputs.INSTALLER_FILENAME }}
+        run: python Cura-workflows/runner_scripts/summarize_used_dependencies.py --installer_filename ${{ steps.filename.outputs.INSTALLER_FILENAME }}
 
       - name: Create the Windows msi installer (Powershell)
         run: |
