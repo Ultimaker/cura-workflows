@@ -22,12 +22,18 @@ jobs:
     name: Create the release draft
     runs-on: ubuntu-latest
     steps:
+      - name: Get commit ID from tag
+        id: get-commit-id
+        uses: matheusraz/ref-sha@v1
+        with:
+          ref: 255.123.42-RC1
+
       - name: Create release
         uses: notpeelz/action-gh-create-release@v5.0.1
         with:
           repository: Ultimaker/Cura
           token: ${{ secrets.CURA_AUTORELEASE_PAT }}
-          target: 255.123.42-RC1
+          target: ${{ steps.get-commit-id.outputs.sha }}
           tag: 255.123.42
           strategy: replace
           title: UltiMaker Cura 255.123.42
