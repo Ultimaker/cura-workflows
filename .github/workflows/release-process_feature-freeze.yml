@@ -44,15 +44,15 @@ jobs:
           ref: ${{ matrix.main_branch }}
           token: ${{ secrets.CURA_AUTORELEASE_PAT }}
 
-      - name: Create branch and update conan package version
+      - name: Update conan package version
         run: |
-          git checkout -b ${{ needs.parse-version.outputs.branch_name }}
-
           PACKAGE_VERSION=${{ needs.parse-version.outputs.package_version }}
           sed -i "s/version:.*/version: \"$PACKAGE_VERSION\"/g" conandata.yml
 
-      - name: Commit new package version
+      - name: Create branch and commit
         uses: stefanzweifel/git-auto-commit-action@v5.0.1
         with:
           commit_message: Set conan package version ${{ needs.parse-version.outputs.package_version }}
           file_pattern: conandata.yml
+          branch: ${{ needs.parse-version.outputs.branch_name }}
+          create_branch: true
