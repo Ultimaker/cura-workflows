@@ -20,6 +20,7 @@ jobs:
 
   test-create-release-draft:
     name: Create the release draft
+    runs-on: ubuntu-latest
     steps:
       - name: Create release
         uses: notpeelz/action-gh-create-release@v5.0.1
