@@ -27,6 +27,7 @@ jobs:
         uses: matheusraz/ref-sha@v1
         with:
           ref: 255.123.42-RC1
+          length: 40
 
       - name: Create release
         uses: notpeelz/action-gh-create-release@v5.0.1
