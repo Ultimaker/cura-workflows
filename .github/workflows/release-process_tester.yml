@@ -5,15 +5,29 @@ on:
   push
 
 jobs:
-  test-feature-freeze:
-    uses: ultimaker/cura-workflows/.github/workflows/release-process_feature-freeze.yml@CURA-10769_automate_release_action
-    with:
-      cura_version: 255.123.42
-    secrets: inherit
+  #test-feature-freeze:
+    #uses: ultimaker/cura-workflows/.github/workflows/release-process_feature-freeze.yml@CURA-10769_automate_release_action
+    #with:
+      #cura_version: 255.123.42
+    #secrets: inherit
 
-  test-release-candidate:
-    uses: ultimaker/cura-workflows/.github/workflows/release-process_release-candidate.yml@CURA-10769_automate_release_action
-    needs: [test-feature-freeze]
-    with:
-      cura_version: 255.123.42
-    secrets: inherit
+  #test-release-candidate:
+    #uses: ultimaker/cura-workflows/.github/workflows/release-process_release-candidate.yml@CURA-10769_automate_release_action
+    #needs: [test-feature-freeze]
+    #with:
+      #cura_version: 255.123.42
+    #secrets: inherit
+
+  test-create-release-draft:
+    name: Create the release draft
+    steps:
+      - name: Create release
+        uses: notpeelz/action-gh-create-release@v5.0.1
+        with:
+          repository: Ultimaker/Cura
+          token: ${{ secrets.CURA_AUTORELEASE_PAT }}
+          target: 255.123.42-RC1
+          tag: 255.123.42
+          strategy: replace
+          title: UltiMaker Cura 255.123.42
+          draft: true
