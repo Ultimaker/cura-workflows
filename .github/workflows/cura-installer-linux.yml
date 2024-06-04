@@ -90,7 +90,10 @@ jobs:
         run: |
           chmod +x ubuntu_setup.sh
           sudo ./ubuntu_setup.sh
-          source ./appimage_setup.sh
+
+      - name: Install AppImage builder
+          chmod +x ./Cura-workflows/runner_scripts/appimage_setup.sh
+          ./Cura-workflows/runner_scripts/appimage_setup.sh
 
       - name: Setup pipeline caches
         run: mkdir -p /home/runner/.conan/downloads
