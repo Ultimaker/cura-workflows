@@ -50,4 +50,4 @@ jobs:
           title: UltiMaker Cura 255.123.42
           draft: true
           body-source: file
-          bosy: formatted_changelog.txt
+          body: formatted_changelog.txt
