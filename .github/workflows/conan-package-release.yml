@@ -77,11 +77,6 @@ on:
         description: 'location of the conanfile.py defaults to `.`'
         type: string
 
-      token:
-        required: false
-        default: ${{ secrets.CURA_CONAN_PACKAGE_RELEASE_PAT }}
-        description: 'Personal access token (PAT) used to fetch the repository'
-
   workflow_call:
     inputs:
       organization:
@@ -132,11 +127,6 @@ on:
         default: "."
         type: string
 
-      token:
-        required: false
-        default: ${{ secrets.CURA_CONAN_PACKAGE_RELEASE_PAT }}
-        description: 'Personal access token (PAT) used to fetch the repository'
-
 permissions:
   contents: read
 
@@ -156,7 +146,7 @@ jobs:
           repository: ${{ inputs.organization }}/${{ inputs.repository }}
           ref: ${{ inputs.ref_name }}
           fetch-depth: 1
-          token: ${{ inputs.token }}
+          token: ${{ secrets.CURA_CONAN_PACKAGE_RELEASE_PAT }}
 
       - name: Sync pip requirements
         run: |
