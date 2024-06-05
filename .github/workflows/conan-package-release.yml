@@ -2,10 +2,6 @@ name: Create Conan Package Release
 
 on:
   workflow_dispatch:
-    secrets:
-      token:
-       required: false
-       default: ${{ secrets.CURA_CONAN_PACKAGE_RELEASE_PAT }}
     inputs:
       organization:
         description: 'Organization'
@@ -82,10 +78,6 @@ on:
         type: string
 
   workflow_call:
-    secrets:
-      token:
-       required: false
-       default: ${{ secrets.CURA_CONAN_PACKAGE_RELEASE_PAT }}
     inputs:
       organization:
         required: false
@@ -154,7 +146,7 @@ jobs:
           repository: ${{ inputs.organization }}/${{ inputs.repository }}
           ref: ${{ inputs.ref_name }}
           fetch-depth: 1
-          token: ${{ secrets.token }}
+          token: ${{ secrets.CURA_CONAN_PACKAGE_RELEASE_PAT }}
 
       - name: Sync pip requirements
         run: |
