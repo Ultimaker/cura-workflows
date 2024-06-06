@@ -59,47 +59,21 @@ jobs:
           token: ${{ secrets.CURA_AUTORELEASE_PAT }}
 
       - name: Update conan packages versions
-        shell: python
         run: |
-          import yaml
-
-          with open("conandata.yml", "r") as file:
-            yaml_data = yaml.safe_load(file)
-
-          yaml_data['version'] = '${{ inputs.cura_version }}'
-
-          if 'requirements' in yaml_data:
-            dependencies = ['cura_resources', 'uranium', 'curaengine', 'cura_binary_data', 'fdm_materials']
-
-            requirements_list = yaml_data['requirements']
-            new_requirements_list = []
-
-            for requirement in requirements_list:
-              package_name = requirement.split('/')[0]
-              if package_name in dependencies:
-                new_requirements_list.append(f"{package_name}/${{ inputs.cura_version }}")
-              else:
-                new_requirements_list.append(requirement)
-
-            yaml_data['requirements'] = new_requirements_list
-
-          with open("conandata.yml", "w") as file:
-            yaml.safe_dump(yaml_data, file)
+          PACKAGE_VERSION=${{ inputs.cura_version }}
+          sed -i "s/version:.*/version: \"$PACKAGE_VERSION\"/g" conandata.yml
+          sed -i "s/\"uranium\/.*/\"uranium\/$PACKAGE_VERSION\"/g" conandata.yml
+          sed -i "s/\"cura_resources\/.*/\"cura_resources\/$PACKAGE_VERSION\"/g" conandata.yml
+          sed -i "s/\"curaengine\/.*/\"curaengine\/$PACKAGE_VERSION\"/g" conandata.yml
+          sed -i "s/\"cura_binary_data\/.*/\"cura_binary_data\/$PACKAGE_VERSION\"/g" conandata.yml
+          sed -i "s/\"fdm_materials\/.*/\"fdm_materials\/$PACKAGE_VERSION\"/g" conandata.yml
 
       - name: Update resources conan package version
         if: ${{ matrix.repository == 'Cura' }}
-        shell: python
         working-directory: resources
         run: |
-          import yaml
-
-          with open("conandata.yml", "r") as file:
-            yaml_data = yaml.safe_load(file)
-
-          yaml_data['version'] = '${{ inputs.cura_version }}'
-
-          with open("conandata.yml", "w") as file:
-            yaml.safe_dump(yaml_data, file)
+          PACKAGE_VERSION=${{ inputs.cura_version }}
+          sed -i "s/version:.*/version: \"$PACKAGE_VERSION\"/g" conandata.yml
 
       - name: Create branch and commit
         uses: stefanzweifel/git-auto-commit-action@v5.0.1
