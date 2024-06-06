@@ -88,6 +88,7 @@ jobs:
 
       - name: Update resources conan package version
         if: ${{ matrix.repository == 'Cura' }}
+        shell: python
         working-directory: resources
         run: |
           import yaml
