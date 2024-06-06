@@ -68,19 +68,20 @@ jobs:
 
           yaml_data['version'] = '${{ inputs.cura_version }}'
 
-          dependencies = ['cura_resources', 'uranium', 'curaengine', 'cura_binary_data', 'fdm_materials']
+          if 'requirements' in yaml_data:
+            dependencies = ['cura_resources', 'uranium', 'curaengine', 'cura_binary_data', 'fdm_materials']
 
-          requirements_list = yaml_data['requirements']
-          new_requirements_list = []
+            requirements_list = yaml_data['requirements']
+            new_requirements_list = []
 
-          for requirement in requirements_list:
-            package_name = requirement.split('/')[0]
-            if package_name in dependencies:
-              new_requirements_list.append(f"{package_name}/${{ inputs.cura_version }}")
-            else:
-              new_requirements_list.append(requirement)
+            for requirement in requirements_list:
+              package_name = requirement.split('/')[0]
+              if package_name in dependencies:
+                new_requirements_list.append(f"{package_name}/${{ inputs.cura_version }}")
+              else:
+                new_requirements_list.append(requirement)
 
-          yaml_data['requirements'] = new_requirements_list
+            yaml_data['requirements'] = new_requirements_list
 
           with open("conandata.yml", "w") as file:
             yaml.safe_dump(yaml_data, file)
