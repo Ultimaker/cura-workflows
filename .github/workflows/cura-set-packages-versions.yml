@@ -94,7 +94,7 @@ jobs:
           with open("conandata.yml", "r") as file:
             yaml_data = yaml.safe_load(file)
 
-          yaml_data['version'] = ${{ inputs.cura_version }}
+          yaml_data['version'] = '${{ inputs.cura_version }}'
 
           with open("conandata.yml", "w") as file:
             yaml.safe_dump(yaml_data, file)
