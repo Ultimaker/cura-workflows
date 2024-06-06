@@ -187,7 +187,7 @@ jobs:
         run: conan upload "*" -r cura --all -c
 
       - name: Upload the dmg
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4.3.3
         with:
           name: ${{ steps.filename.outputs.INSTALLER_FILENAME }}-dmg
           path: |
@@ -195,7 +195,7 @@ jobs:
           retention-days: 5
 
       - name: Upload the pkg
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4.3.3
         with:
           name: ${{ steps.filename.outputs.INSTALLER_FILENAME }}-pkg
           path: |
@@ -210,7 +210,7 @@ jobs:
               f.writelines(f'echo "CURA_VERSION_FULL={os.environ["CURA_VERSION_FULL"]}" >> $GITHUB_ENV\n')
 
       - name: Upload the run info
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4.3.3
         with:
           name: macos-run-info
           path: |
