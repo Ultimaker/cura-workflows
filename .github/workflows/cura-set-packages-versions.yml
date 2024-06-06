@@ -12,7 +12,7 @@ on:
       create_feature_branch:
         description: 'Indicates whether we should create the feature branch, or jusr use it'
         required: true
-        type: bool
+        type: boolean
 
   workflow_call:
     inputs:
@@ -22,7 +22,7 @@ on:
 
       create_feature_branch:
         required: true
-        type: bool
+        type: boolean
 
 jobs:
   parse-version:
