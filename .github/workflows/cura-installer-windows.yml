@@ -179,7 +179,7 @@ jobs:
         uses: actions/upload-artifact@v4.3.3
         with:
           name: UltiMaker-Cura.exe
-          path: cura_inst/UltiMaker-Cura.exe
+          path: dist/UltiMaker-Cura/UltiMaker-Cura.exe
           retention-days: 5
 
       - name: Upload the engine exe
@@ -187,7 +187,7 @@ jobs:
         uses: actions/upload-artifact@v4.3.3
         with:
           name: CuraEngine.exe
-          path: cura_inst/CuraEngine.exe
+          path: dist/UltiMaker-Cura/CuraEngine.exe
           retention-days: 5
 
       # NOTE: The extension is .sh, since this isn't going to build-environment, so not on the Win build image.
