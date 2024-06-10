@@ -1,5 +1,5 @@
 name: Freeze Cura packages version
-run-name: Freeze Cura packages versionto ${{ inputs.version }}
+run-name: Freeze Cura packages version to ${{ inputs.version }}
 
 on:
   workflow_dispatch:
@@ -10,7 +10,7 @@ on:
         type: string
 
       create_feature_branch:
-        description: 'Indicates whether we should create the feature branch, or jusr use it'
+        description: 'Indicates whether we should create the feature branch, or just use it'
         required: true
         type: boolean
 
