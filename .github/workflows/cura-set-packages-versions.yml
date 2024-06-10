@@ -2,18 +2,6 @@ name: Freeze Cura packages version
 run-name: Freeze Cura packages version to ${{ inputs.version }}
 
 on:
-  workflow_dispatch:
-    inputs:
-      cura_version:
-        description: 'Cura version number, e.g. 5.7.0, 5.7.2 or 5.8.0-beta.2'
-        required: true
-        type: string
-
-      create_feature_branch:
-        description: 'Indicates whether we should create the feature branch, or just use it'
-        required: true
-        type: boolean
-
   workflow_call:
     inputs:
       cura_version:
