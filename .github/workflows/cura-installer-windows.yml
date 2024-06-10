@@ -67,14 +67,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Ultimaker/Cura
-          ref: CURA-10769_automate_release_action
 
       - name: Checkout Cura-workflows repo
         uses: actions/checkout@v4
         with:
           repository: Ultimaker/Cura-workflows
           path: Cura-workflows
-          ref: CURA-10769_automate_release_action
 
       - name: Setup Python and pip
         uses: actions/setup-python@v4

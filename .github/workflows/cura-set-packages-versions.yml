@@ -46,8 +46,6 @@ jobs:
         repository: [Cura, Uranium, CuraEngine, cura-binary-data, fdm_materials]
         include:
           - main_branch: ${{ inputs.create_feature_branch && 'main' || needs.parse-version.outputs.branch_name }}
-          - repository: Cura
-            main_branch: ${{ inputs.create_feature_branch && 'CURA-10769_automate_release_action' || needs.parse-version.outputs.branch_name }}
           - repository: fdm_materials
             main_branch: ${{ inputs.create_feature_branch && 'master' || needs.parse-version.outputs.branch_name }}
     steps:
