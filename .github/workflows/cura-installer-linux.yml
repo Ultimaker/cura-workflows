@@ -62,42 +62,43 @@ jobs:
     runs-on: ${{ inputs.operating_system }}
 
     steps:
-      - name: Checkout
+      - name: Checkout Cura repo
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          repository: Ultimaker/Cura
 
-      - name: Sync pip requirements
-        run: wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/.github/workflows/requirements-runner.txt -O .github/workflows/requirements-runner.txt
+      - name: Checkout Cura-workflows repo
+        uses: actions/checkout@v4
+        with:
+          repository: Ultimaker/Cura-workflows
+          path: Cura-workflows
 
       - name: Setup Python and pip
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5.1.0
         with:
           python-version: 3.11.x
           cache: pip
-          cache-dependency-path: .github/workflows/requirements-runner.txt
+          cache-dependency-path: Cura-workflows/.github/workflows/requirements-runner.txt
 
       - name: Install Python requirements and Create default Conan profile
-        run: pip install -r .github/workflows/requirements-runner.txt
+        run: pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
 
       - name: Install Linux system requirements for building
+        working-directory: Cura-workflows/runner_scripts
         run: |
-          mkdir runner_scripts
-          cd runner_scripts
-          curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/ubuntu_setup.sh
           chmod +x ubuntu_setup.sh
           sudo ./ubuntu_setup.sh
-          
-          curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/appimage_setup.sh
-          cd ..
-          source ./runner_scripts/appimage_setup.sh
+
+      - name: Install AppImage builder
+        run: |
+          chmod +x ./Cura-workflows/runner_scripts/appimage_setup.sh
+          ./Cura-workflows/runner_scripts/appimage_setup.sh
 
       - name: Setup pipeline caches
-        run: |
-          mkdir -p /home/runner/.conan/downloads
+        run: mkdir -p /home/runner/.conan/downloads
 
       - name: Create default Conan profile
-        run: conan profile new default --detect
+        run: conan profile new default --detect --force
 
       - name: Get Conan configuration
         run: |
@@ -135,18 +136,12 @@ jobs:
       - name: Create the Cura dist
         run: pyinstaller ./cura_inst/UltiMaker-Cura.spec
 
-      - name: Get installer helper scripts
-        run: |
-          curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/cura_installer_filename.py
-          curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/summarize_used_dependencies.py
-        working-directory: runner_scripts
-
       - name: Output the name file name and extension
         id: filename
-        run: python runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --arch ${{ inputs.architecture }} --enterprise ${{ inputs.enterprise }} --internal ${{ inputs.conan_internal }}
+        run: python Cura-workflows/runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --arch ${{ inputs.architecture }} --enterprise ${{ inputs.enterprise }} --internal ${{ inputs.conan_internal }}
 
       - name: Summarize the used dependencies
-        run: python runner_scripts/summarize_used_dependencies.py --installer_filename ${{ steps.filename.outputs.INSTALLER_FILENAME }}
+        run: python Cura-workflows/runner_scripts/summarize_used_dependencies.py --installer_filename ${{ steps.filename.outputs.INSTALLER_FILENAME }}
 
       - name: Create the Linux AppImage (Bash)
         run: |
@@ -170,7 +165,7 @@ jobs:
         run: conan upload "*" -r cura --all -c
 
       - name: Upload the AppImage
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4.3.3
         with:
           name: ${{ steps.filename.outputs.INSTALLER_FILENAME }}-AppImage
           path: |
@@ -178,7 +173,7 @@ jobs:
           retention-days: 5
 
       - name: Upload the asc
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4.3.3
         with:
           name: ${{ steps.filename.outputs.INSTALLER_FILENAME }}-asc
           path: |
@@ -193,7 +188,7 @@ jobs:
               f.writelines(f'echo "CURA_VERSION_FULL={os.environ["CURA_VERSION_FULL"]}" >> $GITHUB_ENV\n')
 
       - name: Upload the run info
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4.3.3
         with:
           name: linux-run-info
           path: |

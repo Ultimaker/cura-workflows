@@ -1,0 +1,69 @@
+name: Freeze Cura packages version
+run-name: Freeze Cura packages version to ${{ inputs.version }}
+
+on:
+  workflow_call:
+    inputs:
+      cura_version:
+        required: true
+        type: string
+
+      create_feature_branch:
+        required: true
+        type: boolean
+
+jobs:
+  parse-version:
+    name: Parse input version string
+    runs-on: ubuntu-latest
+    outputs:
+      branch_name: ${{ steps.version_parser.outputs.major }}.${{ steps.version_parser.outputs.minor }}
+    steps:
+      - name: Parse version string
+        id: version_parser
+        uses: booxmedialtd/ws-action-parse-semver@v1.4.7
+        with:
+          input_string: ${{ inputs.cura_version }}
+
+  freeze-packages-versions:
+    name: Freeze packages versions
+    runs-on: ubuntu-latest
+    needs: [parse-version]
+    strategy:
+      matrix:
+        repository: [Cura, Uranium, CuraEngine, cura-binary-data, fdm_materials]
+        include:
+          - main_branch: ${{ inputs.create_feature_branch && 'main' || needs.parse-version.outputs.branch_name }}
+          - repository: fdm_materials
+            main_branch: ${{ inputs.create_feature_branch && 'master' || needs.parse-version.outputs.branch_name }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          repository: Ultimaker/${{ matrix.repository }}
+          ref: ${{ matrix.main_branch }}
+          token: ${{ secrets.CURA_AUTORELEASE_PAT }}
+
+      - name: Update conan packages versions
+        run: |
+          PACKAGE_VERSION=${{ inputs.cura_version }}
+          sed -i "s/version:.*/version: \"$PACKAGE_VERSION\"/g" conandata.yml
+          sed -i "s/\"uranium\/.*/\"uranium\/$PACKAGE_VERSION\"/g" conandata.yml
+          sed -i "s/\"cura_resources\/.*/\"cura_resources\/$PACKAGE_VERSION\"/g" conandata.yml
+          sed -i "s/\"curaengine\/.*/\"curaengine\/$PACKAGE_VERSION\"/g" conandata.yml
+          sed -i "s/\"cura_binary_data\/.*/\"cura_binary_data\/$PACKAGE_VERSION\"/g" conandata.yml
+          sed -i "s/\"fdm_materials\/.*/\"fdm_materials\/$PACKAGE_VERSION\"/g" conandata.yml
+
+      - name: Update resources conan package version
+        if: ${{ matrix.repository == 'Cura' }}
+        working-directory: resources
+        run: |
+          PACKAGE_VERSION=${{ inputs.cura_version }}
+          sed -i "s/version:.*/version: \"$PACKAGE_VERSION\"/g" conandata.yml
+
+      - name: Create branch and commit
+        uses: stefanzweifel/git-auto-commit-action@v5.0.1
+        with:
+          commit_message: Set conan package version ${{ inputs.cura_version }}
+          branch: ${{ needs.parse-version.outputs.branch_name }}
+          create_branch: true

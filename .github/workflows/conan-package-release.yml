@@ -97,6 +97,11 @@ on:
         required: true
         type: string
 
+      conan_release:
+        required: false
+        default: true
+        type: boolean
+
       conan_user_channel:
         required: false
         default: '_/_'
@@ -115,6 +120,11 @@ on:
       conan_extra_args:
         required: false
         default: ''
+        type: string
+
+      conan_recipe_root:
+        required: false
+        default: "."
         type: string
 
 permissions:
@@ -183,7 +193,7 @@ jobs:
 
       - name: Get basic project info
         run: |
-          echo "CONAN_PROJECT_NAME=$(conan inspect . | awk '/^name:/ {print $2}')" >> $GITHUB_ENV
+          echo "CONAN_PROJECT_NAME=$(conan inspect ${{ inputs.conan_recipe_root }} | awk '/^name:/ {print $2}')" >> $GITHUB_ENV
 
       - id: get-conan-broadcast-data
         name: Get Conan broadcast data
@@ -192,10 +202,6 @@ jobs:
           wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/get_conan_broadcast_data.py -O runner_scripts/get_conan_broadcast_data.py
           python runner_scripts/get_conan_broadcast_data.py --user_channel ${{ inputs.conan_user_channel }} --project_name $CONAN_PROJECT_NAME --release ${{ inputs.conan_release }} --version ${{ inputs.version }}
 
-      - name: Export the Package
-        if: ${{ inputs.repository != 'Cura' && inputs.repository!='Uranium' }}
-        run: conan export ${{ inputs.conan_recipe_root }} ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }} ${{ inputs.conan_extra_args }}
-
       - name: Install system requirements for building
         run: |
           mkdir -p runner_scripts
@@ -203,8 +209,13 @@ jobs:
           chmod +x runner_scripts/ubuntu_setup.sh
           sudo ./runner_scripts/ubuntu_setup.sh
 
+      - id: export-package
+        name: Export the Package
+        if: ${{ inputs.conan_recipe_root != '.' || (inputs.repository != 'Cura' && inputs.repository!='Uranium') }}
+        run: conan export ${{ inputs.conan_recipe_root }} ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }} ${{ inputs.conan_extra_args }}
+
       - name: Create conan for Uranium and Cura
-        if: ${{ inputs.repository == 'Cura' || inputs.repository== 'Uranium' }}
+        if: ${{ steps.export-package.conclusion == 'skipped' }}
         run: conan create . ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }} ${{ inputs.conan_extra_args }} --build=missing --update -o cura:devtools=True -o *:enable_i18n=True -c user.i18n:options="{'extract':True,'build':True}"
 
       - name: Create the latest alias
