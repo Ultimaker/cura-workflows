@@ -137,7 +137,7 @@ env:
 
 jobs:
   package-export:
-    runs-on: self-hosted-Ubuntu22-X64
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repo
