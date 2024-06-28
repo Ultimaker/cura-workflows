@@ -169,7 +169,7 @@ jobs:
           mkdir -p /home/runner/.conan/downloads
 
       - name: Create default Conan profile
-        run: conan profile new default --detect
+        run: conan profile new default --detect --force
 
       - name: Get Conan configuration
         run: |
