@@ -32,7 +32,7 @@ env:
 
 jobs:
   package-create:
-    runs-on: macos-11
+    runs-on: macos-12
 
     steps:
       - name: Checkout repo
