@@ -126,10 +126,8 @@ jobs:
         working-directory: dist
 
       - name: Sign the Windows msi installer (Powershell)
-        run: |
-          & signtool sign /v /fd sha256 /tr http://timestamp.sectigo.com /td sha256 /f C:\actions-runner\code_sign.cer /csp "eToken Base Cryptographic Provider" /kc ${{ secrets.WIN_TOKEN_CONTAINER }} "${{steps.filename.outputs.INSTALLER_FILENAME }}.msi"
+        run: signtool sign /v /fd sha256 /tr http://timestamp.sectigo.com /td sha256 /f C:\actions-runner\code_sign.cer /csp "eToken Base Cryptographic Provider" /kc ${{ secrets.WIN_TOKEN_CONTAINER }} "${{steps.filename.outputs.INSTALLER_FILENAME }}.msi"
         working-directory: dist
-        timeout-minutes: 4
 
       - name: Create the Windows exe installer (Powershell)
         if: ${{ always() }}
@@ -139,10 +137,8 @@ jobs:
 
       - name: Sign the Windows exe installer (Powershell)
         if: ${{ always() }}
-        run: |
-          & signtool sign /v /fd sha256 /tr http://timestamp.sectigo.com /td sha256 /f C:\actions-runner\code_sign.cer /csp "eToken Base Cryptographic Provider" /kc ${{ secrets.WIN_TOKEN_CONTAINER }} "${{steps.filename.outputs.INSTALLER_FILENAME }}.exe"
+        run: signtool sign /v /fd sha256 /tr http://timestamp.sectigo.com /td sha256 /f C:\actions-runner\code_sign.cer /csp "eToken Base Cryptographic Provider" /kc ${{ secrets.WIN_TOKEN_CONTAINER }} "${{steps.filename.outputs.INSTALLER_FILENAME }}.exe"
         working-directory: dist
-        timeout-minutes: 4
 
       - name: Remove internal packages before uploading
         if: ${{ always() }}
