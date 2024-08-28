@@ -45,6 +45,11 @@ on:
         default: false
         type: boolean
 
+      installer_types:
+        required: false
+        type: string
+        default: 'ALL'
+
 permissions:
   contents: read
 
@@ -121,24 +126,26 @@ jobs:
         run: python Cura-workflows/runner_scripts/summarize_used_dependencies.py --installer_filename ${{ steps.filename.outputs.INSTALLER_FILENAME }}
 
       - name: Create the Windows msi installer (Powershell)
+        if: ${{ inputs.installer_types != 'EXE' }}
         run: |
           python ..\cura_inst\packaging\msi\create_windows_msi.py ..\cura_inst .\UltiMaker-Cura "${{steps.filename.outputs.INSTALLER_FILENAME }}.msi" "$Env:CURA_APP_NAME"
         working-directory: dist
 
       - name: Sign the Windows msi installer (Powershell)
+        if: ${{ inputs.installer_types != 'EXE' }}
         run: |
           & signtool sign /v /fd sha256 /tr http://timestamp.sectigo.com /td sha256 /f C:\actions-runner\code_sign.cer /csp "eToken Base Cryptographic Provider" /kc ${{ secrets.WIN_TOKEN_CONTAINER }} "${{steps.filename.outputs.INSTALLER_FILENAME }}.msi"
         working-directory: dist
         timeout-minutes: 2
 
       - name: Create the Windows exe installer (Powershell)
-        if: ${{ always() }}
+        if: ${{ always() && inputs.installer_types != 'MSI' }}
         run: |
           python ..\cura_inst\packaging\NSIS\create_windows_installer.py ../cura_inst . "${{steps.filename.outputs.INSTALLER_FILENAME }}.exe"
         working-directory: dist
 
       - name: Sign the Windows exe installer (Powershell)
-        if: ${{ always() }}
+        if: ${{ always() && inputs.installer_types != 'MSI' }}
         run: |
           & signtool sign /v /fd sha256 /tr http://timestamp.sectigo.com /td sha256 /f C:\actions-runner\code_sign.cer /csp "eToken Base Cryptographic Provider" /kc ${{ secrets.WIN_TOKEN_CONTAINER }} "${{steps.filename.outputs.INSTALLER_FILENAME }}.exe"
         working-directory: dist
@@ -155,7 +162,7 @@ jobs:
 #        run: conan upload "*" -r cura --all -c
 
       - name: Upload the installer msi
-        if: ${{ always() }}
+        if: ${{ always() && inputs.installer_types != 'EXE' }}
         uses: actions/upload-artifact@v4.3.3
         with:
           name: ${{steps.filename.outputs.INSTALLER_FILENAME }}-msi
@@ -164,7 +171,7 @@ jobs:
           retention-days: 5
 
       - name: Upload the installer exe
-        if: ${{ always() }}
+        if: ${{ always() && inputs.installer_types != 'MSI' }}
         uses: actions/upload-artifact@v4.3.3
         with:
           name: ${{steps.filename.outputs.INSTALLER_FILENAME }}-exe
