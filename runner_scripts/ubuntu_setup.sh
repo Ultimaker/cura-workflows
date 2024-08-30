@@ -1,6 +1,6 @@
 #!/bin/bash
 
-snap remove firefox
+apt remove firefox
 
 add-apt-repository ppa:ubuntu-toolchain-r/test -y
 apt update
