@@ -60,57 +60,45 @@ jobs:
           fetch-depth: 1
           ref: ${{ github.base_ref }}
 
+      - name: Checkout Cura-workflows repo
+        uses: actions/checkout@v4
+        with:
+          repository: Ultimaker/Cura-workflows
 # FIXME: use main once merged
-      - name: Sync pip requirements
-        run: wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-11622_conan_v2/.github/workflows/requirements-runner.txt -O .github/workflows/requirements-runner.txt
+          ref: CURA-11622_conan_v2
+          path: Cura-workflows
 
       - name: Setup Python and pip
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: 3.11.x
-          cache: pip
-          cache-dependency-path: .github/workflows/requirements-runner.txt
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: Cura-workflows/.github/workflows/requirements-runner.txt
 
-      - name: Install Python requirements and Create default Conan profile
-        run: pip install -r .github/workflows/requirements-runner.txt
-
-      - name: Setup pipeline caches
+      - name: Install Python requirements and setup Conan environment
         run: |
-          mkdir -p /home/runner/.conan2/p
+          pip install -r actions/setup-python/.github/workflows/requirements-runner.txt
 
-      - name: Create default Conan profile
-        run: conan profile detect -f
-
+          conan profile detect -f
 # FIXME: use runner.os/runner.arch after merge: conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/runner.os/runner.arch"
-      - name: Get Conan configuration
-        run: |
           conan config install https://github.com/Ultimaker/conan-config.git -a "-b CURA-11622_conan_v2"
-          conan remote login -p ${{ secrets.CONAN_PASS }} cura-conan-v2 ${{ secrets.CONAN_USER }}
-          #conan remote disable cura-private
+          conan remote login -p ${{ secrets.CONAN_PASS }} cura-conan2 ${{ secrets.CONAN_USER }}
 
       - name: Add Cura private Artifactory remote
         if: ${{ inputs.conan_internal }}
         run: |
-          conan remote enable cura-private
-          conan remote login -p ${{ secrets.CONAN_PASS }} cura-private ${{ secrets.CONAN_USER }}
-
-      - name: Cache Conan
-        uses: actions/cache@v3
-        with:
-          path: /home/runner/.conan2/p
-          key: ${{ runner.os }}-conan-${{ github.run_id }}
-          restore-keys: |
-            ${{ runner.os }}-conan-
+          conan remote enable cura-private-conan2
+          conan remote login cura-private-conan2 ${{ secrets.CONAN_USER }} -p ${{ secrets.CONAN_PASS }}
 
       - name: Export the Package
         run: conan export . --name ${{ inputs.recipe_id_name }} --version ${{ inputs.recipe_id_version }} --user ${{ inputs.recipe_id_user }} --channel ${{ inputs.recipe_id_channel }} ${{ inputs.conan_extra_args }}
 
       - name: Upload the Package(s)
-        if: ${{ always() && !inputs.conan_internal}}
+        if: ${{ !inputs.conan_internal}}
         run: |
-          conan upload ${{ inputs.recipe_id_full }} -r cura-conan-v2 -c
+          conan upload ${{ inputs.recipe_id_full }} -r cura-conan2 -c
 
       - name: Upload the Package(s) to the private Artifactory
-        if: ${{ always() && inputs.conan_internal }}
+        if: ${{ inputs.conan_internal }}
         run: |
-          conan upload ${{ inputs.recipe_id_full }} -r cura-private -c
+          conan upload ${{ inputs.recipe_id_full }} -r cura-private-conan2 -c
