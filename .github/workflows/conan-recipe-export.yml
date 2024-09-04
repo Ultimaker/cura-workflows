@@ -76,11 +76,11 @@ jobs:
           cache-dependency-path: Cura-workflows/.github/workflows/requirements-runner.txt
 
       - name: Install Python requirements and setup Conan environment
+# FIXME: use runner.os/runner.arch after merge: conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/runner.os/runner.arch"
         run: |
           pip install -r actions/setup-python/.github/workflows/requirements-runner.txt
 
           conan profile detect -f
-# FIXME: use runner.os/runner.arch after merge: conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/runner.os/runner.arch"
           conan config install https://github.com/Ultimaker/conan-config.git -a "-b CURA-11622_conan_v2"
           conan remote login -p ${{ secrets.CONAN_PASS }} cura-conan2 ${{ secrets.CONAN_USER }}
 
