@@ -48,6 +48,7 @@ runs:
 
     - name: Install Python requirements and setup Conan environment
 # FIXME: use runner.os/runner.arch after merge: conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/runner.os/runner.arch"
+      shell: bash
       run: |
         pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
 
@@ -55,8 +56,7 @@ runs:
         conan config install https://github.com/Ultimaker/conan-config.git -a "-b CURA-11622_conan_v2"
         conan remote login cura-conan2 ${{ inputs.conan_user }} -p ${{ inputs.conan_password }}
 
-    - name: Add Cura private Artifactory remote
-        if: ${{ inputs.private_data }}
-        run: |
+        if [ "${{ inputs.private_data }}" == "true" ]; then
           conan remote enable cura-private-conan2
           conan remote login cura-private-conan2 ${{ inputs.conan_user }} -p ${{ inputs.conan_password }}
+        fi
