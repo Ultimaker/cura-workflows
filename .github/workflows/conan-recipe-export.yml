@@ -41,59 +41,16 @@ on:
 permissions:
   contents: read
 
-env:
-  CONAN_LOGIN_USERNAME: ${{ secrets.CONAN_USER }}
-  CONAN_PASSWORD: ${{ secrets.CONAN_PASS }}
-  SENTRY_TOKEN: ${{ secrets.CURAENGINE_SENTRY_TOKEN }}
-
 jobs:
   package-export:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
-        with:
-          fetch-depth: 1
-          ref: ${{ github.head_ref }}
-
-      - name: Checkout repo PR
-        uses: actions/checkout@v4
-        if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
-        with:
-          fetch-depth: 1
-          ref: ${{ github.base_ref }}
-
-      - name: Checkout Cura-workflows repo
-        uses: actions/checkout@v4
-        with:
-          repository: Ultimaker/Cura-workflows
 # FIXME: use main once merged
-          ref: CURA-11622_conan_v2
-          path: Cura-workflows
-
-      - name: Setup Python and pip
-        uses: actions/setup-python@v5
+      - uses: ultimaker/cura-workflows/.github/actions/setup-build-environment.yml@CURA-11622_conan_v2
         with:
-          python-version: '3.12'
-          cache: 'pip'
-          cache-dependency-path: Cura-workflows/.github/workflows/requirements-runner.txt
-
-      - name: Install Python requirements and setup Conan environment
-# FIXME: use runner.os/runner.arch after merge: conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/runner.os/runner.arch"
-        run: |
-          pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
-
-          conan profile detect -f
-          conan config install https://github.com/Ultimaker/conan-config.git -a "-b CURA-11622_conan_v2"
-          conan remote login -p ${{ secrets.CONAN_PASS }} cura-conan2 ${{ secrets.CONAN_USER }}
-
-      - name: Add Cura private Artifactory remote
-        if: ${{ inputs.conan_internal }}
-        run: |
-          conan remote enable cura-private-conan2
-          conan remote login cura-private-conan2 ${{ secrets.CONAN_USER }} -p ${{ secrets.CONAN_PASS }}
+          conan_user: ${{ secrets.CONAN_USER }}
+          conan_password: ${{ secrets.CONAN_PASS }}
 
       - name: Export the Package
         run: conan export ${{ inputs.conan_recipe_root }} --name ${{ inputs.recipe_id_name }} --version ${{ inputs.recipe_id_version }} --user ${{ inputs.recipe_id_user }} --channel ${{ inputs.recipe_id_channel }} ${{ inputs.conan_extra_args }}

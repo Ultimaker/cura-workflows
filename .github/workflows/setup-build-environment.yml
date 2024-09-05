@@ -1,0 +1,61 @@
+# composite action, not to be run on its own, but included at the beginning of a build script
+# This clones the proper repository(ies), and properly setups Python and conan
+
+name: 'Setup the build environment'
+description: 'Setup the build environment'
+
+inputs:
+  conan_user:
+    required: true
+    type: string
+  conan_password:
+    required: true
+    type: string
+  private_data:
+    required: false
+    default: false
+    type: boolean
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+      if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+      with:
+        fetch-depth: 1
+        ref: ${{ github.head_ref }}
+
+    - name: Checkout repo PR
+      uses: actions/checkout@v4
+      if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+      with:
+        fetch-depth: 1
+        ref: ${{ github.base_ref }}
+
+    - name: Checkout Cura-workflows repo
+      uses: actions/checkout@v4
+      with:
+        repository: Ultimaker/Cura-workflows
+# FIXME: use main once merged
+        ref: CURA-11622_conan_v2
+        path: Cura-workflows
+
+    - name: Setup Python and pip
+      with:
+        python-version: '3.12'
+
+    - name: Install Python requirements and setup Conan environment
+# FIXME: use runner.os/runner.arch after merge: conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/runner.os/runner.arch"
+      run: |
+        pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
+
+        conan profile detect -f
+        conan config install https://github.com/Ultimaker/conan-config.git -a "-b CURA-11622_conan_v2"
+        conan remote login cura-conan2 ${{ inputs.conan_user }} -p ${{ inputs.conan_password }}
+
+    - name: Add Cura private Artifactory remote
+        if: ${{ inputs.private_data }}
+        run: |
+          conan remote enable cura-private-conan2
+          conan remote login cura-private-conan2 ${{ inputs.conan_user }} -p ${{ inputs.conan_password }}
