@@ -1,8 +1,7 @@
 # composite action, not to be run on its own, but included at the beginning of a build script
-# This clones the proper repository(ies), and properly setups Python and conan
 
 name: 'Setup the build environment'
-description: 'Setup the build environment'
+description: 'Clones the required repositories, and properly sets Python and conan up'
 
 inputs:
   conan_user:

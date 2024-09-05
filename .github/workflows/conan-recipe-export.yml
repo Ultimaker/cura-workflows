@@ -47,7 +47,8 @@ jobs:
 
     steps:
 # FIXME: use main once merged
-      - uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@CURA-11622_conan_v2
+      - name: Setup the build environment
+        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@CURA-11622_conan_v2
         with:
           conan_user: ${{ secrets.CONAN_USER }}
           conan_password: ${{ secrets.CONAN_PASS }}
@@ -55,12 +56,10 @@ jobs:
       - name: Export the Package
         run: conan export ${{ inputs.conan_recipe_root }} --name ${{ inputs.recipe_id_name }} --version ${{ inputs.recipe_id_version }} --user ${{ inputs.recipe_id_user }} --channel ${{ inputs.recipe_id_channel }} ${{ inputs.conan_extra_args }}
 
-      - name: Upload the Package(s)
-        if: ${{ !inputs.conan_internal}}
-        run: |
-          conan upload ${{ inputs.recipe_id_full }} -r cura-conan2 -c
+# FIXME: use main once merged
+      - name: Upload the Packages
+        uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@CURA-11622_conan_v2
+        with:
+          package_name: ${{ inputs.recipe_id_full }}
+          private_data: ${{ inputs.conan_internal }}
 
-      - name: Upload the Package(s) to the private Artifactory
-        if: ${{ inputs.conan_internal }}
-        run: |
-          conan upload ${{ inputs.recipe_id_full }} -r cura-private-conan2 -c
