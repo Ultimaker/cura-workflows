@@ -47,16 +47,10 @@ on:
         default: true
         type: boolean
 
-      conan_user:
-        description: 'Conan user (_, ultimaker, internal)'
+      conan_user_channel:
+        description: 'Conan user and channel (_/_, ultimaker/testing, internal/testings)'
         required: false
-        default: '_'
-        type: string
-
-      conan_channel:
-        description: 'Conan channel (_, testing, stable)'
-        required: false
-        default: '_'
+        default: '_/_'
         type: string
 
       conan_internal:
@@ -75,6 +69,12 @@ on:
         description: 'Conan args: (--require-override)'
         required: false
         default: ''
+        type: string
+
+      conan_recipe_root:
+        required: false
+        default: "."
+        description: 'location of the conanfile.py defaults to `.`'
         type: string
 
   workflow_call:
@@ -97,14 +97,14 @@ on:
         required: true
         type: string
 
-      conan_user:
+      conan_release:
         required: false
-        default: '_'
-        type: string
+        default: true
+        type: boolean
 
-      conan_channel:
+      conan_user_channel:
         required: false
-        default: '_'
+        default: '_/_'
         type: string
 
       conan_internal:
@@ -122,16 +122,22 @@ on:
         default: ''
         type: string
 
+      conan_recipe_root:
+        required: false
+        default: "."
+        type: string
+
 permissions:
   contents: read
 
 env:
   CONAN_LOGIN_USERNAME: ${{ secrets.CONAN_USER }}
   CONAN_PASSWORD: ${{ secrets.CONAN_PASS }}
+  SENTRY_TOKEN: ${{ secrets.CURAENGINE_SENTRY_TOKEN }}
 
 jobs:
   package-export:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted-Ubuntu22-X64
 
     steps:
       - name: Checkout repo
@@ -163,7 +169,7 @@ jobs:
           mkdir -p /home/runner/.conan/downloads
 
       - name: Create default Conan profile
-        run: conan profile new default --detect
+        run: conan profile new default --detect --force
 
       - name: Get Conan configuration
         run: |
@@ -187,17 +193,30 @@ jobs:
 
       - name: Get basic project info
         run: |
-          echo "CONAN_PROJECT_NAME=$(conan inspect . | awk '/^name:/ {print $2}')" >> $GITHUB_ENV
+          echo "CONAN_PROJECT_NAME=$(conan inspect ${{ inputs.conan_recipe_root }} | awk '/^name:/ {print $2}')" >> $GITHUB_ENV
 
       - id: get-conan-broadcast-data
         name: Get Conan broadcast data
         run: |
           mkdir runner_scripts
           wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/get_conan_broadcast_data.py -O runner_scripts/get_conan_broadcast_data.py
-          python runner_scripts/get_conan_broadcast_data.py --user ${{ inputs.conan_user }} --channel ${{ inputs.conan_channel }} --project_name $CONAN_PROJECT_NAME --release ${{ inputs.conan_release }} --version ${{ inputs.version }}
+          python runner_scripts/get_conan_broadcast_data.py --user_channel ${{ inputs.conan_user_channel }} --project_name $CONAN_PROJECT_NAME --release ${{ inputs.conan_release }} --version ${{ inputs.version }}
 
-      - name: Export the Package
-        run: conan export . ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }} ${{ inputs.conan_extra_args }}
+      - name: Install system requirements for building
+        run: |
+          mkdir -p runner_scripts
+          wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/ubuntu_setup.sh -O runner_scripts/ubuntu_setup.sh
+          chmod +x runner_scripts/ubuntu_setup.sh
+          sudo ./runner_scripts/ubuntu_setup.sh
+
+      - id: export-package
+        name: Export the Package
+        if: ${{ inputs.conan_recipe_root != '.' || (inputs.repository != 'Cura' && inputs.repository!='Uranium') }}
+        run: conan export ${{ inputs.conan_recipe_root }} ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }} ${{ inputs.conan_extra_args }}
+
+      - name: Create conan for Uranium and Cura
+        if: ${{ steps.export-package.conclusion == 'skipped' }}
+        run: conan create . ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }} ${{ inputs.conan_extra_args }} --build=missing --update -o cura:devtools=True -o *:enable_i18n=True -c user.i18n:options="{'extract':True,'build':True}"
 
       - name: Create the latest alias
         if: ${{ inputs.conan_latest }}

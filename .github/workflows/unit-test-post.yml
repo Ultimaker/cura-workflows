@@ -12,7 +12,9 @@ on:
         type: string
 
 permissions:
+  contents: read
   issues: write
+  checks: write
   pull-requests: write
 
 env:
@@ -92,6 +94,7 @@ jobs:
         id: test-results
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
+          github-token: ${{ secrets.CURA_UNIT_TESTS_POST_PAT }}
           files: "tests/**/*.xml"
 
       - name: Conclusion

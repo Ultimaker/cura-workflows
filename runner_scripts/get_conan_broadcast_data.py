@@ -21,10 +21,10 @@ def get_conan_broadcast_data(args):
         actual_version = version
         user = args.user.lower()
         is_release_branch = False
-        if args.channel:
-            channel = args.channel.lower()
+        if args.channel or args.user_channel:
+            channel = args.channel.lower() if args.channel else args.user_channel.split("/")[1].lower()
         else:
-            ref_name = args.base_ref if args.event_name == "pull_request" else args.ref_name
+            ref_name = args.head_ref if args.event_name == "pull_request" else args.ref_name
             if "beta" in version and args.event_name != "pull_request" and ref_name == '.'.join(version.split('.')[:2]):
                 channel = "stable"
                 is_release_branch = True
@@ -63,11 +63,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description = 'Get Conan broadcast data')
     parser.add_argument('--user', type = str, help = 'User input')
     parser.add_argument('--channel', type = str, help = 'User channel')
+    parser.add_argument('--user_channel', type = str, help = 'User and Channel in format `user/channel` ')
     parser.add_argument('--project_name', type = str, help = 'Name of the project')
     parser.add_argument('--sha', type = str, help = 'Commit SHA')
     parser.add_argument('--event_name', type = str, help = 'Github event name')
-    parser.add_argument('--base_ref', type = str, help = 'Github base reference')
     parser.add_argument('--ref_name', type = str, help = 'Github name reference')
+    parser.add_argument('--head_ref', type = str, help = 'Github source branch name')
     parser.add_argument('--release', type = str, help = 'Is a release')
     parser.add_argument('--version', type = str, help = 'User override version')
 

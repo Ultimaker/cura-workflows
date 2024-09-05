@@ -33,6 +33,11 @@ on:
         default: ""
         type: string
 
+      conan_recipe_root:
+        required: false
+        default: "."
+        type: string
+
 permissions:
   contents: read
 
@@ -104,7 +109,7 @@ jobs:
             ${{ runner.os }}-conan-
 
       - name: Create the Package (binaries)
-        run: conan create . --name ${{ inputs.recipe_id_name }} --version ${{ inputs.recipe_id_version }} --user ${{ inputs.recipe_id_user }} --channel ${{ inputs.recipe_id_channel }} ${{ inputs.conan_extra_args }}
+        run: conan create ${{ inputs.conan_recipe_root }} --name ${{ inputs.recipe_id_name }} --version ${{ inputs.recipe_id_version }} --user ${{ inputs.recipe_id_user }} --channel ${{ inputs.recipe_id_channel }} ${{ inputs.conan_extra_args }}
 
       - name: Upload the Package(s)
         if: ${{ always() && !inputs.conan_internal }}
