@@ -47,7 +47,7 @@ jobs:
 
     steps:
 # FIXME: use main once merged
-      - uses: ultimaker/cura-workflows/.github/actions/setup-build-environment.yml@CURA-11622_conan_v2
+      - uses: .github/actions/setup-build-environment.yml@CURA-11622_conan_v2
         with:
           conan_user: ${{ secrets.CONAN_USER }}
           conan_password: ${{ secrets.CONAN_PASS }}
