@@ -20,17 +20,6 @@ runs:
   steps:
     - name: Checkout repo
       uses: actions/checkout@v4
-      if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
-      with:
-        fetch-depth: 1
-        ref: ${{ github.head_ref }}
-
-    - name: Checkout repo PR
-      uses: actions/checkout@v4
-      if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
-      with:
-        fetch-depth: 1
-        ref: ${{ github.base_ref }}
 
     - name: Checkout Cura-workflows repo
       uses: actions/checkout@v4
