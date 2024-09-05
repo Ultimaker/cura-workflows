@@ -42,6 +42,7 @@ runs:
         path: Cura-workflows
 
     - name: Setup Python and pip
+      uses: actions/setup-python@v4
       with:
         python-version: '3.12'
 
