@@ -37,10 +37,10 @@ def upload_changed_recipes(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description = 'Upload all the changed recipes in the recipe folder')
-    parser.add_argument('--user', type = str, help = 'User')
-    parser.add_argument('--branch', type = str, help = 'Branch')
-    parser.add_argument('--remote', type = str, help = 'Remote')
-    parser.add_argument("Files", metavar="F", type=str, nargs="+", help="Files or directories to format")
+    parser.add_argument('--user', type = str, help = 'Conan package user')
+    parser.add_argument('--branch', type = str, help = 'Development branch')
+    parser.add_argument('--remote', type = str, help = 'Name of the remote conan repository')
+    parser.add_argument("Files", metavar="FILES", type=str, nargs="+", help="Files or directories to format")
 
     args = parser.parse_args()
     upload_changed_recipes(args)

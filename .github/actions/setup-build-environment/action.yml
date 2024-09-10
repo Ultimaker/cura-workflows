@@ -48,3 +48,11 @@ runs:
           conan remote enable cura-private-conan2
           conan remote login cura-private-conan2 ${{ inputs.conan_user }} -p ${{ inputs.conan_password }}
         fi
+
+        if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+          chmod +x Cura-workflows/runner_scripts/ubuntu_setup.sh
+          sudo ./Cura-workflows/runner_scripts/ubuntu_setup.sh
+        elif [[ "$OSTYPE" == "darwin"* ]]; then
+          chmod +x Cura-workflows/runner_scripts/macos_setup.sh
+          ./Cura-workflows/runner_scripts/macos_setup.sh
+        fi

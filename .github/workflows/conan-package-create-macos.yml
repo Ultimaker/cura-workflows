@@ -51,78 +51,19 @@ jobs:
     runs-on: macos-12
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
-        with:
-          fetch-depth: 1
-          ref: ${{ github.head_ref }}
-
-      - name: Checkout repo PR
-        uses: actions/checkout@v4
-        if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
-        with:
-          fetch-depth: 1
-          ref: ${{ github.base_ref }}
-
 # FIXME: use main once merged
-      - name: Sync pip requirements
-        run: wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-11622_conan_v2/.github/workflows/requirements-runner.txt -O .github/workflows/requirements-runner.txt
-
-      - name: Setup Python and pip
-        uses: actions/setup-python@v4
+      - name: Setup the build environment
+        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@CURA-11622_conan_v2
         with:
-          python-version: 3.11.x
-          cache: pip
-          cache-dependency-path: .github/workflows/requirements-runner.txt
-
-      - name: Install Python requirements and Create default Conan profile
-        run: pip install -r .github/workflows/requirements-runner.txt
-
-      - name: Install Macos system requirements for building
-        run: |
-          mkdir -p runner_scripts
-          wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/macos_setup.sh -O runner_scripts/macos_setup.sh
-          chmod +x runner_scripts/macos_setup.sh
-          ./runner_scripts/macos_setup.sh
-
-      - name: Setup pipeline caches
-        run: |
-          mkdir -p /Users/runner/.conan2/p
-
-      - name: Create default Conan profile
-        run: conan profile detect -f
-
-# FIXME: use runner.os/runner.arch after merge: conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/runner.os/runner.arch"
-      - name: Get Conan configuration
-        run: |
-          conan config install https://github.com/Ultimaker/conan-config.git -a "-b CURA-11622_conan_v2"
-          conan remote login -p ${{ secrets.CONAN_PASS }} cura-conan-v2 ${{ secrets.CONAN_USER }}
-          #conan remote disable cura-private-conan-v2
-
-      - name: Add Cura private Artifactory remote
-        if: ${{ inputs.conan_internal }}
-        run: |
-          conan remote enable cura-private-conan-v2
-          conan remote login -p ${{ secrets.CONAN_PASS }} cura-private-conan-v2 ${{ secrets.CONAN_USER }}
-
-      - name: Cache Conan
-        uses: actions/cache@v3
-        with:
-          path: /home/runner/.conan2/p
-          key: ${{ runner.os }}-conan-${{ github.run_id }}
-          restore-keys: |
-            ${{ runner.os }}-conan-
+          conan_user: ${{ secrets.CONAN_USER }}
+          conan_password: ${{ secrets.CONAN_PASS }}
 
       - name: Create the Package (binaries)
         run: conan create ${{ inputs.conan_recipe_root }} --name ${{ inputs.recipe_id_name }} --version ${{ inputs.recipe_id_version }} --user ${{ inputs.recipe_id_user }} --channel ${{ inputs.recipe_id_channel }} ${{ inputs.conan_extra_args }}
 
-      - name: Upload the Package(s)
-        if: ${{ always() && !inputs.conan_internal }}
-        run: |
-          conan upload ${{ inputs.recipe_id_full }} -r cura-conan-v2 -c
-
-      - name: Upload the Package(s) to the private Artifactory
-        if: ${{ always() && inputs.conan_internal }}
-        run: |
-          conan upload ${{ inputs.recipe_id_full }} -r cura-private-conan-v2 -c
+# FIXME: use main once merged
+      - name: Upload the Packages
+        uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@CURA-11622_conan_v2
+        with:
+          package_name: ${{ inputs.recipe_id_full }}
+          private_data: ${{ inputs.conan_internal }}
