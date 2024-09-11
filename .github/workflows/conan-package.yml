@@ -86,11 +86,7 @@ jobs:
           - runner: ubuntu-latest
             platform_conan_extra_args: '-pr:h cura_wasm.jinja'
 
-    if: |
-      (matrix.runner == 'ubuntu-latest' && matrix.platform_conan_extra_args == '' && inputs.platform_linux == 'true') ||
-      (matrix.runner == 'windows-2022' && inputs.platform_windows == 'true') ||
-      (matrix.runner == 'macos-12' && inputs.platform_macos == 'true') ||
-      (matrix.runner == 'ubuntu-latest' && matrix.platform_conan_extra_args != '' && inputs.platform_wasm == 'true')
+    if: ${{ (matrix.runner == 'ubuntu-latest' && matrix.platform_conan_extra_args == '' && inputs.platform_linux == 'true') || (matrix.runner == 'windows-2022' && inputs.platform_windows == 'true') || (matrix.runner == 'macos-12' && inputs.platform_macos == 'true') || (matrix.runner == 'ubuntu-latest' && matrix.platform_conan_extra_args != '' && inputs.platform_wasm == 'true') }}
 
     runs-on: ${{ matrix.runner }}
 
