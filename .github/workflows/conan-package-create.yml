@@ -57,8 +57,8 @@ jobs:
       matrix:
         runner: [ubuntu-latest, windows-2022, macos-12]
         exclude:
-          - runner: ${{ !input.all_runners && 'windows-2022' }}
-          - runner: ${{ !input.all_runners && 'macos-12' }}
+          - runner: ${{ !inputs.all_runners && 'windows-2022' }}
+          - runner: ${{ !inputs.all_runners && 'macos-12' }}
 
     runs-on: ${{ matrix.runner }}
 
