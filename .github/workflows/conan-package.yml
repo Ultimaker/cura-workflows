@@ -21,22 +21,22 @@ on:
       platform_linux:
         required: false
         default: true
-        type: bool
+        type: boolean
 
       platform_windows:
         required: false
         default: true
-        type: bool
+        type: boolean
 
       platform_macos:
         required: false
         default: true
-        type: bool
+        type: boolean
 
       platform_wasm:
         required: false
         default: false
-        type: bool
+        type: boolean
 
       project_name:
         required!: true
