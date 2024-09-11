@@ -56,9 +56,11 @@ jobs:
     strategy:
       matrix:
         runner: [ubuntu-latest, windows-2022, macos-12]
+        exclude:
+          - runner: ${{ !input.all_runners && 'windows-2022' }}
+          - runner: ${{ !input.all_runners && 'macos-12' }}
 
     runs-on: ${{ matrix.runner }}
-    if: ${{ inputs.all_runners || matrix.runner == 'ubuntu-latest' }}
 
     steps:
 # FIXME: use main once merged
