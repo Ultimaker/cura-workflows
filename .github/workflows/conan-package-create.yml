@@ -55,9 +55,10 @@ jobs:
   package-create:
     strategy:
       matrix:
-        runner: ${{ inputs.all_runners && [ubuntu-latest, windows-2022, macos-12] || [ubuntu-latest] }}
+        runner: [ubuntu-latest, windows-2022, macos-12]
 
     runs-on: ${{ inputs.runner }}
+    if: ${{ inputs.all_runners || matrix.runner == ubuntu-latest }}
 
     steps:
 # FIXME: use main once merged
