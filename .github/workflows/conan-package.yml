@@ -39,7 +39,7 @@ on:
         type: boolean
 
       project_name:
-        required!: true
+        required: true
         type: string
 
 permissions:
