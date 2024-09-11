@@ -1,0 +1,114 @@
+name: Create and upload Conan package
+
+on:
+  workflow_call:
+    inputs:
+      private_data:
+        required: false
+        default: false
+        type: boolean
+
+      conan_extra_args:
+        required: false
+        default: ""
+        type: string
+
+      conan_recipe_root:
+        required: false
+        default: "."
+        type: string
+
+      platform_linux:
+        required: false
+        default: true
+        type: bool
+
+      platform_windows:
+        required: false
+        default: true
+        type: bool
+
+      platform_macos:
+        required: false
+        default: true
+        type: bool
+
+      platform_wasm:
+        required: false
+        default: false
+        type: bool
+
+      project_name:
+        required!: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  CONAN_LOGIN_USERNAME: ${{ secrets.CONAN_USER }}
+  CONAN_PASSWORD: ${{ secrets.CONAN_PASS }}
+  SENTRY_TOKEN: ${{ secrets.CURAENGINE_SENTRY_TOKEN }}
+
+jobs:
+# FIXME: Use main once merged
+  conan-recipe-version:
+    name: Calculate package version numbers
+    uses: ultimaker/cura-workflows/.github/workflows/conan-recipe-version.yml@CURA-11622_conan_v2
+    with:
+      project_name: ${{ inputs.project_name }}
+
+# FIXME: Use main once merged
+  conan-recipe-export:
+    name: Upload package recipe
+    needs: [ conan-recipe-version ]
+    uses: ultimaker/cura-workflows/.github/workflows/conan-recipe-export.yml@CURA-11622_conan_v2
+    with:
+      recipe_id_name: ${{ needs.conan-recipe-version.outputs.project_name }}
+      recipe_id_version: ${{ needs.conan-recipe-version.outputs.recipe_semver_full }}
+      recipe_id_user: ${{ needs.conan-recipe-version.outputs.user }}
+      recipe_id_channel: ${{ needs.conan-recipe-version.outputs.channel }}
+      recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
+    secrets: inherit
+
+  conan-package-create:
+    name: Create and upload package
+    needs: [ conan-recipe-version, conan-recipe-export ]
+    #if: ${{ (github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master' || needs.conan-recipe-version.outputs.is_release_branch == 'true')) }}
+    secrets: inherit
+
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-latest
+          - runner: windows-2022
+          - runner: macos-12
+          - runner: ubuntu-latest
+            platform_conan_extra_args: '-pr:h cura_wasm.jinja'
+
+    if: |
+      (matrix.runner == 'ubuntu-latest' && matrix.platform_conan_extra_args == '' && inputs.platform_linux == 'true') ||
+      (matrix.runner == 'windows-2022' && inputs.platform_windows == 'true') ||
+      (matrix.runner == 'macos-12' && inputs.platform_macos == 'true') ||
+      (matrix.runner == 'ubuntu-latest' && matrix.platform_conan_extra_args != '' && inputs.platform_wasm == 'true')
+
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+# FIXME: use main once merged
+      - name: Setup the build environment
+        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@CURA-11622_conan_v2
+        with:
+          conan_user: ${{ secrets.CONAN_USER }}
+          conan_password: ${{ secrets.CONAN_PASS }}
+          install_system_depndencies: true
+
+      - name: Create the Package (binaries)
+        run: conan create ${{ inputs.conan_recipe_root }} --name ${{ needs.conan-recipe-version.outputs.project_name }} --version ${{ needs.conan-recipe-version.outputs.recipe_semver_full }} --user ${{ needs.conan-recipe-version.outputs.user }} --channel ${{ needs.conan-recipe-version.outputs.channel }} ${{ inputs.conan_extra_args }} --build=missing ${{ matrix.platform_conan_extra_args }}
+
+# FIXME: use main once merged
+      - name: Upload the Package
+        uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@CURA-11622_conan_v2
+        with:
+          package_name: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
+          private_data: ${{ inputs.private_data }}
