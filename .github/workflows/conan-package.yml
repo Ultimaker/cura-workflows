@@ -86,11 +86,9 @@ jobs:
     name: Create and upload package
     needs: [ conan-recipe-version, conan-recipe-export, make-runners_list ]
     secrets: inherit
-
+    runs-on: ${{ matrix.runner }}
     strategy:
       matrix: ${{ fromJson(needs.make-runners_list.outputs.matrix) }}
-
-    runs-on: ${{ matrix.runner }}
 
     steps:
 # FIXME: use main once merged
