@@ -14,7 +14,8 @@ def make_runners_list(args):
     if args.platform_wasm:
         runners_list.append({"runner": "ubuntu-latest", "conan_extra_args": "-pr:h cura_wasm.jinja"})
 
-    print(json.dumps(runners_list))
+    runners_data = {"include": runners_list}
+    print(json.dumps(runners_data))
 
 
 if __name__ == "__main__":
