@@ -28,7 +28,7 @@ on:
         default: true
         type: boolean
 
-      platform_macos:
+      platform_mac:
         required: false
         default: true
         type: boolean
@@ -71,22 +71,24 @@ jobs:
       recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
     secrets: inherit
 
+# FIXME: Use main once merged
+  make-runners_list:
+    name: Make the proper runners list
+    uses: ultimaker/cura-workflows/.github/workflows/make-runners-list.yml@CURA-11622_conan_v2
+    #if: ${{ (github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master' || needs.conan-recipe-version.outputs.is_release_branch == 'true')) }}
+    with:
+      platform_linux: ${{ inputs.platform_linux }}
+      platform_windows: ${{ inputs.platform_windows }}
+      platform_mac: ${{ inputs.platform_mac }}
+      platform_wasm: ${{ inputs.platform_wasm }}
+
   conan-package-create:
     name: Create and upload package
-    needs: [ conan-recipe-version, conan-recipe-export ]
-    #if: ${{ (github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master' || needs.conan-recipe-version.outputs.is_release_branch == 'true')) }}
+    needs: [ conan-recipe-version, conan-recipe-export, make-runners_list ]
     secrets: inherit
 
     strategy:
-      matrix:
-        include:
-          - runner: ubuntu-latest
-          - runner: windows-2022
-          - runner: macos-12
-          - runner: ubuntu-latest
-            platform_conan_extra_args: '-pr:h cura_wasm.jinja'
-
-    if: ${{ (matrix.runner == 'ubuntu-latest' && matrix.platform_conan_extra_args == '' && inputs.platform_linux == 'true') || (matrix.runner == 'windows-2022' && inputs.platform_windows == 'true') || (matrix.runner == 'macos-12' && inputs.platform_macos == 'true') || (matrix.runner == 'ubuntu-latest' && matrix.platform_conan_extra_args != '' && inputs.platform_wasm == 'true') }}
+      matrix: ${{ fromJson(needs.make-runners_list.outputs.matrix) }}
 
     runs-on: ${{ matrix.runner }}
 
