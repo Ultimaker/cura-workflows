@@ -14,7 +14,7 @@ inputs:
     required: false
     default: false
     type: boolean
-  install_system_depndencies:
+  install_system_dependencies:
     required: false
     default: false
     type: boolean
