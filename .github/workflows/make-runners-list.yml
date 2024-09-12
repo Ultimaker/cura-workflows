@@ -47,4 +47,4 @@ jobs:
       id: call-make-runner-script
       run: |
         RUNNERS_LIST=$(python ./Cura-workflows/runner_scripts/make_runners_list.py ${{ inputs.platform_linux && '--platform-linux' || '' }} ${{ inputs.platform_windows && '--platform-windows' || '' }} ${{ inputs.platform_mac && '--platform-mac' || '' }} ${{ inputs.platform_wasm && '--platform-wasm' || '' }})
-        echo "matrix=$RUNNERS_LIST" >> $GITHUB_ENV
+        echo "matrix=$RUNNERS_LIST" >> $GITHUB_OUTPUT
