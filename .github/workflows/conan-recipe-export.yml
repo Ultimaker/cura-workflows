@@ -43,6 +43,7 @@ permissions:
 
 jobs:
   package-export:
+    name: Upload package recipe
     runs-on: ubuntu-latest
 
     steps:

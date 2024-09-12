@@ -72,6 +72,7 @@ jobs:
     secrets: inherit
 
 # FIXME: Use main once merged
+# FIXME: Re-enable if condition to build package only when required
   make-runners_list:
     name: Make the proper runners list
     uses: ultimaker/cura-workflows/.github/workflows/make-runners-list.yml@CURA-11622_conan_v2

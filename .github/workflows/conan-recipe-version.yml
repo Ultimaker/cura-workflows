@@ -53,6 +53,7 @@ on:
 
 jobs:
   get-semver:
+    name: Generate version numbers
 
     runs-on: ubuntu-latest
 
