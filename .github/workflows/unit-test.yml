@@ -20,8 +20,6 @@ jobs:
       - name: Setup the build environment
         uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@CURA-11622_conan_v2
         with:
-          conan_user: ${{ secrets.CONAN_USER }}
-          conan_password: ${{ secrets.CONAN_PASS }}
           install_system_dependencies: true
 
       - name: Install dependencies and build unit test
