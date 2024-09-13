@@ -66,37 +66,13 @@ jobs:
       channel: ${{ steps.get-conan-broadcast-data.outputs.channel }}
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
-        with:
-          fetch-depth: 1
-          sparse-checkout: 'conandata.yml'
-          ref: ${{ github.head_ref }}
-
-      - name: Checkout repo PR
-        uses: actions/checkout@v4
-        if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
-        with:
-          fetch-depth: 1
-          sparse-checkout: 'conandata.yml'
-          ref: ${{ github.base_ref }}
-
-      - name: Checkout Cura-workflows repo
-        uses: actions/checkout@v4
-        with:
-          repository: Ultimaker/Cura-workflows
 # FIXME: use main once merged
-          ref: CURA-11622_conan_v2
-          path: Cura-workflows
-
-      - name: Setup Python and pip
-        uses: actions/setup-python@v4
+      - name: Setup the build environment
+        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@CURA-11622_conan_v2
         with:
-          python-version: "3.12.x"
-
-      - name: Install pyyaml
-        run: pip install pyyaml
+          conan_user: ${{ secrets.CONAN_USER }}
+          conan_password: ${{ secrets.CONAN_PASS }}
+          install_system_dependencies: false
 
         # FIXME: use main once merged
       - id: get-conan-broadcast-data
