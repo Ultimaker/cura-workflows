@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
 
 # FIXME: use main once merged
-  steps:
+    steps:
       - name: Setup the build environment
         uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@CURA-11622_conan_v2
         with:
