@@ -97,7 +97,7 @@ jobs:
         with:
           conan_user: ${{ secrets.CONAN_USER }}
           conan_password: ${{ secrets.CONAN_PASS }}
-          install_system_depndencies: true
+          install_system_dependencies: true
 
       - name: Create the Package (binaries)
         run: conan create ${{ inputs.conan_recipe_root }} --name ${{ needs.conan-recipe-version.outputs.project_name }} --version ${{ needs.conan-recipe-version.outputs.recipe_semver_full }} --user ${{ needs.conan-recipe-version.outputs.user }} --channel ${{ needs.conan-recipe-version.outputs.channel }} ${{ inputs.conan_extra_args }} --build=missing ${{ matrix.platform_conan_extra_args }}
