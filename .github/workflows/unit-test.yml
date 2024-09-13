@@ -37,7 +37,6 @@ jobs:
           echo ${{ github.event.number }} > pr-id.txt
           echo ${{ github.event.pull_request.head.repo.full_name }} > pr-head-repo.txt
           echo ${{ github.event.pull_request.head.ref }} > pr-head-ref.txt
-        working-directory: ${{ inputs.unit_test_dir }}
 
       - name: Upload Test Results
         if: always()
@@ -45,7 +44,7 @@ jobs:
         with:
           name: test-result
           path: |
-            ${{ inputs.unit_test_dir }}/**/unit_tests_results.xml
-            ${{ inputs.unit_test_dir }}/pr-id.txt
-            ${{ inputs.unit_test_dir }}/pr-head-repo.txt
-            ${{ inputs.unit_test_dir }}/pr-head-ref.txt
+            ./**/unit_tests_results.xml
+            pr-id.txt
+            pr-head-repo.txt
+            pr-head-ref.txt
