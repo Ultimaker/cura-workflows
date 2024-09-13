@@ -53,7 +53,7 @@ runs:
           conan remote login cura-private-conan2 ${{ inputs.conan_user }} -p ${{ inputs.conan_password }}
         fi
 
-        if [ "${{ inputs.install_system_depndencies }}" == "true" ]; then
+        if [ "${{ inputs.install_system_dependencies }}" == "true" ]; then
           if [[ "$OSTYPE" == "linux-gnu"* ]]; then
             chmod +x Cura-workflows/runner_scripts/ubuntu_setup.sh
             sudo ./Cura-workflows/runner_scripts/ubuntu_setup.sh
