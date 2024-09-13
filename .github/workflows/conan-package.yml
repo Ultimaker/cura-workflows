@@ -53,7 +53,7 @@ env:
 jobs:
 # FIXME: Use main once merged
   conan-recipe-version:
-    name: Calculate package version numbers
+    name: Calculate version numbers
     uses: ultimaker/cura-workflows/.github/workflows/conan-recipe-version.yml@CURA-11622_conan_v2
     with:
       project_name: ${{ inputs.project_name }}
