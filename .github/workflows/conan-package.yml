@@ -98,7 +98,7 @@ jobs:
           install_system_dependencies: true
 
       - name: Create the Package (binaries)
-        run: conan create ${{ inputs.conan_recipe_root }} --name ${{ needs.conan-recipe-version.outputs.project_name }} --version ${{ needs.conan-recipe-version.outputs.recipe_semver_full }} --user ${{ needs.conan-recipe-version.outputs.user }} --channel ${{ needs.conan-recipe-version.outputs.channel }} ${{ inputs.conan_extra_args }} --build=missing ${{ matrix.platform_conan_extra_args }}
+        run: conan create ${{ inputs.conan_recipe_root }} --name ${{ needs.conan-recipe-version.outputs.project_name }} --version ${{ needs.conan-recipe-version.outputs.recipe_semver_full }} --user ${{ needs.conan-recipe-version.outputs.user }} --channel ${{ needs.conan-recipe-version.outputs.channel }} ${{ inputs.conan_extra_args }} --build=missing ${{ matrix.platform_conan_extra_args }} -c tools.build:skip_test=True
 
 # FIXME: use main once merged
       - name: Upload the Package
