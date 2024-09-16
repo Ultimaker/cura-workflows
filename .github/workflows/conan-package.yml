@@ -46,8 +46,6 @@ permissions:
   contents: read
 
 env:
-  CONAN_LOGIN_USERNAME: ${{ secrets.CONAN_USER }}
-  CONAN_PASSWORD: ${{ secrets.CONAN_PASS }}
   SENTRY_TOKEN: ${{ secrets.CURAENGINE_SENTRY_TOKEN }}
 
 jobs:
