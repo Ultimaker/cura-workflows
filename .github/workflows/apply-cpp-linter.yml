@@ -1,0 +1,35 @@
+name: Apply cpp linter
+
+on:
+  workflow_call:
+    inputs:
+      private_data:
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  apply-cpp-linter:
+    name: Apply clang-format
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup the environment
+        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@CURA-11622_conan_v2
+
+      - uses: technote-space/get-diff-action@v6
+        with:
+          PATTERNS: |
+            include/**/*.h*
+            src/**/*.cpp*
+            tests/**/*.cpp*
+
+      - name: Format file
+        if: env.GIT_DIFF && !env.MATCHED_FILES
+        run: |
+          clang-format -i  ${{ env.GIT_DIFF_FILTERED }}
+
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        if: env.GIT_DIFF && !env.MATCHED_FILES
+        with:
+          commit_message: "Applied clang-format."
