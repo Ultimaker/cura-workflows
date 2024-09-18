@@ -13,6 +13,11 @@ on:
         default: ""
         type: string
 
+      install_system_dependencies:
+        required: false
+        default: true
+        type: boolean
+
       conan_recipe_root:
         required: false
         default: "."
@@ -97,7 +102,7 @@ jobs:
           conan_user: ${{ secrets.CONAN_USER }}
           conan_password: ${{ secrets.CONAN_PASS }}
           private_data: ${{ inputs.private_data }}
-          install_system_dependencies: true
+          install_system_dependencies: ${{ inputs.install_system_dependencies }}
 
       - name: Create the Package (binaries)
         run: conan create ${{ inputs.conan_recipe_root }} --name ${{ needs.conan-recipe-version.outputs.project_name }} --version ${{ needs.conan-recipe-version.outputs.recipe_semver_full }} --user ${{ needs.conan-recipe-version.outputs.user }} --channel ${{ needs.conan-recipe-version.outputs.channel }} ${{ inputs.conan_extra_args }} --build=missing ${{ matrix.platform_conan_extra_args }} -c tools.build:skip_test=True
