@@ -67,6 +67,7 @@ jobs:
       recipe_id_user: ${{ needs.conan-recipe-version.outputs.user }}
       recipe_id_channel: ${{ needs.conan-recipe-version.outputs.channel }}
       recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
+      private_data: ${{ inputs.private_data }}
     secrets: inherit
 
 # FIXME: Use main once merged
