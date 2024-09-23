@@ -29,7 +29,7 @@ jobs:
           install_system_dependencies: true
 
       - name: Install dependencies and build unit test
-        run: conan build . -s build_type=Release --build=missing --update -g GitHubActionsRunEnv -g GitHubActionsBuildEnv -c tools.build:skip_test=False -o "*:enable_sentry=False" --deployer=virtual_python_env -c user.deployer.virtual_python_env:dev_tools=True
+        run: conan build . -s build_type=Release --build=missing --update -g GitHubActionsRunEnv -g GitHubActionsBuildEnv -c tools.build:skip_test=False -o "*:enable_sentry=False" --deployer=virtual_python_env -c user.deployer.virtual_python_env:dev_tools=True -c tools.cmake.cmake_layout:build_folder_vars="[]"
 
       - name: Run ctest-based unit test
         if: ${{ inputs.test_use_ctest }}
