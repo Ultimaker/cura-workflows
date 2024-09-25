@@ -43,7 +43,7 @@ on:
         default: false
         type: boolean
 
-      project_name:
+      package_name:
         required: true
         type: string
 
@@ -59,19 +59,34 @@ jobs:
     name: Calculate version numbers
     uses: ultimaker/cura-workflows/.github/workflows/conan-recipe-version.yml@CURA-11622_conan_v2
     with:
-      project_name: ${{ inputs.project_name }}
+      package_name: ${{ inputs.package_name }}
 
 # FIXME: Use main once merged
-  conan-recipe-export:
-    name: Upload package recipe
+  conan-recipe-export-specific:
+    name: Upload specific package recipe
     needs: [ conan-recipe-version ]
     uses: ultimaker/cura-workflows/.github/workflows/conan-recipe-export.yml@CURA-11622_conan_v2
     with:
-      recipe_id_name: ${{ needs.conan-recipe-version.outputs.project_name }}
-      recipe_id_version: ${{ needs.conan-recipe-version.outputs.recipe_semver_full }}
-      recipe_id_user: ${{ needs.conan-recipe-version.outputs.user }}
-      recipe_id_channel: ${{ needs.conan-recipe-version.outputs.channel }}
-      recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
+      package_name: ${{ needs.conan-recipe-version.outputs.package_name }}
+      version: ${{ needs.conan-recipe-version.outputs.version_full }}
+      user: ${{ needs.conan-recipe-version.outputs.user }}
+      channel: ${{ needs.conan-recipe-version.outputs.channel }}
+      package_version_full: ${{ needs.conan-recipe-version.outputs.package_version_full }}
+      private_data: ${{ inputs.private_data }}
+      conan_recipe_root: ${{ inputs.conan_recipe_root }}
+    secrets: inherit
+
+# FIXME: Use main once merged
+  conan-recipe-export-latest:
+    name: Upload latest package recipe
+    needs: [ conan-recipe-version ]
+    uses: ultimaker/cura-workflows/.github/workflows/conan-recipe-export.yml@CURA-11622_conan_v2
+    with:
+      package_name: ${{ needs.conan-recipe-version.outputs.package_name }}
+      version: ${{ needs.conan-recipe-version.outputs.version_base }}
+      user: ${{ needs.conan-recipe-version.outputs.user }}
+      channel: ${{ needs.conan-recipe-version.outputs.channel }}
+      package_version_full: ${{ needs.conan-recipe-version.outputs.package_version_latest }}
       private_data: ${{ inputs.private_data }}
       conan_recipe_root: ${{ inputs.conan_recipe_root }}
     secrets: inherit
@@ -90,7 +105,7 @@ jobs:
 
   conan-package-create:
     name: Create and upload package
-    needs: [ conan-recipe-version, conan-recipe-export, make-runners_list ]
+    needs: [ conan-recipe-version, conan-recipe-export-specific, make-runners_list ]
     runs-on: ${{ matrix.runner }}
     strategy:
       matrix: ${{ fromJson(needs.make-runners_list.outputs.matrix) }}
@@ -106,7 +121,7 @@ jobs:
           install_system_dependencies: ${{ inputs.install_system_dependencies }}
 
       - name: Create the Package (binaries)
-        run: conan create ${{ inputs.conan_recipe_root }} --name ${{ needs.conan-recipe-version.outputs.project_name }} --version ${{ needs.conan-recipe-version.outputs.recipe_semver_full }} --user ${{ needs.conan-recipe-version.outputs.user }} --channel ${{ needs.conan-recipe-version.outputs.channel }} ${{ inputs.conan_extra_args }} --build=missing ${{ matrix.platform_conan_extra_args }} -c tools.build:skip_test=True
+        run: conan create ${{ inputs.conan_recipe_root }} --name ${{ needs.conan-recipe-version.outputs.package_name }} --version ${{ needs.conan-recipe-version.outputs.package_version }} --user ${{ needs.conan-recipe-version.outputs.user }} --channel ${{ needs.conan-recipe-version.outputs.channel }} ${{ inputs.conan_extra_args }} --build=missing ${{ matrix.platform_conan_extra_args }} -c tools.build:skip_test=True
 
 # FIXME: use main once merged
       - name: Upload the Package

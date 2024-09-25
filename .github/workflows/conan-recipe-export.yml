@@ -3,23 +3,23 @@ name: Export Conan Recipe to server
 on:
   workflow_call:
     inputs:
-      recipe_id_name:
+      package_name:
         required: true
         type: string
 
-      recipe_id_version:
+      version:
         required: true
         type: string
 
-      recipe_id_user:
+      user:
         required: true
         type: string
 
-      recipe_id_channel:
+      channel:
         required: true
         type: string
 
-      recipe_id_full:
+      package_version_full:
         required: true
         type: string
 
@@ -56,11 +56,11 @@ jobs:
           private_data: ${{ inputs.private_data }}
 
       - name: Export the Package to local cache
-        run: conan export ${{ inputs.conan_recipe_root }} --name ${{ inputs.recipe_id_name }} --version ${{ inputs.recipe_id_version }} --user ${{ inputs.recipe_id_user }} --channel ${{ inputs.recipe_id_channel }} ${{ inputs.conan_extra_args }}
+        run: conan export ${{ inputs.conan_recipe_root }} --name ${{ inputs.package_name }} --version ${{ inputs.version }} --user ${{ inputs.user }} --channel ${{ inputs.channel }} ${{ inputs.conan_extra_args }}
 
 # FIXME: use main once merged
       - name: Upload the Recipe
         uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@CURA-11622_conan_v2
         with:
-          package_name: ${{ inputs.recipe_id_full }}
+          package_name: ${{ inputs.package_version_full }}
           private_data: ${{ inputs.private_data }}

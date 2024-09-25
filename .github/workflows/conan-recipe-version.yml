@@ -3,7 +3,7 @@ name: Get Conan Recipe Version
 on:
   workflow_call:
     inputs:
-      project_name:
+      package_name:
         required: true
         type: string
 
@@ -23,33 +23,37 @@ on:
         type: string
 
     outputs:
-      recipe_id_full:
-        description: "The full Conan recipe id: <name>/<version>@<user>/<channel>"
-        value: ${{ jobs.get-semver.outputs.recipe_id_full }}
+      package_name:
+        description: "Package name"
+        value: ${{ inputs.package_name }}
 
-      recipe_id_latest:
-        description: "The full Conan recipe aliased (latest) id: <name>/(latest)@<user>/<channel>"
-        value: ${{ jobs.get-semver.outputs.recipe_id_latest }}
+      version_base:
+        description: "Base version number: <major>.<minor>.<patch>-<releasetag>"
+        value: ${{ jobs.get-semver.outputs.version_base }}
 
-      recipe_semver_full:
-        description: "The full semver <Major>.<Minor>.<Patch>-<PreReleaseTag>"
-        value: ${{ jobs.get-semver.outputs.semver_full }}
-
-      is_release_branch:
-        description: "is current branch a release branch?"
-        value: ${{ jobs.get-semver.outputs.release_branch }}
-
-      user:
-        description: "The conan user"
-        value: ${{ jobs.get-semver.outputs.user }}
+      version_full:
+        description: "Full unique version number: <major>.<minor>.<patch>-<releasetag>+<commit>"
+        value: ${{ jobs.get-semver.outputs.version_full }}
 
       channel:
         description: "The conan channel"
         value: ${{ jobs.get-semver.outputs.channel }}
 
-      project_name:
-        description: "The conan projectname"
-        value: ${{ inputs.project_name }}
+      user:
+        description: "The conan user"
+        value: ${{ jobs.get-semver.outputs.user }}
+
+      package_version_full:
+        description: "The unique Conan package id: <name>/<version>+<commit>@<user>/<channel>"
+        value: ${{ jobs.get-semver.outputs.package_version_full }}
+
+      package_version_latest:
+        description: "The most recent version for the user+channel: <name>/<version>@<user>/<channel>"
+        value: ${{ jobs.get-semver.outputs.package_version_latest }}
+
+      is_release_branch:
+        description: "is current branch a release branch?"
+        value: ${{ jobs.get-semver.outputs.release_branch }}
 
 jobs:
   get-semver:
@@ -58,24 +62,25 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
-      recipe_id_full: ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }}
-      recipe_id_latest: ${{ steps.get-conan-broadcast-data.outputs.recipe_id_latest }}
-      semver_full: ${{ steps.get-conan-broadcast-data.outputs.semver_full }}
-      is_release_branch: ${{ steps.get-conan-broadcast-data.outputs.is_release_branch }}
-      user: ${{ steps.get-conan-broadcast-data.outputs.user }}
+      version_base: ${{ steps.get-conan-broadcast-data.outputs.version_base }}
+      version_full: ${{ steps.get-conan-broadcast-data.outputs.version_full }}
       channel: ${{ steps.get-conan-broadcast-data.outputs.channel }}
+      user: ${{ steps.get-conan-broadcast-data.outputs.user }}
+      package_version_full: ${{ steps.get-conan-broadcast-data.outputs.package_version_full }}
+      package_version_latest: ${{ steps.get-conan-broadcast-data.outputs.package_version_latest }}
+      is_release_branch: ${{ steps.get-conan-broadcast-data.outputs.is_release_branch }}
 
     steps:
+    - name: Checkout Cura-workflows repo
+      uses: actions/checkout@v4
+      with:
+        repository: Ultimaker/Cura-workflows
 # FIXME: use main once merged
-      - name: Setup the build environment
-        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@CURA-11622_conan_v2
-        with:
-          conan_user: ${{ secrets.CONAN_USER }}
-          conan_password: ${{ secrets.CONAN_PASS }}
-          install_system_dependencies: false
+        ref: CURA-11622_conan_v2
+        path: Cura-workflows
 
         # FIXME: use main once merged
       - id: get-conan-broadcast-data
         name: Get Conan broadcast data
         run: |
-          python Cura-workflows/runner_scripts/get_conan_broadcast_data.py --user ${{ inputs.user }} --project_name "${{ inputs.project_name }}" --sha "${{ github.sha }}" --event_name "${{ github.event_name }}" --ref_name "${{ github.ref_name }}" --head_ref "${{ github.head_ref }}" --release "${{ inputs.release }}" --version "${{ inputs.version }}"
+          python Cura-workflows/runner_scripts/get_conan_broadcast_data.py --user ${{ inputs.user }} --package_name "${{ inputs.package_name }}" --sha "${{ github.sha }}" --event_name "${{ github.event_name }}" --ref_name "${{ github.ref_name }}" --head_ref "${{ github.head_ref }}" --release "${{ inputs.release }}" --version "${{ inputs.version }}" --version-output $GITHUB_OUTPUT --summary-output $GITHUB_STEP_SUMMARY
