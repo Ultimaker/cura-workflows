@@ -41,7 +41,7 @@ runs:
         python-version: '3.12'
 
     - name: Install Python requirements and setup Conan environment
-# FIXME: use runner.os/runner.arch after merge: conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/runner.os/runner.arch"
+# FIXME: use use main once merged
       shell: bash
       run: |
         pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
