@@ -71,13 +71,9 @@ jobs:
       is_release_branch: ${{ steps.get-conan-broadcast-data.outputs.is_release_branch }}
 
     steps:
-      - name: Checkout Cura-workflows repo
-        uses: actions/checkout@v4
-        with:
-          repository: Ultimaker/Cura-workflows
 # FIXME: use main once merged
-          ref: CURA-11622_conan_v2
-          path: Cura-workflows
+      - name: Setup the build environment
+        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@CURA-11622_conan_v2
 
       - id: get-conan-broadcast-data
         name: Get Conan broadcast data
