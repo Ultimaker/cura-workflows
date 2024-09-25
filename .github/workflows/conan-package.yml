@@ -121,11 +121,11 @@ jobs:
           install_system_dependencies: ${{ inputs.install_system_dependencies }}
 
       - name: Create the Package (binaries)
-        run: conan create ${{ inputs.conan_recipe_root }} --name ${{ needs.conan-recipe-version.outputs.package_name }} --version ${{ needs.conan-recipe-version.outputs.package_version }} --user ${{ needs.conan-recipe-version.outputs.user }} --channel ${{ needs.conan-recipe-version.outputs.channel }} ${{ inputs.conan_extra_args }} --build=missing ${{ matrix.platform_conan_extra_args }} -c tools.build:skip_test=True
+        run: conan create ${{ inputs.conan_recipe_root }} --name ${{ needs.conan-recipe-version.outputs.package_name }} --version ${{ needs.conan-recipe-version.outputs.version_base }} --user ${{ needs.conan-recipe-version.outputs.user }} --channel ${{ needs.conan-recipe-version.outputs.channel }} ${{ inputs.conan_extra_args }} --build=missing ${{ matrix.platform_conan_extra_args }} -c tools.build:skip_test=True
 
 # FIXME: use main once merged
       - name: Upload the Package
         uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@CURA-11622_conan_v2
         with:
-          package_name: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
+          package_name: ${{ needs.conan-recipe-version.outputs.package_version_latest }}
           private_data: ${{ inputs.private_data }}
