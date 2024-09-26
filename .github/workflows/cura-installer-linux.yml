@@ -96,9 +96,16 @@ jobs:
           find AppDir/ -name 'libstdc++.*' -exec sentry-cli --auth-token $SENTRY_TOKEN debug-files upload {} \;
         working-directory: dist
 
-      - name: Upload the Package(s)
+# FIXME: Use main once merged
+      - name: Upload the built Package(s)
         if: ${{ always() && ! inputs.private_data }}
-        run: conan upload "*" -r cura-conan2 -c
+        uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@CURA-11622_conan_v2
+        with:
+          package_name: *
+
+      - name: Clean local cache
+        if: ${{ startsWith(inputs.operating_system, 'self-hosted') }}
+        run: conan remove '*' --lru=1w -c
 
       - name: Upload the AppImage
         uses: actions/upload-artifact@v4
