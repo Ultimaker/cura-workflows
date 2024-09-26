@@ -1,5 +1,5 @@
 name: Linux Installer
-run-name: ${{ inputs.cura_conan_version }} for Linux-${{ inputs.architecture }} by @${{ github.actor }}
+run-name: ${{ inputs.cura_conan_version }} for Linux-X64 by @${{ github.actor }}
 
 on:
   workflow_call:
@@ -11,7 +11,7 @@ on:
         type: string
 
       conan_args:
-        description: 'Conan args: eq.: --require-override'
+        description: 'Conan args, e.g. --requires'
         default: ''
         required: false
         type: string
@@ -28,19 +28,13 @@ on:
         required: true
         type: boolean
 
-      architecture:
-        description: 'Architecture'
-        required: true
-        default: 'X64'
-        type: string
-
       operating_system:
         description: 'OS'
         required: true
         default: 'ubuntu-22.04'
         type: string
 
-      conan_internal:
+      private_data:
         required: false
         default: false
         type: boolean
@@ -49,12 +43,7 @@ permissions:
   contents: read
 
 env:
-  CONAN_LOGIN_USERNAME: ${{ secrets.CONAN_USER }}
-  CONAN_PASSWORD: ${{ secrets.CONAN_PASS }}
   GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-  CURA_CONAN_VERSION: ${{ inputs.cura_conan_version }}
-  ENTERPRISE: ${{ inputs.enterprise }}
-  STAGING: ${{ inputs.staging }}
   SENTRY_TOKEN: ${{ secrets.CURAENGINE_SENTRY_TOKEN }}
 
 jobs:
@@ -62,83 +51,35 @@ jobs:
     runs-on: ${{ inputs.operating_system }}
 
     steps:
-      - name: Checkout Cura repo
-        uses: actions/checkout@v4
+# FIXME: use main once merged
+      - name: Setup the build environment
+        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@CURA-11622_conan_v2
         with:
-          repository: Ultimaker/Cura
-
-      - name: Checkout Cura-workflows repo
-        uses: actions/checkout@v4
-        with:
-          repository: Ultimaker/Cura-workflows
-          path: Cura-workflows
-
-      - name: Setup Python and pip
-        uses: actions/setup-python@v5.1.0
-        with:
-          python-version: 3.11.x
-          cache: pip
-          cache-dependency-path: Cura-workflows/.github/workflows/requirements-runner.txt
-
-      - name: Install Python requirements and Create default Conan profile
-        run: pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
-
-      - name: Install Linux system requirements for building
-        working-directory: Cura-workflows/runner_scripts
-        run: |
-          chmod +x ubuntu_setup.sh
-          sudo ./ubuntu_setup.sh
+          conan_user: ${{ secrets.CONAN_USER }}
+          conan_password: ${{ secrets.CONAN_PASS }}
+          private_data: ${{ inputs.private_data }}
+          install_system_dependencies: true
 
       - name: Install AppImage builder
         run: |
           chmod +x ./Cura-workflows/runner_scripts/appimage_setup.sh
           ./Cura-workflows/runner_scripts/appimage_setup.sh
 
-      - name: Setup pipeline caches
-        run: mkdir -p /home/runner/.conan/downloads
-
-      - name: Create default Conan profile
-        run: conan profile new default --detect --force
-
-      - name: Get Conan configuration
-        run: |
-          conan config install https://github.com/Ultimaker/conan-config.git
-          conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/${{ runner.os }}/${{ runner.arch }}"
-
-      - name: Add runner credentials to cura remote
-        run: conan user -p ${{ secrets.CONAN_PASS }} -r cura ${{ secrets.CONAN_USER }}
-
-      - name: Add Cura private Artifactory remote
-        if: ${{ inputs.conan_internal }}
-        run: |
-          conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/internal"
-          conan user -p ${{ secrets.CONAN_PASS }} -r cura-private ${{ secrets.CONAN_USER }}
-
-      - name: Cache Conan downloads
-        uses: actions/cache@v3
-        with:
-          path: /home/runner/.conan/downloads
-          key: ${{ runner.os }}-conan-downloads-${{ github.run_id }}
-          restore-keys: |
-            ${{ runner.os }}-conan-downloads-
-
-      - name: Configure GPG Key Linux (Bash)
+      - name: Configure GPG Key
         run: echo -n "$GPG_PRIVATE_KEY" | base64 --decode | gpg --import
 
-      - name: Create the Packages (Bash)
-        run: conan install $CURA_CONAN_VERSION ${{ inputs.conan_args }} --build=missing --update -if cura_inst -g VirtualPythonEnv -o cura:enterprise=$ENTERPRISE -o cura:staging=$STAGING  -o cura:internal=${{ inputs.conan_internal }} -c tools.build:skip_test=True -s curaengine:build_type=RelWithDebInfo -s arcus:build_type=RelWithDebInfo -s clipper:build_type=RelWithDebInfo
+      - name: Gather/build the packages
+        run: conan install ${{ inputs.cura_conan_version }} ${{ inputs.conan_args }} --build=missing --update -of cura_inst --deployer=virtual_python_env -g GitHubActionsBuildEnv -g GitHubActionsRunEnv ${{ inputs.enterprise && '-o "&:enterprise=True"' || '' }} ${{ inputs.staging && '-o "&:staging=True"' || '' }} ${{ inputs.private_data && '-o "&:internal=True"' || '' }} -c tools.build:skip_test=True -s curaengine:build_type=RelWithDebInfo -s arcus:build_type=RelWithDebInfo -s clipper:build_type=RelWithDebInfo
 
       - name: Set Environment variables for Cura (bash)
-        run: |
-          . ./cura_inst/bin/activate_github_actions_env.sh
-          . ./cura_inst/bin/activate_github_actions_version_env.sh            
+        run: source ./cura_inst/venv/conan/activate_github_actions_buildenv.sh
 
       - name: Create the Cura dist
         run: pyinstaller ./cura_inst/UltiMaker-Cura.spec
 
       - name: Output the name file name and extension
         id: filename
-        run: python Cura-workflows/runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --arch ${{ inputs.architecture }} --enterprise ${{ inputs.enterprise }} --internal ${{ inputs.conan_internal }}
+        run: python Cura-workflows/runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --arch X64 ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }}
 
       - name: Summarize the used dependencies
         run: python Cura-workflows/runner_scripts/summarize_used_dependencies.py --installer_filename ${{ steps.filename.outputs.INSTALLER_FILENAME }}
@@ -155,29 +96,22 @@ jobs:
           find AppDir/ -name 'libstdc++.*' -exec sentry-cli --auth-token $SENTRY_TOKEN debug-files upload {} \;
         working-directory: dist
 
-      - name: Remove internal packages before uploading
-        run: |
-          conan remove "*@internal/*" -f || true
-          conan remove "cura_private_data*" -f || true
-
       - name: Upload the Package(s)
-        if: ${{ always() && ! inputs.conan_internal }}
-        run: conan upload "*" -r cura --all -c
+        if: ${{ always() && ! inputs.private_data }}
+        run: conan upload "*" -r cura-conan2 -c
 
       - name: Upload the AppImage
-        uses: actions/upload-artifact@v4.3.3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.filename.outputs.INSTALLER_FILENAME }}-AppImage
-          path: |
-            dist/${{ steps.filename.outputs.INSTALLER_FILENAME }}.AppImage
+          path: dist/${{ steps.filename.outputs.INSTALLER_FILENAME }}.AppImage
           retention-days: 5
 
       - name: Upload the asc
-        uses: actions/upload-artifact@v4.3.3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.filename.outputs.INSTALLER_FILENAME }}-asc
-          path: |
-            dist/${{ steps.filename.outputs.INSTALLER_FILENAME }}.AppImage.asc
+          path: dist/${{ steps.filename.outputs.INSTALLER_FILENAME }}.AppImage.asc
           retention-days: 5
 
       - name: Write the run info
@@ -188,10 +122,8 @@ jobs:
               f.writelines(f'echo "CURA_VERSION_FULL={os.environ["CURA_VERSION_FULL"]}" >> $GITHUB_ENV\n')
 
       - name: Upload the run info
-        uses: actions/upload-artifact@v4.3.3
+        uses: actions/upload-artifact@v4
         with:
           name: linux-run-info
-          path: |
-            run_info.sh
+          path: run_info.sh
           retention-days: 5
-

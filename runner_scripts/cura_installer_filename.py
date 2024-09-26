@@ -8,9 +8,9 @@ def set_installer_filename(args):
     internal = "-Internal" if args.internal == "true" else ""
     
     installer_filename_args = ["UltiMaker-Cura", os.getenv('CURA_VERSION_FULL')]
-    if args.enterprise == "true":
+    if args.enterprise:
         installer_filename_args.append("Enterprise")
-    if args.internal == "true":
+    if args.internal:
         installer_filename_args.append("Internal")
     installer_filename_args.append(os_name)
     installer_filename_args.append(args.architecture)
@@ -28,9 +28,9 @@ def set_installer_filename(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description = 'Set the installer filename')
-    parser.add_argument('--os', type = str, help = 'OS')
+    parser.add_argument('--os',           type = str, help = 'OS')
     parser.add_argument('--architecture', type = str, help = 'Architecture')
-    parser.add_argument('--enterprise', type = str, help = 'Enterprise')
-    parser.add_argument('--internal', type = str, help = 'Internal')
+    parser.add_argument('--enterprise',   type = str, action='store_true', help = 'Enterprise')
+    parser.add_argument('--internal',     type = str, action='store_true', help = 'Internal')
     args = parser.parse_args()
     set_installer_filename(args)
