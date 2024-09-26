@@ -69,7 +69,7 @@ jobs:
         run: echo -n "$GPG_PRIVATE_KEY" | base64 --decode | gpg --import
 
       - name: Gather/build the packages
-        run: conan install ${{ inputs.cura_conan_version }} ${{ inputs.conan_args }} --build=missing --update -of cura_inst --deployer=virtual_python_env -g GitHubActionsBuildEnv -g GitHubActionsRunEnv ${{ inputs.enterprise && '-o "&:enterprise=True"' || '' }} ${{ inputs.staging && '-o "&:staging=True"' || '' }} ${{ inputs.private_data && '-o "&:internal=True"' || '' }} -c tools.build:skip_test=True -s curaengine:build_type=RelWithDebInfo -s arcus:build_type=RelWithDebInfo -s clipper:build_type=RelWithDebInfo
+        run: conan install --requires ${{ inputs.cura_conan_version }} ${{ inputs.conan_args }} --build=missing --update -of cura_inst --deployer=virtual_python_env -g GitHubActionsBuildEnv -g GitHubActionsRunEnv ${{ inputs.enterprise && '-o "&:enterprise=True"' || '' }} ${{ inputs.staging && '-o "&:staging=True"' || '' }} ${{ inputs.private_data && '-o "&:internal=True"' || '' }} -c tools.build:skip_test=True -s curaengine:build_type=RelWithDebInfo -s arcus:build_type=RelWithDebInfo -s clipper:build_type=RelWithDebInfo
 
       - name: Set Environment variables for Cura (bash)
         run: source ./cura_inst/venv/conan/activate_github_actions_buildenv.sh
