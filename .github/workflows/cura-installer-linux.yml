@@ -101,7 +101,7 @@ jobs:
         if: ${{ always() && ! inputs.private_data }}
         uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@CURA-11622_conan_v2
         with:
-          package_name: *
+          package_name: '*'
 
       - name: Clean local cache
         if: ${{ startsWith(inputs.operating_system, 'self-hosted') }}
