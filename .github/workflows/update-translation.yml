@@ -1,0 +1,31 @@
+name: Update translations
+
+on:
+  workflow_call:
+    inputs:
+      branch:
+        required: False
+        default: ''
+        type: string
+
+jobs:
+  update-translations:
+    name: Update translations
+
+    runs-on: ubuntu-latest
+    steps:
+# FIXME: Use main once merged
+      - name: Setup the build environment
+        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@CURA-11622_conan_v2
+        with:
+          install_system_dependencies: true
+          branch: ${{ inputs.branch }}
+
+      - name: Update translation files using Conan install
+        run: conan install . --build=missing --update -o "&:enable_i18n=True"
+
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          file_pattern: resources/i18n/*.po resources/i18n/*.pot
+          status_options: --untracked-files=no
+          commit_message: Update translations

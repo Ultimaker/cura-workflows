@@ -20,12 +20,18 @@ inputs:
     required: false
     default: false
     type: boolean
+  branch:
+    required: false
+    default: ''
+    type: string
 
 runs:
   using: "composite"
   steps:
     - name: Checkout repo
       uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.branch }}
 
     - name: Checkout Cura-workflows repo
       uses: actions/checkout@v4
