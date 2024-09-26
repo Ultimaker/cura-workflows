@@ -75,7 +75,9 @@ jobs:
         run: source ./cura_inst/activate_github_actions_buildenv.sh
 
       - name: Create the Cura dist
-        run: pyinstaller ./cura_inst/UltiMaker-Cura.spec
+        run: |
+          source cura_inst/conanrun.sh
+          pyinstaller ./cura_inst/UltiMaker-Cura.spec
 
       - name: Output the name file name and extension
         id: filename
