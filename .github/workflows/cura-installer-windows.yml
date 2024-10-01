@@ -140,7 +140,7 @@ jobs:
       - name: Create the Windows exe installer (Powershell)
         if: ${{ always() }}
         run: |
-          python ..\cura_inst\packaging\NSIS\create_windows_installer.py ../cura_inst . "${{steps.filename.outputs.INSTALLER_FILENAME }}.exe"
+          python ..\cura_inst\packaging\NSIS\create_windows_installer.py ../cura_inst . "${{ steps.filename.outputs.INSTALLER_FILENAME }}.exe" "${{ secrets.WIN_TOKEN_CONTAINER }}"
         working-directory: dist
 
       - name: Sign the Windows exe installer (Powershell)
