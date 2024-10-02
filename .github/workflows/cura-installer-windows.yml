@@ -113,6 +113,12 @@ jobs:
       - name: Create the Cura dist
         run: pyinstaller ./cura_inst/UltiMaker-Cura.spec
 
+      - name: Sign the internal executables
+        working-directory: dist/UltiMaker-Cura
+        run: |
+          & signtool sign /v /fd sha256 /tr http://timestamp.sectigo.com /td sha256 /f C:\actions-runner\code_sign.cer /csp "eToken Base Cryptographic Provider" /kc ${{ secrets.WIN_TOKEN_CONTAINER }} "CuraEngine.exe"
+          & signtool sign /v /fd sha256 /tr http://timestamp.sectigo.com /td sha256 /f C:\actions-runner\code_sign.cer /csp "eToken Base Cryptographic Provider" /kc ${{ secrets.WIN_TOKEN_CONTAINER }} "UltiMaker-Cura.exe"
+
       - name: Output the name file name and extension
         id: filename
         run: python Cura-workflows/runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --arch ${{ inputs.architecture }} --enterprise ${{ inputs.enterprise }} --internal ${{ inputs.conan_internal }}
