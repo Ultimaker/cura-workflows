@@ -76,27 +76,3 @@ runs:
             ./Cura-workflows/runner_scripts/macos_setup.sh
           fi
         fi
-
-    - name: Install Python requirements and setup Conan environment (Powershell)
-# FIXME: use use main once merged
-      if: ${{ runner.os }} == 'Windows'
-      shell: powershell
-      run: |
-        pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
-
-        conan profile detect -f
-        conan config install https://github.com/Ultimaker/conan-config.git -a "-b CURA-11622_conan_v2"
-
-        if ( '${{ inputs.conan_user }}' -ine '' -and '${{ inputs.conan_password }}' -ine '' )
-        {
-          conan remote login cura-conan2 ${{ inputs.conan_user }} -p ${{ inputs.conan_password }}
-        }
-
-        if ( '${{ inputs.private_data }}' -ieq 'true' )
-        {
-          conan remote enable cura-private-conan2
-          if ( '${{ inputs.conan_user }}' -ine '' -and '${{ inputs.conan_password }}' -ine '' )
-          {
-            conan remote login cura-private-conan2 ${{ inputs.conan_user }} -p ${{ inputs.conan_password }}
-          }
-        }
