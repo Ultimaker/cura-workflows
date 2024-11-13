@@ -72,7 +72,9 @@ jobs:
         run: conan install --requires ${{ inputs.cura_conan_version }} ${{ inputs.conan_args }} --build=missing --update -of cura_inst -o "cura/*:pyinstaller=True" --deployer=virtual_python_env --deployer-package="*" -c user.deployer.virtual_python_env:dev_tools=True -g GitHubActionsBuildEnv -g GitHubActionsRunEnv ${{ inputs.enterprise && '-o "&:enterprise=True"' || '' }} ${{ inputs.staging && '-o "&:staging=True"' || '' }} ${{ inputs.private_data && '-o "&:internal=True"' || '' }} -c tools.build:skip_test=True -s curaengine:build_type=RelWithDebInfo -s arcus:build_type=RelWithDebInfo -s clipper:build_type=RelWithDebInfo
 
       - name: Set Environment variables for Cura (bash)
-        run: source ./cura_inst/activate_github_actions_buildenv.sh
+        run: |
+          source ./cura_inst/activate_github_actions_buildenv.sh
+          source ./cura_inst/venv/bin/activate_github_actions_version_env.sh
 
       - name: Create the Cura dist
         run: |
@@ -81,7 +83,7 @@ jobs:
 
       - name: Output the name file name and extension
         id: filename
-        run: python Cura-workflows/runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --arch X64 --version ${{ inputs.cura_conan_version }} ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }}
+        run: python Cura-workflows/runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --arch X64 --version "$CURA_VERSION_FULL" ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }}
 
       - name: Summarize the used dependencies
         run: PYTHONPATH=$PYTHONPATH:. python Cura-workflows/runner_scripts/summarize_used_dependencies.py --installer_filename ${{ steps.filename.outputs.INSTALLER_FILENAME }}
