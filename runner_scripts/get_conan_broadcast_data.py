@@ -47,12 +47,12 @@ def get_conan_broadcast_data(args):
 
     data = {
         "name": args.package_name,
-        "version_base": version_base,
-        "version_full": version_full,
-        "channel": channel,
-        "user": user,
         "package_version_full": f"{args.package_name}/{version_full}@{user}/{channel}",
         "package_version_latest": f"{args.package_name}/{version_base}@{user}/{channel}",
+        "version_full": version_full,
+        "version_base": version_base,
+        "channel": channel,
+        "user": user,
         "is_release_branch": f"{str(is_release_branch).lower()}",
     }
 
