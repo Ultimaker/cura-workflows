@@ -48,8 +48,8 @@ runs:
 
     - name: Install Python requirements and setup Conan environment (Bash)
 # FIXME: use use main once merged
-      shell: bash
       if: ${{ runner.os }} == 'Linux' || ${{ runner.os }} == 'macOS'
+      shell: bash
       run: |
         pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
 
@@ -79,8 +79,8 @@ runs:
 
     - name: Install Python requirements and setup Conan environment (Powershell)
 # FIXME: use use main once merged
-      shell: powershell
       if: ${{ runner.os }} == 'Windows'
+      shell: powershell
       run: |
         pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
 
