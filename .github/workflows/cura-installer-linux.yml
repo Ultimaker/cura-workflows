@@ -77,18 +77,14 @@ jobs:
           source ./cura_inst/activate_github_actions_version_env.sh
 
       - name: Create the Cura dist
-        run: |
-          source cura_inst/conanrun.sh
-          pyinstaller ./cura_inst/UltiMaker-Cura.spec
+        run: pyinstaller ./cura_inst/UltiMaker-Cura.spec
 
       - name: Output the file name and extension
         id: filename
         run: python Cura-workflows/runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --arch X64 --version "$CURA_VERSION_FULL" ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }}
 
       - name: Summarize the used dependencies
-        run: |
-          source cura_inst/venv/bin/activate
-          python Cura-workflows/runner_scripts/summarize_used_dependencies.py --installer_filename ${{ steps.filename.outputs.INSTALLER_FILENAME }}
+        run: python Cura-workflows/runner_scripts/summarize_used_dependencies.py --installer_filename ${{ steps.filename.outputs.INSTALLER_FILENAME }}
 
       - name: Create the Linux AppImage (Bash)
         run: |
