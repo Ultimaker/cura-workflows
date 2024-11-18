@@ -69,12 +69,12 @@ jobs:
         run: echo -n "$GPG_PRIVATE_KEY" | base64 --decode | gpg --import
 
       - name: Gather/build the packages
-        run: conan install --requires ${{ inputs.cura_conan_version }} ${{ inputs.conan_args }} --build=missing --update -of cura_inst -o "cura/*:pyinstaller=True" --deployer=virtual_python_env --deployer-package="*" -c user.deployer.virtual_python_env:dev_tools=True -g GitHubActionsBuildEnv -g GitHubActionsRunEnv ${{ inputs.enterprise && '-o "&:enterprise=True"' || '' }} ${{ inputs.staging && '-o "&:staging=True"' || '' }} ${{ inputs.private_data && '-o "&:internal=True"' || '' }} -c tools.build:skip_test=True -s curaengine:build_type=RelWithDebInfo -s arcus:build_type=RelWithDebInfo -s clipper:build_type=RelWithDebInfo
+        run: conan install --requires ${{ inputs.cura_conan_version }} ${{ inputs.conan_args }} --build=missing --update -of cura_inst -o "cura/*:pyinstaller=True" --deployer-package="*" -g GitHubActionsBuildEnv -g GitHubActionsRunEnv -g VirtualPythonEnv ${{ inputs.enterprise && '-o "&:enterprise=True"' || '' }} ${{ inputs.staging && '-o "&:staging=True"' || '' }} ${{ inputs.private_data && '-o "&:internal=True"' || '' }} -c tools.build:skip_test=True -s curaengine:build_type=RelWithDebInfo -s arcus:build_type=RelWithDebInfo -s clipper:build_type=RelWithDebInfo
 
-      - name: Set Environment variables for Cura (bash)
-        run: |
-          source ./cura_inst/activate_github_actions_runenv.sh
-          source ./cura_inst/activate_github_actions_version_env.sh
+      # - name: Set Environment variables for Cura (bash)
+      #   run: |
+      #     source ./cura_inst/activate_github_actions_runenv.sh
+      #     source ./cura_inst/activate_github_actions_version_env.sh
 
       - name: Create the Cura dist
         run: |
@@ -86,7 +86,9 @@ jobs:
         run: python Cura-workflows/runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --arch X64 --version "$CURA_VERSION_FULL" ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }}
 
       - name: Summarize the used dependencies
-        run: python Cura-workflows/runner_scripts/summarize_used_dependencies.py --installer_filename ${{ steps.filename.outputs.INSTALLER_FILENAME }}
+        run: |
+          source cura_inst/virtual_run_env.sh
+          python Cura-workflows/runner_scripts/summarize_used_dependencies.py --installer_filename ${{ steps.filename.outputs.INSTALLER_FILENAME }}
 
       - name: Create the Linux AppImage (Bash)
         run: |
