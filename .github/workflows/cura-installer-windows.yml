@@ -74,7 +74,7 @@ jobs:
       - name: Setup Python and pip
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.12.1'
 
       - name: Install Python requirements and setup Conan environment (Powershell)
 # FIXME: use main once merged
