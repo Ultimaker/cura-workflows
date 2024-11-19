@@ -72,9 +72,9 @@ jobs:
           path: Cura-workflows
 
       - name: Setup Python and pip
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.12.7'
+          python-version: '3.13'
 
       - name: Install Python requirements and setup Conan environment (Powershell)
 # FIXME: use main once merged
