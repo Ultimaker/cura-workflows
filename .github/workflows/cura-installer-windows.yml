@@ -116,7 +116,7 @@ jobs:
       #    .\cura_inst\venv\Scripts\activate_github_actions_version_env.ps1
 
       - name: Create the Cura dist
-        run: pyinstaller ./cura_inst/UltiMaker-Cura.spec
+        run: python -m PyInstaller ./cura_inst/UltiMaker-Cura.spec
 
       - name: Output the name file name and extension
         id: filename
