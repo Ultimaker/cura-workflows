@@ -81,6 +81,7 @@ jobs:
         if: ${{ runner.os }} == 'Windows'
         shell: powershell
         run: |
+          pip install --upgrade pip
           pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
           conan profile detect -f
           conan config install https://github.com/Ultimaker/conan-config.git -a "-b CURA-11622_conan_v2"
