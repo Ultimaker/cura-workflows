@@ -125,7 +125,7 @@ jobs:
       - name: Output the name file name and extension
         id: filename
 #FIXME: 'version' is not supplied yet
-        run: python Cura-workflows/runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --arch X64 --version TEST ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }}
+        run: python Cura-workflows/runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --arch X64 --version 0.0.0.0 ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }}
 
       - name: Summarize the used dependencies
         run: python Cura-workflows/runner_scripts/summarize_used_dependencies.py --installer_filename ${{ steps.filename.outputs.INSTALLER_FILENAME }}
@@ -203,7 +203,7 @@ jobs:
         run: |
           import os
           with open("run_info.sh", "w") as f:
-            f.writelines('echo "CURA_VERSION_FULL=TEST" >> $GITHUB_ENV\n')
+            f.writelines('echo "CURA_VERSION_FULL=0.0.0.0" >> $GITHUB_ENV\n')
 #FIXME: 'version' is not supplied yet; put back something like the following instead if done
             #f.writelines(f'echo "CURA_VERSION_FULL={os.environ["CURA_VERSION_FULL"]}" >> $GITHUB_ENV\n')
 
