@@ -69,11 +69,11 @@ jobs:
         run: echo -n "$GPG_PRIVATE_KEY" | base64 --decode | gpg --import
 
       - name: Gather/build the packages
-        run: conan install --requires ${{ inputs.cura_conan_version }} ${{ inputs.conan_args }} --build=missing --update -of cura_inst -o "cura/*:pyinstaller=True" --deployer-package="*" -c user.generator.virtual_python_env:installer_tools=True ${{ inputs.enterprise && '-o "&:enterprise=True"' || '' }} ${{ inputs.staging && '-o "&:staging=True"' || '' }} ${{ inputs.private_data && '-o "&:internal=True"' || '' }} -c tools.build:skip_test=True -s curaengine:build_type=RelWithDebInfo -s arcus:build_type=RelWithDebInfo -s clipper:build_type=RelWithDebInfo
+        run: conan install --requires ${{ inputs.cura_conan_version }} ${{ inputs.conan_args }} --build=missing --update -of cura_inst -o "cura/*:pyinstaller=True" --deployer-package="*" -c user.generator.virtual_python_env:installer_tools=True -c "user.generator.virtual_python_env:base_folder=$PWD/cura_inst" ${{ inputs.enterprise && '-o "&:enterprise=True"' || '' }} ${{ inputs.staging && '-o "&:staging=True"' || '' }} ${{ inputs.private_data && '-o "&:internal=True"' || '' }} -c tools.build:skip_test=True -s curaengine:build_type=RelWithDebInfo -s arcus:build_type=RelWithDebInfo -s clipper:build_type=RelWithDebInfo
 
       - name: Create the Cura dist
         run: |
-          source cura_inst/virtual_run_env.sh
+          source cura_inst/venv/bin/activate
           pyinstaller ./cura_inst/UltiMaker-Cura.spec
 
       - name: Output the file name and extension
@@ -82,7 +82,7 @@ jobs:
 
       - name: Summarize the used dependencies
         run: |
-          source cura_inst/virtual_run_env.sh
+          source cura_inst/venv/bin/activate
           python Cura-workflows/runner_scripts/summarize_used_dependencies.py --installer_filename ${{ steps.filename.outputs.INSTALLER_FILENAME }}
 
       - name: Create the Linux AppImage (Bash)
