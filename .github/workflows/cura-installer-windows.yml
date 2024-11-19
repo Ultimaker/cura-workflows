@@ -74,15 +74,14 @@ jobs:
       - name: Setup Python and pip
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.13'
 
       - name: Install Python requirements and setup Conan environment (Powershell)
-# FIXME: use use main once merged
+# FIXME: use main once merged
         if: ${{ runner.os }} == 'Windows'
         shell: powershell
         run: |
-          pip install --upgrade pip
-          pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
+          python -m pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
           conan profile detect -f
           conan config install https://github.com/Ultimaker/conan-config.git -a "-b CURA-11622_conan_v2"
           if ( '${{ secrets.CONAN_USER }}' -ine '' -and '${{ secrets.CONAN_PASS }}' -ine '' )
@@ -108,13 +107,13 @@ jobs:
       #    conan user -p ${{ secrets.CONAN_PASS }} -r cura-private ${{ secrets.CONAN_USER }}
 
       - name: Gather/build the packages
-        run: conan install --requires ${{ inputs.cura_conan_version }} ${{ inputs.conan_args }} --build=missing --update -of cura_inst -o "cura/*:pyinstaller=True" --deployer=virtual_python_env --deployer-package="*" -c user.deployer.virtual_python_env:dev_tools=True -g GitHubActionsBuildEnv ${{ inputs.enterprise && '-o "&:enterprise=True"' || '' }} ${{ inputs.staging && '-o "&:staging=True"' || '' }} ${{ inputs.private_data && '-o "&:internal=True"' || '' }} -c tools.build:skip_test=True -s curaengine:build_type=RelWithDebInfo -s arcus:build_type=RelWithDebInfo -s clipper:build_type=RelWithDebInfo
+        run: conan install --requires ${{ inputs.cura_conan_version }} ${{ inputs.conan_args }} --build=missing --update -of cura_inst -o "cura/*:pyinstaller=True" --deployer-package="*" -g GitHubActionsBuildEnv -g GitHubActionsRunEnv -g VirtualPythonEnv ${{ inputs.enterprise && '-o "&:enterprise=True"' || '' }} ${{ inputs.staging && '-o "&:staging=True"' || '' }} ${{ inputs.private_data && '-o "&:internal=True"' || '' }} -c tools.build:skip_test=True -s curaengine:build_type=RelWithDebInfo -s arcus:build_type=RelWithDebInfo -s clipper:build_type=RelWithDebInfo
 
-      - name: Set Environment variables for Cura (Powershell)
-        run: |
-          echo "${Env:WIX}\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          .\cura_inst\Scripts\activate_github_actions_buildenv.ps1
-          .\cura_inst\venv\Scripts\activate_github_actions_version_env.ps1
+      #- name: Set Environment variables for Cura (Powershell)
+      #  run: |
+      #    echo "${Env:WIX}\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      #    .\cura_inst\Scripts\activate_github_actions_buildenv.ps1
+      #    .\cura_inst\venv\Scripts\activate_github_actions_version_env.ps1
 
       - name: Create the Cura dist
         run: pyinstaller ./cura_inst/UltiMaker-Cura.spec
