@@ -69,16 +69,11 @@ jobs:
         run: echo -n "$GPG_PRIVATE_KEY" | base64 --decode | gpg --import
 
       - name: Gather/build the packages
-        run: conan install --requires ${{ inputs.cura_conan_version }} ${{ inputs.conan_args }} --build=missing --update -of cura_inst -o "cura/*:pyinstaller=True" --deployer-package="*" -g GitHubActionsBuildEnv -g GitHubActionsRunEnv -g VirtualPythonEnv ${{ inputs.enterprise && '-o "&:enterprise=True"' || '' }} ${{ inputs.staging && '-o "&:staging=True"' || '' }} ${{ inputs.private_data && '-o "&:internal=True"' || '' }} -c tools.build:skip_test=True -s curaengine:build_type=RelWithDebInfo -s arcus:build_type=RelWithDebInfo -s clipper:build_type=RelWithDebInfo
-
-      # - name: Set Environment variables for Cura (bash)
-      #   run: |
-      #     source ./cura_inst/activate_github_actions_runenv.sh
-      #     source ./cura_inst/activate_github_actions_version_env.sh
+        run: conan install --requires ${{ inputs.cura_conan_version }} ${{ inputs.conan_args }} --build=missing --update -of cura_inst -o "cura/*:pyinstaller=True" --deployer-package="*" -c user.generator.virtual_python_env:installer_tools=True ${{ inputs.enterprise && '-o "&:enterprise=True"' || '' }} ${{ inputs.staging && '-o "&:staging=True"' || '' }} ${{ inputs.private_data && '-o "&:internal=True"' || '' }} -c tools.build:skip_test=True -s curaengine:build_type=RelWithDebInfo -s arcus:build_type=RelWithDebInfo -s clipper:build_type=RelWithDebInfo
 
       - name: Create the Cura dist
         run: |
-          source cura_inst/conanrun.sh
+          source cura_inst/virtual_run_env.sh
           pyinstaller ./cura_inst/UltiMaker-Cura.spec
 
       - name: Output the file name and extension
