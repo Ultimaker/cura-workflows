@@ -109,11 +109,18 @@ jobs:
       - name: Gather/build the packages
         run: conan install --requires ${{ inputs.cura_conan_version }} ${{ inputs.conan_args }} --build=missing --update -of cura_inst -o "cura/*:pyinstaller=True" --deployer-package="*" -g GitHubActionsBuildEnv -g GitHubActionsRunEnv -g VirtualPythonEnv ${{ inputs.enterprise && '-o "&:enterprise=True"' || '' }} ${{ inputs.staging && '-o "&:staging=True"' || '' }} ${{ inputs.private_data && '-o "&:internal=True"' || '' }} -c tools.build:skip_test=True -s curaengine:build_type=RelWithDebInfo -s arcus:build_type=RelWithDebInfo -s clipper:build_type=RelWithDebInfo
 
-      #- name: Set Environment variables for Cura (Powershell)
-      #  run: |
-      #    echo "${Env:WIX}\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-      #    .\cura_inst\Scripts\activate_github_actions_buildenv.ps1
-      #    .\cura_inst\venv\Scripts\activate_github_actions_version_env.ps1
+      - name: Locate Current Directory
+        run: Get-Location
+
+      - name: Set Environment variables for Cura (Powershell)
+        run: |
+          echo "${Env:WIX}\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          .\cura_inst\venv\Scripts\Activate.ps1
+          .\cura_inst\activate_github_actions_version_env.ps1
+
+      - name: Delete any leftover dist
+        shell: powershell
+        run: Remove-Item -Recurse -Force ./dist
 
       - name: Create the Cura dist
         run: python -m PyInstaller ./cura_inst/UltiMaker-Cura.spec
@@ -198,7 +205,7 @@ jobs:
         run: |
           import os
           with open("run_info.sh", "w") as f:
-              f.writelines(f'echo "CURA_VERSION_FULL={os.environ["CURA_VERSION_FULL"]}" >> $GITHUB_ENV\n')
+            f.writelines(f'echo "CURA_VERSION_FULL={os.environ["CURA_VERSION_FULL"]}" >> $GITHUB_ENV\n')
 
       # NOTE: The extension is .sh, since this isn't going to build-environment, so not on the Win build image.
       - name: Upload the run info
