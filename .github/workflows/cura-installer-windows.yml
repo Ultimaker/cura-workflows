@@ -46,6 +46,8 @@ env:
   WIN_CERT_INSTALLER_CER: ${{ secrets.WIN_CERT_INSTALLER_CER }}
   WIN_CERT_INSTALLER_CER_PASS: ${{ secrets.WIN_CERT_INSTALLER_CER_PASS }}
   SENTRY_TOKEN: ${{ secrets.CURAENGINE_SENTRY_TOKEN }}
+# FIXME: version is not parsed yet...
+  CURA_VERSION_FULL: '0.0.0.0'
   # win-cert-installer is probably not nescesary at all: went out the moment we started using signkey again on our own runner
   # sentry debug symbols seem to only be uploaded for linux?
 
@@ -124,8 +126,7 @@ jobs:
 
       - name: Output the name file name and extension
         id: filename
-#FIXME: 'version' is not supplied yet
-        run: python Cura-workflows/runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --arch X64 --version 0.0.0.0 ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }}
+        run: python Cura-workflows/runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --arch X64 --version "$CURA_VERSION_FULL" ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }}
 
       - name: Summarize the used dependencies
         run: python Cura-workflows/runner_scripts/summarize_used_dependencies.py --installer_filename ${{ steps.filename.outputs.INSTALLER_FILENAME }}
@@ -203,9 +204,7 @@ jobs:
         run: |
           import os
           with open("run_info.sh", "w") as f:
-            f.writelines('echo "CURA_VERSION_FULL=0.0.0.0" >> $GITHUB_ENV\n')
-#FIXME: 'version' is not supplied yet; put back something like the following instead if done
-            #f.writelines(f'echo "CURA_VERSION_FULL={os.environ["CURA_VERSION_FULL"]}" >> $GITHUB_ENV\n')
+            f.writelines(f'echo "CURA_VERSION_FULL={os.environ["CURA_VERSION_FULL"]}" >> $GITHUB_ENV\n')
 
       # NOTE: The extension is .sh, since this isn't going to build-environment, so not on the Win build image.
       - name: Upload the run info
