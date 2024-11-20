@@ -46,8 +46,6 @@ env:
   WIN_CERT_INSTALLER_CER: ${{ secrets.WIN_CERT_INSTALLER_CER }}
   WIN_CERT_INSTALLER_CER_PASS: ${{ secrets.WIN_CERT_INSTALLER_CER_PASS }}
   SENTRY_TOKEN: ${{ secrets.CURAENGINE_SENTRY_TOKEN }}
-# FIXME: version is not parsed yet...
-  CURA_VERSION_FULL: '0.0.0.0'
   # win-cert-installer is probably not nescesary at all: went out the moment we started using signkey again on our own runner
   # sentry debug symbols seem to only be uploaded for linux?
 
@@ -111,11 +109,11 @@ jobs:
       - name: Gather/build the packages
         run: conan install --requires ${{ inputs.cura_conan_version }} ${{ inputs.conan_args }} --build=missing --update -of cura_inst -o "cura/*:pyinstaller=True" --deployer-package="*" -g GitHubActionsBuildEnv -g GitHubActionsRunEnv -g VirtualPythonEnv ${{ inputs.enterprise && '-o "&:enterprise=True"' || '' }} ${{ inputs.staging && '-o "&:staging=True"' || '' }} ${{ inputs.private_data && '-o "&:internal=True"' || '' }} -c tools.build:skip_test=True -s curaengine:build_type=RelWithDebInfo -s arcus:build_type=RelWithDebInfo -s clipper:build_type=RelWithDebInfo
 
-      #- name: Set Environment variables for Cura (Powershell)
-      #  run: |
-      #    echo "${Env:WIX}\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-      #    .\cura_inst\Scripts\activate_github_actions_buildenv.ps1
-      #    .\cura_inst\venv\Scripts\activate_github_actions_version_env.ps1
+      - name: Set Environment variables for Cura (Powershell)
+        run: |
+          echo "${Env:WIX}\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          .\cura_inst\Scripts\activate_github_actions_buildenv.ps1
+          .\cura_inst\Scripts\activate_github_actions_version_env.ps1
 
       - name: Delete any leftover dist
         shell: powershell
