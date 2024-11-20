@@ -24,6 +24,10 @@ inputs:
     required: false
     default: ''
     type: string
+  repository_path:
+    required: false
+    default: ''
+    type: string
 
 runs:
   using: "composite"
@@ -32,6 +36,7 @@ runs:
       uses: actions/checkout@v4
       with:
         ref: ${{ inputs.branch }}
+        path: ${{ inputs.repository_path }}
 
     - name: Checkout Cura-workflows repo
       uses: actions/checkout@v4

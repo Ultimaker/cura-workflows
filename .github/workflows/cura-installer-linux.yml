@@ -59,6 +59,7 @@ jobs:
           conan_password: ${{ secrets.CONAN_PASS }}
           private_data: ${{ inputs.private_data }}
           install_system_dependencies: true
+          repository_path: _cura_sources # we don't want the actual sources to interfere with the built conan package
 
       - name: Install AppImage builder
         run: |
@@ -69,27 +70,41 @@ jobs:
         run: echo -n "$GPG_PRIVATE_KEY" | base64 --decode | gpg --import
 
       - name: Gather/build the packages
-        run: conan install --requires ${{ inputs.cura_conan_version }} ${{ inputs.conan_args }} --build=missing --build="cura" --update -of cura_inst -o "cura/*:pyinstaller=True" --deployer-package="*" -c user.generator.virtual_python_env:installer_tools=True -c "user.generator.virtual_python_env:base_folder=$PWD/cura_inst" ${{ inputs.enterprise && '-o "&:enterprise=True"' || '' }} ${{ inputs.staging && '-o "&:staging=True"' || '' }} ${{ inputs.private_data && '-o "&:internal=True"' || '' }} -c tools.build:skip_test=True -s curaengine:build_type=RelWithDebInfo -s arcus:build_type=RelWithDebInfo -s clipper:build_type=RelWithDebInfo
+        run: conan install --requires ${{ inputs.cura_conan_version }} ${{ inputs.conan_args }} --build=missing --update -of cura_inst -o "cura/*:pyinstaller=True" --deployer-package="*" ${{ inputs.enterprise && '-o "&:enterprise=True"' || '' }} ${{ inputs.staging && '-o "&:staging=True"' || '' }} ${{ inputs.private_data && '-o "&:internal=True"' || '' }} -c tools.build:skip_test=True -s curaengine:build_type=RelWithDebInfo -s arcus:build_type=RelWithDebInfo -s clipper:build_type=RelWithDebInfo
 
-      - name: Create the Cura dist
+      - name: Prepare and create the Cura distribution with pyinstaller
+        id: prepare-distribution
         run: |
-          source cura_inst/venv/bin/activate
+          source cura_inst/conanrun.sh
+          python -m venv cura_installer_venv
+          source cura_installer_venv/bin/activate
+          ls cura_inst/packaging/pip_requirements_{core,installer}_*.txt | xargs -I {} pip install -r {}
+          CURA_VERSION_FULL=`python -c "from cura.CuraVersion import CuraVersionFull; print(CuraVersionFull)"`
+          echo "CURA_VERSION_FULL=$CURA_VERSION_FULL" >> $GITHUB_OUTPUT
+          INSTALLER_FILENAME=`python Cura-workflows/runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --architecture X64 ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }}`
+          echo "INSTALLER_FILENAME=$INSTALLER_FILENAME" >> $GITHUB_OUTPUT
+          python Cura-workflows/runner_scripts/summarize_used_dependencies.py --installer_filename $INSTALLER_FILENAME >> $GITHUB_STEP_SUMMARY
           pyinstaller ./cura_inst/UltiMaker-Cura.spec
-
-      - name: Output the file name and extension
-        id: filename
-        run: python Cura-workflows/runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --arch X64 --version "$CURA_VERSION_FULL" ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }}
-
-      - name: Summarize the used dependencies
-        run: |
-          source cura_inst/venv/bin/activate
-          python Cura-workflows/runner_scripts/summarize_used_dependencies.py --installer_filename ${{ steps.filename.outputs.INSTALLER_FILENAME }}
 
       - name: Create the Linux AppImage (Bash)
         run: |
-          python ../cura_inst/packaging/AppImage-builder/create_appimage.py ./UltiMaker-Cura $CURA_VERSION_FULL "${{ steps.filename.outputs.INSTALLER_FILENAME }}.AppImage"
-          chmod +x "${{ steps.filename.outputs.INSTALLER_FILENAME }}.AppImage"
+          python ../cura_inst/packaging/AppImage-builder/create_appimage.py ./UltiMaker-Cura "${{ steps.prepare-distribution.outputs.CURA_VERSION_FULL }} "${{ steps.prepare-distribution.outputs.INSTALLER_FILENAME }}.AppImage"
+          chmod +x "${{ steps.prepare-distribution.outputs.INSTALLER_FILENAME }}.AppImage"
         working-directory: dist
+
+      - name: Upload the AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.prepare-distribution.outputs.INSTALLER_FILENAME }}-AppImage
+          path: dist/${{ steps.prepare-distribution.outputs.INSTALLER_FILENAME }}.AppImage
+          retention-days: 5
+
+      - name: Upload the asc
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.prepare-distribution.outputs.INSTALLER_FILENAME }}-asc
+          path: dist/${{ steps.prepare-distribution.outputs.INSTALLER_FILENAME }}.AppImage.asc
+          retention-days: 5
 
       - name: Upload the lib(std)c(++) debug symbols
         run: |
@@ -107,31 +122,3 @@ jobs:
       - name: Clean local cache
         if: ${{ always() && startsWith(inputs.operating_system, 'self-hosted') }}
         run: conan remove '*' --lru=1w -c
-
-      - name: Upload the AppImage
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ steps.filename.outputs.INSTALLER_FILENAME }}-AppImage
-          path: dist/${{ steps.filename.outputs.INSTALLER_FILENAME }}.AppImage
-          retention-days: 5
-
-      - name: Upload the asc
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ steps.filename.outputs.INSTALLER_FILENAME }}-asc
-          path: dist/${{ steps.filename.outputs.INSTALLER_FILENAME }}.AppImage.asc
-          retention-days: 5
-
-      - name: Write the run info
-        shell: python
-        run: |
-          import os
-          with open("run_info.sh", "w") as f:
-              f.writelines(f'echo "CURA_VERSION_FULL={os.environ["CURA_VERSION_FULL"]}" >> $GITHUB_ENV\n')
-
-      - name: Upload the run info
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-run-info
-          path: run_info.sh
-          retention-days: 5
