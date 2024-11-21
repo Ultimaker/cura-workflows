@@ -33,7 +33,7 @@ runs:
   using: "composite"
   steps:
     - name: Cleanup workspace
-      uses: AutoModality/action-clean@v1
+      uses: git9527/clean-up-action@v2
 
     - name: Checkout repo
       uses: actions/checkout@v4
