@@ -33,7 +33,10 @@ runs:
   using: "composite"
   steps:
     - name: Cleanup workspace
-      uses: git9527/clean-up-action@v2
+      shell: bash
+      run: |
+        set -e
+        find . -mindepth 1 -delete
 
     - name: Checkout repo
       uses: actions/checkout@v4
