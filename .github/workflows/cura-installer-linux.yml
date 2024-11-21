@@ -69,7 +69,7 @@ jobs:
         run: echo -n "$GPG_PRIVATE_KEY" | base64 --decode | gpg --import
 
       - name: Gather/build the packages
-        run: conan install --requires ${{ inputs.cura_conan_version }} ${{ inputs.conan_args }} --build=missing --update -of cura_inst --deployer-package="*" -s "*:enable_sentry=True" ${{ inputs.enterprise && '-o "cura/*:enterprise=True"' || '' }} ${{ inputs.staging && '-o "cura/*:staging=True"' || '' }} ${{ inputs.private_data && '-o "cura/*:internal=True"' || '' }} -c tools.build:skip_test=True -s curaengine:build_type=RelWithDebInfo -s arcus:build_type=RelWithDebInfo -s clipper:build_type=RelWithDebInfo
+        run: conan install --requires ${{ inputs.cura_conan_version }} ${{ inputs.conan_args }} --build=missing --update -of cura_inst --deployer-package="*" --profile installer -s ${{ inputs.enterprise && '-o "cura/*:enterprise=True"' || '' }} ${{ inputs.staging && '-o "cura/*:staging=True"' || '' }} ${{ inputs.private_data && '-o "cura/*:internal=True"' || '' }}
 
       - name: Create the Cura distribution with pyinstaller
         id: prepare-distribution
