@@ -44,7 +44,6 @@ permissions:
 
 env:
   GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-  SENTRY_TOKEN: ${{ secrets.CURAENGINE_SENTRY_TOKEN }}
 
 jobs:
   cura-installer-create:
@@ -79,11 +78,15 @@ jobs:
           python -m venv cura_installer_venv
           source cura_installer_venv/bin/activate
           ls cura_inst/packaging/pip_requirements_{core,installer}_*.txt | xargs -I {} pip install -r {}
+
           CURA_VERSION_FULL=`python -c "from cura.CuraVersion import CuraVersionFull; print(CuraVersionFull)"`
           echo "CURA_VERSION_FULL=$CURA_VERSION_FULL" >> $GITHUB_OUTPUT
+
           INSTALLER_FILENAME=`python Cura-workflows/runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --architecture X64 ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }}`
           echo "INSTALLER_FILENAME=$INSTALLER_FILENAME" >> $GITHUB_OUTPUT
+
           python Cura-workflows/runner_scripts/summarize_used_dependencies.py --installer_filename $INSTALLER_FILENAME >> $GITHUB_STEP_SUMMARY
+
           pyinstaller ./cura_inst/UltiMaker-Cura.spec
 
       - name: Create the Linux AppImage (Bash)
@@ -105,12 +108,6 @@ jobs:
           name: ${{ steps.prepare-distribution.outputs.INSTALLER_FILENAME }}-asc
           path: dist/${{ steps.prepare-distribution.outputs.INSTALLER_FILENAME }}.AppImage.asc
           retention-days: 5
-
-      - name: Upload the lib(std)c(++) debug symbols
-        run: |
-          find AppDir/ -name 'libc.*' -exec sentry-cli --auth-token $SENTRY_TOKEN debug-files upload {} \;
-          find AppDir/ -name 'libstdc++.*' -exec sentry-cli --auth-token $SENTRY_TOKEN debug-files upload {} \;
-        working-directory: dist
 
 # FIXME: Use main once merged
       - name: Upload the built Package(s)
