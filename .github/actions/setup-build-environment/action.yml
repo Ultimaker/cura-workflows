@@ -59,7 +59,6 @@ runs:
 
     - name: Install Python requirements and setup Conan environment (Bash)
 # FIXME: use use main once merged
-      if: ${{ runner.os }} == 'Linux' || ${{ runner.os }} == 'macOS'
       shell: bash
       run: |
         pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
