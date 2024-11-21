@@ -32,6 +32,9 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Cleanup workspace
+      uses: AutoModality/action-clean@v1
+
     - name: Checkout repo
       uses: actions/checkout@v4
       with:
