@@ -29,7 +29,7 @@ def upload_changed_recipes(args):
         for version, data in versions.items():
             conanfile = config.parent.joinpath(data["folder"], "conanfile.py")
             package = f"{name}/{version}@{args.user}/{channel}"
-            subprocess.run(["conan", "create", conanfile, "--name", name, "--version", version, "--user", args.user, "--channel", channel], check = True)
+            subprocess.run(["conan", "export", conanfile, "--name", name, "--version", version, "--user", args.user, "--channel", channel], check = True)
             subprocess.run(["conan", "upload", package, "-r", args.remote, "-c"], check = True)
             packages.append(package)
 
