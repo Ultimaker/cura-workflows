@@ -7,8 +7,13 @@ import yaml
 from pathlib import Path
 
 def upload_changed_recipes(args):
-    files = args.Files
-    configs = dict(zip([ str(f).split("/")[1] for f in files ], [ Path(*str(f).split("/")[:2]).joinpath("config.yml") for f in files ]))
+    configs = {}
+
+    for file in args.Files:
+        file_path = Path(file)
+        config_path = file_path.parent.parent.joinpath("config.yml")
+        package_name = file_path.parent.parent.name
+        configs[package_name] = config_path
 
     packages = []
     channel = "stable" if "main" in args.branch else re.match(r"(CURA|NP|PP)-\d*", args.branch)[0].lower().replace("-", "_")
