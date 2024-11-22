@@ -1,5 +1,6 @@
 import argparse
 import os
+import subprocess
 import re
 import yaml
 
@@ -23,10 +24,8 @@ def upload_changed_recipes(args):
         for version, data in versions.items():
             conanfile = config.parent.joinpath(data["folder"], "conanfile.py")
             package = f"{name}/{version}@{args.user}/{channel}"
-            create_cmd = f"conan create {conanfile} --name {name} --version {version} --user {args.user} --channel {channel}"
-            os.system(create_cmd)
-            upload_cmd = f"conan upload {package} -r {args.remote} -c"
-            os.system(upload_cmd)
+            subprocess.run(["conan", "create", conanfile, "--name", name, "--version", version, "--user", args.user, "--channel", channel], check = True)
+            subprocess.run(["conan", "upload", package, "-r", args.remote, "-c"], check = True)
             packages.append(package)
 
     summary_env = os.environ["GITHUB_STEP_SUMMARY"]
