@@ -49,53 +49,24 @@ env:
   # win-cert-installer is probably not nescesary at all: went out the moment we started using signkey again on our own runner
   # sentry debug symbols seem to only be uploaded for linux?
 
+
+# NOTE: Windows needs bash on Path, so we can use it in the (build env setup) scripts -- you should be able to use the bash that comes in the git/../bin folder.
+
+
 jobs:
   cura-installer-create:
     runs-on: ${{ inputs.operating_system }}
 
     steps:
 # FIXME: use main once merged
-      #- name: Setup the build environment
-      #  uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@CURA-11622_conan_v2
-      #  with:
-      #    conan_user: ${{ secrets.CONAN_USER }}
-      #    conan_password: ${{ secrets.CONAN_PASS }}
-      #    private_data: ${{ inputs.private_data }}
-      #    install_system_dependencies: true
-
-      - name: Checkout Cura-workflows repo
-        uses: actions/checkout@v4
+      - name: Setup the build environment
+        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@CURA-11622_conan_v2
         with:
-          repository: Ultimaker/Cura-workflows
-# FIXME: use main once merged
-          ref: CURA-11622_conan_v2
-          path: Cura-workflows
-
-      - name: Setup Python and pip
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-
-      - name: Install Python requirements and setup Conan environment (Powershell)
-# FIXME: use main once merged
-        if: ${{ runner.os }} == 'Windows'
-        shell: powershell
-        run: |
-          python -m pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
-          conan profile detect -f
-          conan config install https://github.com/Ultimaker/conan-config.git -a "-b CURA-11622_conan_v2"
-          if ( '${{ secrets.CONAN_USER }}' -ine '' -and '${{ secrets.CONAN_PASS }}' -ine '' )
-          {
-            conan remote login cura-conan2 ${{ secrets.CONAN_USER }} -p ${{ secrets.CONAN_PASS }}
-          }
-          if ( '${{ inputs.private_data }}' -ieq 'true' )
-          {
-            conan remote enable cura-private-conan2
-            if ( '${{ secrets.CONAN_USER }}' -ine '' -and '${{ secrets.CONAN_PASS }}' -ine '' )
-            {
-              conan remote login cura-private-conan2 ${{ secrets.CONAN_USER }} -p ${{ secrets.CONAN_PASS }}
-            }
-          }
+          conan_user: ${{ secrets.CONAN_USER }}
+          conan_password: ${{ secrets.CONAN_PASS }}
+          private_data: ${{ inputs.private_data }}
+          install_system_dependencies: true
+          repository_path: _cura_sources # we don't want the actual sources to interfere with the built conan package
 
       #- name: Add runner credentials to cura remote
       #  run: conan user -p ${{ secrets.CONAN_PASS }} -r cura ${{ secrets.CONAN_USER }}
