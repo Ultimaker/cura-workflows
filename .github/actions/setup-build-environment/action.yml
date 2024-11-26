@@ -55,7 +55,7 @@ runs:
     - name: Setup Python and pip
       uses: actions/setup-python@v5
       with:
-        python-version: '3.12'
+        python-version: '3.13'
 
     - name: Install Python requirements and setup Conan environment (Bash)
 # FIXME: use use main once merged

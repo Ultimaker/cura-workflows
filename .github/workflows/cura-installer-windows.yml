@@ -49,6 +49,10 @@ env:
   # win-cert-installer is probably not nescesary at all: went out the moment we started using signkey again on our own runner
   # sentry debug symbols seem to only be uploaded for linux?
 
+
+# NOTE: Windows needs bash on Path, so we can use it in the (build env setup) scripts -- you should be able to use the bash that comes in the git/../bin folder.
+
+
 jobs:
   cura-installer-create:
     runs-on: ${{ inputs.operating_system }}
