@@ -29,7 +29,7 @@ jobs:
           install_system_dependencies: true
 
       - name: Install dependencies and build unit test
-        run: conan build . -s build_type=Release --build=missing --update -c tools.build:skip_test=False -g VirtualPythonEnv
+        run: conan build . -s build_type=Release --build=missing --update -c tools.build:skip_test=False ${{ inputs.test_use_pytest && '-g VirtualPythonEnv' || '' }}
 
       - name: Run ctest-based unit test
         if: ${{ inputs.test_use_ctest }}
