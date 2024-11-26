@@ -4,26 +4,36 @@ name: 'Setup the build environment'
 description: 'Clones the required repositories, and properly sets Python and conan up'
 
 inputs:
+  repository:
+    required: false
+    default: ''
+    type: string
+
   conan_user:
     required: false
     default: ''
     type: string
+
   conan_password:
     required: false
     default: ''
     type: string
+
   private_data:
     required: false
     default: false
     type: boolean
+
   install_system_dependencies:
     required: false
     default: false
     type: boolean
+
   branch:
     required: false
     default: ''
     type: string
+
   repository_path:
     required: false
     default: ''
@@ -41,6 +51,7 @@ runs:
     - name: Checkout repo
       uses: actions/checkout@v4
       with:
+        repository: ${{ inputs.repository }}
         ref: ${{ inputs.branch }}
         path: ${{ inputs.repository_path }}
 

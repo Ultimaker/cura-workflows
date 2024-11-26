@@ -3,6 +3,16 @@ name: Get Conan Recipe Version
 on:
   workflow_call:
     inputs:
+      repository:
+        required: false
+        default: ''
+        type: string
+
+      branch:
+        required: false
+        default: ''
+        type: string
+
       conan_recipe_root:
         required: false
         default: "."
@@ -75,10 +85,13 @@ jobs:
 # FIXME: use main once merged
       - name: Setup the build environment
         uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@CURA-11622_conan_v2
+        with:
+          repository: ${{ inputs.repository }}
+          branch: ${{ inputs.branch }}
 
       - id: get-conan-broadcast-data
         name: Get Conan broadcast data
         run: |
           package_name=$(conan inspect "${{ inputs.conan_recipe_root }}" | awk '/^name:/ {print $2}')
 
-          python Cura-workflows/runner_scripts/get_conan_broadcast_data.py --user ${{ inputs.user }} --package_name "$package_name" --sha "${{ github.sha }}" --event_name "${{ github.event_name }}" --ref_name "${{ github.ref_name }}" --head_ref "${{ github.head_ref }}" --release "${{ inputs.release }}" --version "${{ inputs.version }}" --version-output "$GITHUB_OUTPUT" --summary-output "$GITHUB_STEP_SUMMARY"
+          python Cura-workflows/runner_scripts/get_conan_broadcast_data.py --user ${{ inputs.user }} --package_name "$package_name" --sha "${{ github.sha }}" --event_name "${{ github.event_name }}" --ref_name "${{ inputs.branch != '' && inputs.branch || github.ref_name }}" --head_ref "${{ github.head_ref }}" --release "${{ inputs.release }}" --version "${{ inputs.version }}" --version-output "$GITHUB_OUTPUT" --summary-output "$GITHUB_STEP_SUMMARY"
