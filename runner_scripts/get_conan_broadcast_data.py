@@ -46,7 +46,7 @@ def get_conan_broadcast_data(args):
                     channel = "_".join(ref_name.replace("-", "_").split("_")[:2]).lower()
 
     data = {
-        "name": args.package_name,
+        "package_name": args.package_name,
         "package_version_full": f"{args.package_name}/{version_full}@{user}/{channel}",
         "package_version_latest": f"{args.package_name}/{version_base}@{user}/{channel}",
         "version_full": version_full,
@@ -66,7 +66,7 @@ def get_conan_broadcast_data(args):
     if args.summary_output is not None:
         summary_output = open(args.summary_output, "a")
     for key, value in data.items():
-        if key == "name":
+        if key == "package_name":
             summary_output.write(f"# {value}\n")
         else:
             summary_output.write(f"**{key}**\n")

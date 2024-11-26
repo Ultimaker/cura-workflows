@@ -63,7 +63,6 @@ jobs:
     needs: [ conan-recipe-version ]
     uses: ultimaker/cura-workflows/.github/workflows/conan-recipe-export.yml@CURA-11622_conan_v2
     with:
-      package_name: ${{ needs.conan-recipe-version.outputs.package_name }}
       version: ${{ needs.conan-recipe-version.outputs.version_full }}
       user: ${{ needs.conan-recipe-version.outputs.user }}
       channel: ${{ needs.conan-recipe-version.outputs.channel }}
@@ -78,7 +77,6 @@ jobs:
     needs: [ conan-recipe-version ]
     uses: ultimaker/cura-workflows/.github/workflows/conan-recipe-export.yml@CURA-11622_conan_v2
     with:
-      package_name: ${{ needs.conan-recipe-version.outputs.package_name }}
       version: ${{ needs.conan-recipe-version.outputs.version_base }}
       user: ${{ needs.conan-recipe-version.outputs.user }}
       channel: ${{ needs.conan-recipe-version.outputs.channel }}

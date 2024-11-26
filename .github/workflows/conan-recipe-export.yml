@@ -3,10 +3,6 @@ name: Export Conan Recipe to server
 on:
   workflow_call:
     inputs:
-      package_name:
-        required: true
-        type: string
-
       version:
         required: true
         type: string
@@ -56,7 +52,7 @@ jobs:
           private_data: ${{ inputs.private_data }}
 
       - name: Export the Package to local cache
-        run: conan export ${{ inputs.conan_recipe_root }} --name ${{ inputs.package_name }} --version ${{ inputs.version }} --user ${{ inputs.user }} --channel ${{ inputs.channel }} ${{ inputs.conan_extra_args }}
+        run: conan export ${{ inputs.conan_recipe_root }} --version ${{ inputs.version }} --user ${{ inputs.user }} --channel ${{ inputs.channel }} ${{ inputs.conan_extra_args }}
 
 # FIXME: use main once merged
       - name: Upload the Recipe

@@ -17,7 +17,6 @@ runs:
   using: "composite"
   steps:
       - name: Upload the Package(s)
-        if: ${{ !inputs.conan_internal}}
         shell: bash
         run: |
           if [ "${{ inputs.private_data }}" == "true" ]; then
