@@ -43,10 +43,6 @@ on:
         default: false
         type: boolean
 
-      package_name:
-        required: true
-        type: string
-
 permissions:
   contents: read
 
@@ -59,7 +55,7 @@ jobs:
     name: Calculate version numbers
     uses: ultimaker/cura-workflows/.github/workflows/conan-recipe-version.yml@CURA-11622_conan_v2
     with:
-      package_name: ${{ inputs.package_name }}
+      conan_recipe_root: ${{ inputs.conan_recipe_root }}
 
 # FIXME: Use main once merged
   conan-recipe-export-specific:

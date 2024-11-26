@@ -3,8 +3,9 @@ name: Get Conan Recipe Version
 on:
   workflow_call:
     inputs:
-      package_name:
-        required: true
+      conan_recipe_root:
+        required: false
+        default: "."
         type: string
 
       user:
@@ -78,4 +79,6 @@ jobs:
       - id: get-conan-broadcast-data
         name: Get Conan broadcast data
         run: |
-          python Cura-workflows/runner_scripts/get_conan_broadcast_data.py --user ${{ inputs.user }} --package_name "${{ inputs.package_name }}" --sha "${{ github.sha }}" --event_name "${{ github.event_name }}" --ref_name "${{ github.ref_name }}" --head_ref "${{ github.head_ref }}" --release "${{ inputs.release }}" --version "${{ inputs.version }}" --version-output $GITHUB_OUTPUT --summary-output $GITHUB_STEP_SUMMARY
+          package_name=$(conan inspect "${{ inputs.conan_recipe_root }}" | awk '/^name:/ {print $2}')
+
+          python Cura-workflows/runner_scripts/get_conan_broadcast_data.py --user ${{ inputs.user }} --package_name "$package_name" --sha "${{ github.sha }}" --event_name "${{ github.event_name }}" --ref_name "${{ github.ref_name }}" --head_ref "${{ github.head_ref }}" --release "${{ inputs.release }}" --version "${{ inputs.version }}" --version-output $GITHUB_OUTPUT --summary-output $GITHUB_STEP_SUMMARY
