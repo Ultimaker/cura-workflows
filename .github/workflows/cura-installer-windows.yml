@@ -87,11 +87,10 @@ jobs:
       - name: Create the Cura distribution with pyinstaller
         id: prepare-distribution
         run: |
-            python -m pip uninstall pywin32-ctypes
-
             ./cura_inst/conanrun.ps1
             python -m venv cura_installer_venv
             ./cura_installer_venv/Scripts/Activate.ps1
+            python -m pip install --upgrade cffi
             python -m pip install -r cura_inst/packaging/pip_requirements_core_basic.txt
             python -m pip install -r cura_inst/packaging/pip_requirements_core_hashes.txt
             python -m pip install -r cura_inst/packaging/pip_requirements_installer_basic.txt
