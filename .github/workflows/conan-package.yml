@@ -66,7 +66,6 @@ jobs:
       version: ${{ needs.conan-recipe-version.outputs.version_full }}
       user: ${{ needs.conan-recipe-version.outputs.user }}
       channel: ${{ needs.conan-recipe-version.outputs.channel }}
-      package_version_full: ${{ needs.conan-recipe-version.outputs.package_version_full }}
       private_data: ${{ inputs.private_data }}
       conan_recipe_root: ${{ inputs.conan_recipe_root }}
     secrets: inherit
@@ -80,7 +79,6 @@ jobs:
       version: ${{ needs.conan-recipe-version.outputs.version_base }}
       user: ${{ needs.conan-recipe-version.outputs.user }}
       channel: ${{ needs.conan-recipe-version.outputs.channel }}
-      package_version_full: ${{ needs.conan-recipe-version.outputs.package_version_latest }}
       private_data: ${{ inputs.private_data }}
       conan_recipe_root: ${{ inputs.conan_recipe_root }}
     secrets: inherit
