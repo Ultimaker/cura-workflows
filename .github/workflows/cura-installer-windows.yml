@@ -86,9 +86,11 @@ jobs:
       - name: Create the Cura distribution with pyinstaller
         id: prepare-distribution
         run: |
-            cura_inst/build/generators/conanrun.ps1
+            tree cura_inst
+
+            ./cura_inst/conanrun.sh
             python -m venv cura_installer_venv
-            cura_installer_venv/Scripts/Activate.ps1
+            ./cura_installer_venv/Scripts/Activate.ps1
             python -m pip install -r cura_inst/build/generators/pip_requirements_core_basic.txt
             python -m pip install -r cura_inst/build/generators/pip_requirements_core_hashes.txt
             python -m pip install -r cura_inst/build/generators/pip_requirements_installer_basic.txt
