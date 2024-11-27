@@ -86,7 +86,7 @@ jobs:
       - name: Create the Cura distribution with pyinstaller
         id: prepare-distribution
         run: |
-            dir -Recurse *.ps1
+            dir -Recurse *conanrun*
 
             ./cura_inst/conanrun.ps1
             python -m venv cura_installer_venv
