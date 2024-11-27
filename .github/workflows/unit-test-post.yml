@@ -17,10 +17,6 @@ permissions:
   checks: write
   pull-requests: write
 
-env:
-  CONAN_LOGIN_USERNAME: ${{ secrets.CONAN_USER }}
-  CONAN_PASSWORD: ${{ secrets.CONAN_PASS }}
-
 jobs:
   publish-test-results:
     if: ${{ inputs.event == 'pull_request' }}
@@ -57,7 +53,7 @@ jobs:
           echo "pr_head_repo=$(cat pr_env/pr-head-repo.txt)" >> $GITHUB_ENV
           echo "pr_head_ref=$(cat pr_env/pr-head-ref.txt)" >> $GITHUB_ENV
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           repository: ${{ env.pr_head_repo }}
           ref: ${{ env.pr_head_ref }}
@@ -95,7 +91,7 @@ jobs:
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
           github-token: ${{ secrets.CURA_UNIT_TESTS_POST_PAT }}
-          files: "tests/**/*.xml"
+          files: "tests/**/unit_tests_results.xml"
 
       - name: Conclusion
         run: echo "Conclusion is ${{ steps.test-results.outputs.json && fromJSON( steps.test-results.outputs.json ).conclusion }}"

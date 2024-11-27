@@ -1,0 +1,26 @@
+# composite action, not to be run on its own, but included in a build script
+
+name: 'Upload conan packages'
+description: 'Uploads one or multiple conan packages, to either the public or private repository'
+
+inputs:
+  package_name:
+    required: false
+    default: "*"
+    type: string
+  private_data:
+    required: false
+    default: false
+    type: boolean
+
+runs:
+  using: "composite"
+  steps:
+      - name: Upload the Package(s)
+        shell: bash
+        run: |
+          if [ "${{ inputs.private_data }}" == "true" ]; then
+            conan upload "${{ inputs.package_name }}" -r cura-private-conan2 -c
+          else
+            conan upload "${{ inputs.package_name }}" -r cura-conan2 -c
+          fi

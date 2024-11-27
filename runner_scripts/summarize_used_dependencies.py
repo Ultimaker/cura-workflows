@@ -4,27 +4,19 @@ import os
 from cura.CuraVersion import ConanInstalls, PythonInstalls
 
 
-def set_gh_output_used_dependencies(args):
-    summary_env = os.environ["GITHUB_STEP_SUMMARY"]
-    content = ""
-    if os.path.exists(summary_env):
-        with open(summary_env, "r") as f:
-            content = f.read()
+def display_used_dependencies(args):
+    print(f"# {args.installer_filename}")
+    print("## Conan packages:")
+    for dep_name, dep_info in ConanInstalls.items():
+        print(f"`{dep_name} {dep_info['version']} {dep_info['revision']}`")
 
-    with open(summary_env, "w") as f:
-        f.write(content)
-        f.writelines(f"# {args.installer_filename}\n")
-        f.writelines("## Conan packages:\n")
-        for dep_name, dep_info in ConanInstalls.items():
-            f.writelines(f"`{dep_name} {dep_info['version']} {dep_info['revision']}`\n")
-
-        f.writelines("## Python modules:\n")
-        for dep_name, dep_info in PythonInstalls.items():
-            f.writelines(f"`{dep_name} {dep_info['version']}`\n")
+    print("## Python modules:")
+    for dep_name, dep_info in PythonInstalls.items():
+        print(f"`{dep_name} {dep_info['version']}`")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description = 'Set the installer filename')
-    parser.add_argument('--installer_filename', type = str, help = 'INSTALLER_FILENAME')
+    parser.add_argument('--installer_filename', type = str, help = 'The raw name of the generated installer file')
     args = parser.parse_args()
-    set_gh_output_used_dependencies(args)
+    display_used_dependencies(args)
