@@ -87,7 +87,7 @@ jobs:
       - name: Create the Cura distribution with pyinstaller
         id: prepare-distribution
         run: |
-            dir -Recurse *conanrun*
+            python -m pip uninstall pywin32-ctypes
 
             ./cura_inst/conanrun.ps1
             python -m venv cura_installer_venv
