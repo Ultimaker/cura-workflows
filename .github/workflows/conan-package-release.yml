@@ -45,6 +45,8 @@ jobs:
     needs: [ conan-recipe-version ]
     uses: ultimaker/cura-workflows/.github/workflows/conan-recipe-export.yml@CURA-11622_conan_v2
     with:
+      repository: ${{ inputs.repository }}
+      branch: ${{ inputs.branch }}
       version: ${{ needs.conan-recipe-version.outputs.version_base }}
       user: ultimaker
       channel: stable

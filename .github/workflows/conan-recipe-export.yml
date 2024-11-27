@@ -3,6 +3,16 @@ name: Export Conan Recipe to server
 on:
   workflow_call:
     inputs:
+      repository:
+        required: false
+        default: ''
+        type: string
+
+      branch:
+        required: false
+        default: ''
+        type: string
+
       version:
         required: true
         type: string
@@ -43,6 +53,8 @@ jobs:
       - name: Setup the build environment
         uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@CURA-11622_conan_v2
         with:
+          repository: ${{ inputs.repository }}
+          branch: ${{ inputs.branch }}
           conan_user: ${{ secrets.CONAN_USER }}
           conan_password: ${{ secrets.CONAN_PASS }}
           private_data: ${{ inputs.private_data }}
