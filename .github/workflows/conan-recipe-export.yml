@@ -52,7 +52,7 @@ jobs:
         run: |
           conan export ${{ inputs.conan_recipe_root }} --version ${{ inputs.version }} --user ${{ inputs.user }} --channel ${{ inputs.channel }} ${{ inputs.conan_extra_args }} -f json > export_output.json
           PACKAGE_REFERENCE=$(cat export_output.json | jq -r '.reference')
-          echo "package_reference=&PACKAGE_REFERENCE" >> $GITHUB_OUTPUT
+          echo "package_reference=$PACKAGE_REFERENCE" >> $GITHUB_OUTPUT
 
 # FIXME: use main once merged
       - name: Upload the Recipe
