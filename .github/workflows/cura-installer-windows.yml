@@ -92,14 +92,14 @@ jobs:
             ./cura_inst/conanrun.ps1
             python -m venv cura_installer_venv
             ./cura_installer_venv/Scripts/Activate.ps1
-            python -m pip install -r cura_inst/build/generators/pip_requirements_core_basic.txt
-            python -m pip install -r cura_inst/build/generators/pip_requirements_core_hashes.txt
-            python -m pip install -r cura_inst/build/generators/pip_requirements_installer_basic.txt
+            python -m pip install -r cura_inst/packaging/pip_requirements_core_basic.txt
+            python -m pip install -r cura_inst/packaging/pip_requirements_core_hashes.txt
+            python -m pip install -r cura_inst/packaging/pip_requirements_installer_basic.txt
 
             $env:CURA_VERSION_FULL = python -c "from cura.CuraVersion import CuraVersionFull; print(CuraVersionFull)"
             echo "CURA_VERSION_FULL=$env:CURA_VERSION_FULL" >> $env:GITHUB_ENV
 
-            $env:INSTALLER_FILENAME = python cura_inst/build/generators/cura_installer_filename.py --os ${{ runner.os }} --arch X64 --version $env:CURA_VERSION_FULL ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }}
+            $env:INSTALLER_FILENAME = python Cura-workflows/runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --architecture X64 ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }}
             echo "INSTALLER_FILENAME=$env:INSTALLER_FILENAME" >> $env:GITHUB_ENV
 
             python Cura-workflows/runner_scripts/summarize_used_dependencies.py --installer_filename $env:INSTALLER_FILENAME >> $GITHUB_STEP_SUMMARY
