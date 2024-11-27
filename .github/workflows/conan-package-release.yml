@@ -33,7 +33,7 @@ jobs:
     uses: ultimaker/cura-workflows/.github/workflows/conan-recipe-version.yml@CURA-11622_conan_v2
     with:
       repository: ${{ inputs.repository }}
-      repository: ${{ inputs.branch }}
+      branch: ${{ inputs.branch }}
       conan_recipe_root: ${{ inputs.conan_recipe_root }}
       release: true
 
