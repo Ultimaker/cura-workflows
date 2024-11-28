@@ -89,9 +89,9 @@ jobs:
             ./cura_inst/conanrun.ps1
             python -m venv cura_installer_venv
             ./cura_installer_venv/Scripts/Activate.ps1
-            python -m pip install -r cura_inst/packaging/pip_requirements_core_basic.txt
-            python -m pip install -r cura_inst/packaging/pip_requirements_core_hashes.txt
-            python -m pip install -r cura_inst/packaging/pip_requirements_installer_basic.txt
+            python -m pip install -r cura_inst/packaging/pip_requirements_core_basic.txt --no-warn-script-location
+            python -m pip install -r cura_inst/packaging/pip_requirements_core_hashes.txt --no-warn-script-location
+            python -m pip install -r cura_inst/packaging/pip_requirements_installer_basic.txt --no-warn-script-location
 
             $env:CURA_VERSION_FULL = python -c "from cura.CuraVersion import CuraVersionFull; print(CuraVersionFull)"
             echo "CURA_VERSION_FULL=$env:CURA_VERSION_FULL" >> $env:GITHUB_ENV
