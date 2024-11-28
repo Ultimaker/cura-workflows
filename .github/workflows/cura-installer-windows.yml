@@ -34,7 +34,7 @@ on:
         default: 'windows-2022'
         type: string
 
-      private-data:
+      private_data:
         required: false
         default: false
         type: boolean
@@ -87,8 +87,8 @@ jobs:
         id: prepare-distribution
         run: |
             ./cura_inst/conanrun.ps1
-            #python -m venv cura_installer_venv
-            #./cura_installer_venv/Scripts/Activate.ps1
+            python -m venv cura_installer_venv
+            ./cura_installer_venv/Scripts/Activate.ps1
             python -m pip install -r cura_inst/packaging/pip_requirements_core_basic.txt
             python -m pip install -r cura_inst/packaging/pip_requirements_core_hashes.txt
             python -m pip install -r cura_inst/packaging/pip_requirements_installer_basic.txt
