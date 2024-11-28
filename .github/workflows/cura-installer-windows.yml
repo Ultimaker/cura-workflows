@@ -79,7 +79,7 @@ jobs:
 
       - name: Gather/build the packages
         run: |
-            conan install --requires ${{ inputs.cura_conan_version }} ${{ inputs.conan_args }} --build=missing --update -of cura_inst -o "cura/*:pyinstaller=True" --deployer-package="*" -g GitHubActionsBuildEnv -g GitHubActionsRunEnv -g VirtualPythonEnv ${{ inputs.enterprise && '-o "&:enterprise=True"' || '' }} ${{ inputs.staging && '-o "&:staging=True"' || '' }} ${{ inputs.private_data && '-o "&:internal=True"' || '' }} -c tools.build:skip_test=True -s curaengine:build_type=RelWithDebInfo -s arcus:build_type=RelWithDebInfo -s clipper:build_type=RelWithDebInfo
+            conan install --requires ${{ inputs.cura_conan_version }} ${{ inputs.conan_args }} --build=missing --update -of cura_inst -o "cura/*:pyinstaller=True" --deployer-package="*" -g GitHubActionsBuildEnv -g GitHubActionsRunEnv -g VirtualPythonEnv ${{ inputs.enterprise && '-o "&:enterprise=True"' || '' }} ${{ inputs.staging && '-o "&:staging=True"' || '' }} ${{ inputs.private_data && '-o "&:internal=True"' || '' }} -c tools.build:skip_test=True -c tools.env.virtualenv:powershell=True -s curaengine:build_type=RelWithDebInfo -s arcus:build_type=RelWithDebInfo -s clipper:build_type=RelWithDebInfo
 
       - name: Set Environment variables for Cura (Powershell)
         run: echo "${Env:WIX}\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
@@ -87,19 +87,17 @@ jobs:
       - name: Create the Cura distribution with pyinstaller
         id: prepare-distribution
         run: |
-            dir -Recurse *conanrun*
-
             ./cura_inst/conanrun.ps1
-            python -m venv cura_installer_venv
-            ./cura_installer_venv/Scripts/Activate.ps1
-            python -m pip install -r cura_inst/build/generators/pip_requirements_core_basic.txt
-            python -m pip install -r cura_inst/build/generators/pip_requirements_core_hashes.txt
-            python -m pip install -r cura_inst/build/generators/pip_requirements_installer_basic.txt
+            #python -m venv cura_installer_venv
+            #./cura_installer_venv/Scripts/Activate.ps1
+            python -m pip install -r cura_inst/packaging/pip_requirements_core_basic.txt
+            python -m pip install -r cura_inst/packaging/pip_requirements_core_hashes.txt
+            python -m pip install -r cura_inst/packaging/pip_requirements_installer_basic.txt
 
             $env:CURA_VERSION_FULL = python -c "from cura.CuraVersion import CuraVersionFull; print(CuraVersionFull)"
             echo "CURA_VERSION_FULL=$env:CURA_VERSION_FULL" >> $env:GITHUB_ENV
 
-            $env:INSTALLER_FILENAME = python cura_inst/build/generators/cura_installer_filename.py --os ${{ runner.os }} --arch X64 --version $env:CURA_VERSION_FULL ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }}
+            $env:INSTALLER_FILENAME = python Cura-workflows/runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --architecture X64 ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }}
             echo "INSTALLER_FILENAME=$env:INSTALLER_FILENAME" >> $env:GITHUB_ENV
 
             python Cura-workflows/runner_scripts/summarize_used_dependencies.py --installer_filename $env:INSTALLER_FILENAME >> $GITHUB_STEP_SUMMARY
