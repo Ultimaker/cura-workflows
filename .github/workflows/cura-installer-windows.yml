@@ -96,6 +96,9 @@ jobs:
             $env:CURA_VERSION_FULL = python -c "from cura.CuraVersion import CuraVersionFull; print(CuraVersionFull)"
             echo "CURA_VERSION_FULL=$env:CURA_VERSION_FULL" >> $env:GITHUB_ENV
 
+            $env:CURA_APP_NAME = python -c "from cura.CuraVersion import CuraAppDisplayName; print(CuraAppDisplayName)"
+            echo "CURA_APP_NAME=$env:CURA_APP_NAME" >> $env:GITHUB_ENV
+
             $env:INSTALLER_FILENAME = python Cura-workflows/runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --architecture X64 ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }}
             echo "INSTALLER_FILENAME=$env:INSTALLER_FILENAME" >> $env:GITHUB_ENV
 
