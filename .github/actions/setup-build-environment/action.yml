@@ -76,11 +76,8 @@ runs:
 
         conan profile detect -f
         conan config install https://github.com/Ultimaker/conan-config.git -a "-b CURA-11622_conan_v2"
-        echo "$OSTYPE"
-        if [[ "$OSTYPE" == msys ]]; then
-            conan config set tools.env.virtualenv:powershell=True
-        fi
-        echo "$OSTYPE"
+
+        python -c "import platform; print('%%%%%%%%%%%%%%%%%%%%%%', platform.system())"
 
         if [ "${{ inputs.conan_user }}" != "" ] && [ "${{ inputs.conan_password }}" != "" ]; then
           conan remote login cura-conan2 ${{ inputs.conan_user }} -p ${{ inputs.conan_password }}
