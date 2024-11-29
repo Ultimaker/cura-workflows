@@ -119,5 +119,4 @@ jobs:
       - name: Upload the Package
         uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@CURA-11622_conan_v2
         with:
-          package_name: ${{ needs.conan-recipe-version.outputs.package_version_latest }}
           private_data: ${{ inputs.private_data }}
