@@ -55,6 +55,7 @@ env:
 
 jobs:
   cura-installer-create:
+    name: Build Windows installers
     runs-on: ${{ inputs.operating_system }}
 
     steps:

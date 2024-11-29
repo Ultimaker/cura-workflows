@@ -44,6 +44,7 @@ permissions:
 
 jobs:
   cura-installer-create:
+    name: Build linux AppImage
     runs-on: ${{ inputs.operating_system }}
 
     steps:
