@@ -3,10 +3,6 @@ name: unit-test-post
 on:
   workflow_call:
     inputs:
-      event:
-        required: true
-        type: string
-
       conclusion:
         required: true
         type: string
@@ -17,85 +13,39 @@ permissions:
   checks: write
   pull-requests: write
 
-env:
-  CONAN_LOGIN_USERNAME: ${{ secrets.CONAN_USER }}
-  CONAN_PASSWORD: ${{ secrets.CONAN_PASS }}
-
 jobs:
   publish-test-results:
-    if: ${{ inputs.event == 'pull_request' }}
+    if: ${{ github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download analysis results
-        uses: actions/github-script@v3.1.0
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        path: pr_details
         with:
-          github-token: ${{ secrets.CURA_UNIT_TESTS_POST_PAT }}
-          script: |
-            let artifacts = await github.actions.listWorkflowRunArtifacts({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                run_id: ${{github.event.workflow_run.id }},
-            });
-            let matchArtifact = artifacts.data.artifacts.filter((artifact) => {
-                return artifact.name == "test-result"
-            })[0];
-            let download = await github.actions.downloadArtifact({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                artifact_id: matchArtifact.id,
-                archive_format: "zip",
-            });
-            let fs = require("fs");
-            fs.writeFileSync("${{github.workspace}}/test-result.zip", Buffer.from(download.data));
+          workflow: ${{ github.event.workflow_run.workflow_id }}
+          run_id: ${{ github.event.workflow_run.id }}
 
-      - name: Set environment variables
+      - name: Extract PR details
+        id: extract-pr-details
+        working-directory: pr_details
         run: |
-          mkdir pr_env
-          unzip test-result.zip -d pr_env
-          echo "pr_id=$(cat pr_env/pr-id.txt)" >> $GITHUB_ENV
-          echo "pr_head_repo=$(cat pr_env/pr-head-repo.txt)" >> $GITHUB_ENV
-          echo "pr_head_ref=$(cat pr_env/pr-head-ref.txt)" >> $GITHUB_ENV
+          echo "pr_id=$(pr-id.txt)" >> "$GITHUB_OUTPUT"
+          echo "pr_head_repo=$(pr-head-repo.txt)" >> "$GITHUB_OUTPUT"
+          echo "pr_head_ref=$(pr-head-ref.txt)" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
-          repository: ${{ env.pr_head_repo }}
-          ref: ${{ env.pr_head_ref }}
+          repository: ${{ steps.extract-pr-details.outputs.pr_head_repo }}
+          ref: ${{ steps.extract-pr-details.outputs.pr_head_ref }}
           persist-credentials: false
 
-      - name: Redownload analysis results
-        uses: actions/github-script@v3.1.0
-        with:
-          github-token: ${{ secrets.CURA_UNIT_TESTS_POST_PAT }}
-          script: |
-            let artifacts = await github.actions.listWorkflowRunArtifacts({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                run_id: ${{github.event.workflow_run.id }},
-            });
-            let matchArtifact = artifacts.data.artifacts.filter((artifact) => {
-                return artifact.name == "test-result"
-            })[0];
-            let download = await github.actions.downloadArtifact({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                artifact_id: matchArtifact.id,
-                archive_format: "zip",
-            });
-            let fs = require("fs");
-            fs.writeFileSync("${{github.workspace}}/test-result.zip", Buffer.from(download.data));
-
-      - name: Extract analysis results
-        run: |
-          mkdir -p tests
-          unzip test-result.zip -d tests
-
       - name: Publish Unit Test Results
-        id: test-results
+        id: publish-test-results
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
           github-token: ${{ secrets.CURA_UNIT_TESTS_POST_PAT }}
-          files: "tests/**/*.xml"
+          files: "tests/**/unit_tests_results.xml"
 
       - name: Conclusion
-        run: echo "Conclusion is ${{ steps.test-results.outputs.json && fromJSON( steps.test-results.outputs.json ).conclusion }}"
+        run: echo "Conclusion is ${{ steps.publish-test-results.outputs.json && fromJSON( steps.publish-test-results.outputs.json ).conclusion }}"
