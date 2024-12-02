@@ -79,6 +79,7 @@ jobs:
         id: prepare-distribution
         shell: cmd
         run: |
+            echo Make venv
             cura_inst\conanrun.bat
             python -m venv cura_installer_venv
             cura_installer_venv\Scripts\Activate.bat
@@ -86,6 +87,7 @@ jobs:
             python -m pip install -r cura_inst\packaging\pip_requirements_core_hashes.txt --no-warn-script-location
             python -m pip install -r cura_inst\packaging\pip_requirements_installer_basic.txt --no-warn-script-location
 
+            echo Get values
             REM Set CURA_VERSION_FULL
             FOR /F "tokens=*" %%i IN ('python -c "from cura.CuraVersion import CuraVersionFull; print(CuraVersionFull)"') DO SET CURA_VERSION_FULL=%%i
             echo CURA_VERSION_FULL=%CURA_VERSION_FULL% >> %GITHUB_OUTPUT%
@@ -98,8 +100,10 @@ jobs:
             FOR /F "tokens=*" %%i IN ('python Cura-workflows\runner_scripts\cura_installer_filename.py --os ${{ runner.os }} --architecture X64 ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }}') DO SET INSTALLER_FILENAME=%%i
             echo INSTALLER_FILENAME=%INSTALLER_FILENAME% >> %GITHUB_OUTPUT%
 
+            echo Summarize
             python Cura-workflows\runner_scripts\summarize_used_dependencies.py --installer_filename %INSTALLER_FILENAME% >> %GITHUB_STEP_SUMMARY%
 
+            echo Make pyinstaller
             python -m PyInstaller cura_inst\UltiMaker-Cura.spec
 
       - name: Sign the internal executables
