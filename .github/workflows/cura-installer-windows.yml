@@ -79,12 +79,12 @@ jobs:
         id: prepare-distribution
         shell: cmd
         run: |
-            ./cura_inst/conanrun.bat
+            cura_inst\conanrun.bat
             python -m venv cura_installer_venv
-            ./cura_installer_venv/Scripts/Activate.bat
-            python -m pip install -r cura_inst/packaging/pip_requirements_core_basic.txt --no-warn-script-location
-            python -m pip install -r cura_inst/packaging/pip_requirements_core_hashes.txt --no-warn-script-location
-            python -m pip install -r cura_inst/packaging/pip_requirements_installer_basic.txt --no-warn-script-location
+            cura_installer_venv\Scripts\Activate.bat
+            python -m pip install -r cura_inst\packaging\pip_requirements_core_basic.txt --no-warn-script-location
+            python -m pip install -r cura_inst\packaging\pip_requirements_core_hashes.txt --no-warn-script-location
+            python -m pip install -r cura_inst\packaging\pip_requirements_installer_basic.txt --no-warn-script-location
 
             REM Set CURA_VERSION_FULL
             FOR /F "tokens=*" %%i IN ('python -c "from cura.CuraVersion import CuraVersionFull; print(CuraVersionFull)"') DO SET CURA_VERSION_FULL=%%i
@@ -95,12 +95,12 @@ jobs:
             echo CURA_APP_NAME=%CURA_APP_NAME% >> %GITHUB_OUTPUT%
 
             REM Set INSTALLER_FILENAME
-            FOR /F "tokens=*" %%i IN ('python Cura-workflows/runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --architecture X64 ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }}') DO SET INSTALLER_FILENAME=%%i
+            FOR /F "tokens=*" %%i IN ('python Cura-workflows\runner_scripts\cura_installer_filename.py --os ${{ runner.os }} --architecture X64 ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }}') DO SET INSTALLER_FILENAME=%%i
             echo INSTALLER_FILENAME=%INSTALLER_FILENAME% >> %GITHUB_OUTPUT%
 
-            python Cura-workflows/runner_scripts/summarize_used_dependencies.py --installer_filename %INSTALLER_FILENAME% >> %GITHUB_STEP_SUMMARY%
+            python Cura-workflows\runner_scripts\summarize_used_dependencies.py --installer_filename %INSTALLER_FILENAME% >> %GITHUB_STEP_SUMMARY%
 
-            python -m PyInstaller ./cura_inst/UltiMaker-Cura.spec
+            python -m PyInstaller cura_inst\UltiMaker-Cura.spec
 
       - name: Sign the internal executables
         working-directory: dist/UltiMaker-Cura
