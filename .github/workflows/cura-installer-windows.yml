@@ -98,7 +98,7 @@ jobs:
             FOR /F "tokens=*" %%i IN ('python Cura-workflows/runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --architecture X64 ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }}') DO SET INSTALLER_FILENAME=%%i
             echo INSTALLER_FILENAME=%INSTALLER_FILENAME% >> %GITHUB_OUTPUT%
 
-            python Cura-workflows/runner_scripts/summarize_used_dependencies.py --installer_filename $env:INSTALLER_FILENAME >> $GITHUB_STEP_SUMMARY
+            python Cura-workflows/runner_scripts/summarize_used_dependencies.py --installer_filename %INSTALLER_FILENAME% >> %GITHUB_STEP_SUMMARY%
 
             python -m PyInstaller ./cura_inst/UltiMaker-Cura.spec
 
