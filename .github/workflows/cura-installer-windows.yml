@@ -80,9 +80,13 @@ jobs:
         shell: cmd
         run: |
             echo Make venv
+            echo Make venv 2nd
             cura_inst\conanrun.bat
+            echo Make venv for real
             python -m venv cura_installer_venv
+            echo Activate venv
             cura_installer_venv\Scripts\Activate.bat
+            echo Install deps
             python -m pip install -r cura_inst\packaging\pip_requirements_core_basic.txt --no-warn-script-location
             python -m pip install -r cura_inst\packaging\pip_requirements_core_hashes.txt --no-warn-script-location
             python -m pip install -r cura_inst\packaging\pip_requirements_installer_basic.txt --no-warn-script-location
