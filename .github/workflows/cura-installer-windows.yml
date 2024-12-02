@@ -69,23 +69,6 @@ jobs:
           install_system_dependencies: true
           repository_path: _cura_sources # we don't want the actual sources to interfere with the built conan package
 
-      #- name: Add runner credentials to cura remote
-      #  run: conan user -p ${{ secrets.CONAN_PASS }} -r cura ${{ secrets.CONAN_USER }}
-
-      #- name: Add Cura private Artifactory remote
-      #  if: ${{ inputs.conan_internal }}
-      #  run: |
-      #    conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/internal"
-      #    conan user -p ${{ secrets.CONAN_PASS }} -r cura-private ${{ secrets.CONAN_USER }}
-
-      - name: Install python3.12.2
-        if: ${{ always() }}
-        run: conan install --requires "cpython/3.12.2" --build=missing
-
-      - name: Install python3.12.7
-        if: ${{ always() }}
-        run: conan install --requires "cpython/3.12.7" --build=missing
-
       - name: Gather/build the packages
         run: conan install --requires "${{ inputs.cura_conan_version }}" ${{ inputs.conan_args }} --build=missing --update -of cura_inst --deployer-package="*" --profile installer.jinja -c user.sentry:token="${{ secrets.CURAENGINE_SENTRY_TOKEN }}" ${{ inputs.enterprise && '-o "cura/*:enterprise=True"' || '' }} ${{ inputs.staging && '-o "cura/*:staging=True"' || '' }} ${{ inputs.private_data && '-o "cura/*:internal=True"' || '' }}
 
