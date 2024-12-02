@@ -129,17 +129,17 @@ jobs:
       - name: Upload the dmg
         uses: actions/upload-artifact@v4.3.3
         with:
-          name: ${{ steps.filename.outputs.INSTALLER_FILENAME }}-dmg
+          name: ${{ steps.prepare-distribution.outputs.INSTALLER_FILENAME }}-dmg
           path: |
-            dist/${{ steps.filename.outputs.INSTALLER_FILENAME }}.dmg
+            dist/${{ steps.prepare-distribution.outputs.INSTALLER_FILENAME }}.dmg
           retention-days: 5
 
       - name: Upload the pkg
         uses: actions/upload-artifact@v4.3.3
         with:
-          name: ${{ steps.filename.outputs.INSTALLER_FILENAME }}-pkg
+          name: ${{ steps.prepare-distribution.outputs.INSTALLER_FILENAME }}-pkg
           path: |
-            dist/${{ steps.filename.outputs.INSTALLER_FILENAME }}.pkg
+            dist/${{ steps.prepare-distribution.outputs.INSTALLER_FILENAME }}.pkg
           retention-days: 5
 
 # FIXME: Use main once merged
