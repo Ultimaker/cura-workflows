@@ -114,61 +114,42 @@ jobs:
           & signtool sign /v /fd sha256 /tr http://timestamp.sectigo.com /td sha256 /f C:\actions-runner\code_sign.cer /csp "eToken Base Cryptographic Provider" /kc ${{ secrets.WIN_TOKEN_CONTAINER }} "UltiMaker-Cura.exe"
         timeout-minutes: 2
 
-      - name: Output the name file name and extension
-        id: filename
-        run: python Cura-workflows/runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --arch X64 --version "$Env:CURA_VERSION_FULL" ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }}
-
-      - name: Summarize the used dependencies
-        run: python Cura-workflows/runner_scripts/summarize_used_dependencies.py --installer_filename ${{ steps.filename.outputs.INSTALLER_FILENAME }}
-
       - name: Create the Windows msi installer (Powershell)
         run: |
-          python ..\cura_inst\packaging\msi\create_windows_msi.py ..\cura_inst .\UltiMaker-Cura "${{steps.filename.outputs.INSTALLER_FILENAME }}.msi" "$Env:CURA_APP_NAME"
+          python ..\cura_inst\packaging\msi\create_windows_msi.py ..\cura_inst .\UltiMaker-Cura "${{steps.prepare-distribution.outputs.INSTALLER_FILENAME }}.msi" "$Env:CURA_APP_NAME"
         working-directory: dist
 
       - name: Sign the Windows msi installer (Powershell)
         run: |
-          & signtool sign /v /fd sha256 /tr http://timestamp.sectigo.com /td sha256 /f C:\actions-runner\code_sign.cer /csp "eToken Base Cryptographic Provider" /kc ${{ secrets.WIN_TOKEN_CONTAINER }} "${{steps.filename.outputs.INSTALLER_FILENAME }}.msi"
+          & signtool sign /v /fd sha256 /tr http://timestamp.sectigo.com /td sha256 /f C:\actions-runner\code_sign.cer /csp "eToken Base Cryptographic Provider" /kc ${{ secrets.WIN_TOKEN_CONTAINER }} "${{steps.prepare-distribution.outputs.INSTALLER_FILENAME }}.msi"
         working-directory: dist
         timeout-minutes: 2
 
       - name: Create the Windows exe installer (Powershell)
-        if: ${{ always() }}
         run: |
-          python ..\cura_inst\packaging\NSIS\create_windows_installer.py ../cura_inst . "${{steps.filename.outputs.INSTALLER_FILENAME }}.exe"
+          python ..\cura_inst\packaging\NSIS\create_windows_installer.py ../cura_inst . "${{steps.prepare-distribution.outputs.INSTALLER_FILENAME }}.exe"
         working-directory: dist
 
       - name: Sign the Windows exe installer (Powershell)
-        if: ${{ always() }}
         run: |
-          & signtool sign /v /fd sha256 /tr http://timestamp.sectigo.com /td sha256 /f C:\actions-runner\code_sign.cer /csp "eToken Base Cryptographic Provider" /kc ${{ secrets.WIN_TOKEN_CONTAINER }} "${{steps.filename.outputs.INSTALLER_FILENAME }}.exe"
+          & signtool sign /v /fd sha256 /tr http://timestamp.sectigo.com /td sha256 /f C:\actions-runner\code_sign.cer /csp "eToken Base Cryptographic Provider" /kc ${{ secrets.WIN_TOKEN_CONTAINER }} "${{steps.prepare-distribution.outputs.INSTALLER_FILENAME }}.exe"
         working-directory: dist
         timeout-minutes: 2
-
-      #- name: Upload the built Package(s)
-      #  if: ${{ always() && ! inputs.conan_internal }}
-      #  uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@CURA-11622_conan_v2
-      #  with:
-      #    package_name: '*'
-
-      - name: Clean local cache
-        if: ${{ always() && startsWith(inputs.operating_system, 'self-hosted') }}
-        run: conan remove '*' --lru=1w -c
 
       - name: Upload the installer msi
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: ${{steps.filename.outputs.INSTALLER_FILENAME }}-msi
-          path: dist/${{steps.filename.outputs.INSTALLER_FILENAME }}.msi
+          name: ${{steps.prepare-distribution.outputs.INSTALLER_FILENAME }}-msi
+          path: dist/${{steps.prepare-distribution.outputs.INSTALLER_FILENAME }}.msi
           retention-days: 5
 
       - name: Upload the installer exe
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: ${{steps.filename.outputs.INSTALLER_FILENAME }}-exe
-          path: dist/${{steps.filename.outputs.INSTALLER_FILENAME }}.exe
+          name: ${{steps.prepare-distribution.outputs.INSTALLER_FILENAME }}-exe
+          path: dist/${{steps.prepare-distribution.outputs.INSTALLER_FILENAME }}.exe
           retention-days: 5
 
       - name: Upload the application exe
@@ -186,3 +167,14 @@ jobs:
           name: CuraEngine.exe
           path: dist/UltiMaker-Cura/CuraEngine.exe
           retention-days: 5
+
+# FIXME: Use main once merged
+      - name: Upload the built Package(s)
+        if: ${{ always() && ! inputs.private_data }}
+        uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@CURA-11622_conan_v2
+        with:
+          package_name: '*'
+
+      - name: Clean local cache
+        if: ${{ always() && startsWith(inputs.operating_system, 'self-hosted') }}
+        run: conan remove '*' --lru=1w -c
