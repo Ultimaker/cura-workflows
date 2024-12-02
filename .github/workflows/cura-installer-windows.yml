@@ -72,27 +72,31 @@ jobs:
       - name: Gather/build the packages
         run: conan install --requires "${{ inputs.cura_conan_version }}" ${{ inputs.conan_args }} --build=missing --update -of cura_inst --deployer-package="*" --profile installer.jinja -c user.sentry:token="${{ secrets.CURAENGINE_SENTRY_TOKEN }}" ${{ inputs.enterprise && '-o "cura/*:enterprise=True"' || '' }} ${{ inputs.staging && '-o "cura/*:staging=True"' || '' }} ${{ inputs.private_data && '-o "cura/*:internal=True"' || '' }}
 
-      - name: Set Environment variables for Cura (Powershell)
-        run: echo "${Env:WIX}\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      # - name: Set Environment variables for Cura (Powershell)
+      #   run: echo "${Env:WIX}\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Create the Cura distribution with pyinstaller
         id: prepare-distribution
+        shell: cmd
         run: |
-            ./cura_inst/conanrun.ps1
+            ./cura_inst/conanrun.bat
             python -m venv cura_installer_venv
-            ./cura_installer_venv/Scripts/Activate.ps1
+            ./cura_installer_venv/Scripts/Activate.bat
             python -m pip install -r cura_inst/packaging/pip_requirements_core_basic.txt --no-warn-script-location
             python -m pip install -r cura_inst/packaging/pip_requirements_core_hashes.txt --no-warn-script-location
             python -m pip install -r cura_inst/packaging/pip_requirements_installer_basic.txt --no-warn-script-location
 
-            $env:CURA_VERSION_FULL = python -c "from cura.CuraVersion import CuraVersionFull; print(CuraVersionFull)"
-            echo "CURA_VERSION_FULL=$env:CURA_VERSION_FULL" >> $env:GITHUB_ENV
+            REM Set CURA_VERSION_FULL
+            FOR /F "tokens=*" %%i IN ('python -c "from cura.CuraVersion import CuraVersionFull; print(CuraVersionFull)"') DO SET CURA_VERSION_FULL=%%i
+            echo CURA_VERSION_FULL=%CURA_VERSION_FULL% >> %GITHUB_OUTPUT%
 
-            $env:CURA_APP_NAME = python -c "from cura.CuraVersion import CuraAppDisplayName; print(CuraAppDisplayName)"
-            echo "CURA_APP_NAME=$env:CURA_APP_NAME" >> $env:GITHUB_ENV
+            REM Set CURA_APP_NAME
+            FOR /F "tokens=*" %%i IN ('python -c "from cura.CuraVersion import CuraAppDisplayName; print(CuraAppDisplayName)"') DO SET CURA_APP_NAME=%%i
+            echo CURA_APP_NAME=%CURA_APP_NAME% >> %GITHUB_OUTPUT%
 
-            $env:INSTALLER_FILENAME = python Cura-workflows/runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --architecture X64 ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }}
-            echo "INSTALLER_FILENAME=$env:INSTALLER_FILENAME" >> $env:GITHUB_ENV
+            REM Set INSTALLER_FILENAME
+            FOR /F "tokens=*" %%i IN ('python Cura-workflows/runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --architecture X64 ${{ inputs.enterprise && "--enterprise" || "" }} ${{ inputs.private_data && "--internal" || "" }}') DO SET INSTALLER_FILENAME=%%i
+            echo INSTALLER_FILENAME=%INSTALLER_FILENAME% >> %GITHUB_OUTPUT%
 
             python Cura-workflows/runner_scripts/summarize_used_dependencies.py --installer_filename $env:INSTALLER_FILENAME >> $GITHUB_STEP_SUMMARY
 
