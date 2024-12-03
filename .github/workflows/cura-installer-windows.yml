@@ -86,9 +86,7 @@ jobs:
             python -m pip install -r cura_inst\packaging\pip_requirements_core_hashes.txt --no-warn-script-location
             python -m pip install -r cura_inst\packaging\pip_requirements_installer_basic.txt --no-warn-script-location
 
-            python Cura-workflows\runner_scripts\cura_installer_filename.py --os ${{ runner.os }} --architecture X64 ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }} >> %GITHUB_OUTPUT%
-
-            python Cura-workflows\runner_scripts\summarize_used_dependencies.py --installer_filename %INSTALLER_FILENAME% >> %GITHUB_STEP_SUMMARY%
+            python Cura-workflows\runner_scripts\prepare_installer.py --os ${{ runner.os }} --architecture X64 ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }} --summary-output %GITHUB_STEP_SUMMARY% --variables-output %$GITHUB_OUTPUT%
 
             pyinstaller cura_inst\UltiMaker-Cura.spec
 
