@@ -110,7 +110,7 @@ jobs:
 
       - name: Create the Windows exe installer (Powershell)
         run: |
-          python ..\cura_inst\packaging\NSIS\create_windows_installer.py ../cura_inst . "${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.exe"
+          python ..\cura_inst\packaging\NSIS\create_windows_installer.py --source_path ../cura_inst --dist_path . --filename "${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.exe" --version "${{ steps.prepare-distribution.outputs.CURA_VERSION_FULL }}"
         working-directory: dist
 
       - name: Sign the Windows exe installer (Powershell)
