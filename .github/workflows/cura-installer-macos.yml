@@ -107,14 +107,7 @@ jobs:
           source cura_installer_venv/bin/activate
           ls cura_inst/packaging/pip_requirements_{core,installer}_*.txt | xargs -I {} pip install -r {}
 
-          CURA_VERSION_FULL=`python -c "from cura.CuraVersion import CuraVersionFull; print(CuraVersionFull)"`
-          echo "CURA_VERSION_FULL=$CURA_VERSION_FULL" >> $GITHUB_OUTPUT
-
-          CURA_APP_NAME=`python -c "from cura.CuraVersion import CuraAppDisplayName; print(CuraAppDisplayName)"`
-          echo "CURA_APP_NAME=$CURA_APP_NAME" >> $GITHUB_OUTPUT
-
-          INSTALLER_FILENAME=`python Cura-workflows/runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --architecture ${{ inputs.architecture }} ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }}`
-          echo "INSTALLER_FILENAME=$INSTALLER_FILENAME" >> $GITHUB_OUTPUT
+          python Cura-workflows/runner_scripts/cura_installer_filename.py --os ${{ runner.os }} --architecture ${{ inputs.architecture }} ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }} >> $GITHUB_OUTPUT
 
           python Cura-workflows/runner_scripts/summarize_used_dependencies.py --installer_filename $INSTALLER_FILENAME >> $GITHUB_STEP_SUMMARY
 
