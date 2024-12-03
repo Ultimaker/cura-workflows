@@ -68,9 +68,12 @@ jobs:
           private_data: ${{ inputs.private_data }}
           install_system_dependencies: true
           repository_path: _cura_sources # we don't want the actual sources to interfere with the built conan package
+          python_set_env_vars: false
 
       - name: Gather/build the packages
-        run: conan install --requires "${{ inputs.cura_conan_version }}" ${{ inputs.conan_args }} --build=missing --update -of cura_inst --deployer-package="*" --profile installer.jinja -c user.sentry:token="${{ secrets.CURAENGINE_SENTRY_TOKEN }}" ${{ inputs.enterprise && '-o "cura/*:enterprise=True"' || '' }} ${{ inputs.staging && '-o "cura/*:staging=True"' || '' }} ${{ inputs.private_data && '-o "cura/*:internal=True"' || '' }}
+        run: |
+            $env:PATH += ";$env:Python_ROOT_DIR"
+            conan install --requires "${{ inputs.cura_conan_version }}" ${{ inputs.conan_args }} --build=missing --update -of cura_inst --deployer-package="*" --profile installer.jinja -c user.sentry:token="${{ secrets.CURAENGINE_SENTRY_TOKEN }}" ${{ inputs.enterprise && '-o "cura/*:enterprise=True"' || '' }} ${{ inputs.staging && '-o "cura/*:staging=True"' || '' }} ${{ inputs.private_data && '-o "cura/*:internal=True"' || '' }}
 
       # - name: Set Environment variables for Cura (Powershell)
       #   run: echo "${Env:WIX}\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
@@ -99,6 +102,7 @@ jobs:
 
       - name: Create the Windows exe installer (Powershell)
         run: |
+          $env:PATH += ";$env:Python_ROOT_DIR"
           python ..\cura_inst\packaging\NSIS\create_windows_installer.py --source_path ../cura_inst --dist_path . --filename "${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.exe" --version "${{ steps.prepare-distribution.outputs.CURA_VERSION_FULL }}"
         working-directory: dist
 
@@ -118,6 +122,7 @@ jobs:
 
       - name: Create the Windows msi installer (Powershell)
         run: |
+          $env:PATH += ";$env:Python_ROOT_DIR"
           python ..\cura_inst\packaging\msi\create_windows_msi.py --source_path ..\cura_inst --dist_path .\UltiMaker-Cura --filename "${{ steps.prepare-distribution.outputs.INSTALLER_FILENAME }}.msi" --name "${{ steps.prepare-distribution.outputs.CURA_APP_NAME }}" --version "${{ steps.prepare-distribution.outputs.CURA_VERSION_FULL }}"
         working-directory: dist
 
@@ -160,4 +165,6 @@ jobs:
 
       - name: Clean local cache
         if: ${{ always() && startsWith(inputs.operating_system, 'self-hosted') }}
-        run: conan remove '*' --lru=1w -c
+        run: |
+            $env:PATH += ";$env:Python_ROOT_DIR"
+            conan remove '*' --lru=1w -c

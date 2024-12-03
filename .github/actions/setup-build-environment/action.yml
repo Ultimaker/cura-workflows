@@ -39,6 +39,11 @@ inputs:
     default: ''
     type: string
 
+  python_set_env_vars:
+    required: false
+	default: true
+	type: boolean
+
 runs:
   using: "composite"
   steps:
@@ -66,6 +71,7 @@ runs:
     - name: Setup Python and pip
       uses: actions/setup-python@v5
       id: setup-python
+      update-environment: ${{ inputs.python_set_env_vars }}
       with:
         python-version: '3.13'
 
@@ -73,6 +79,9 @@ runs:
 # FIXME: use use main once merged
       shell: bash
       run: |
+        PATH+=":$Python_ROOT_DIR"
+        # Will be in the PATH twice if update-environment is true, but that's OK <- needed for Windows
+
         pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
 
         echo "Installed Python for GitHub: ${{ steps.setup-python.outputs.python-path }}"
