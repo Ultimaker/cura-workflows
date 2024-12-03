@@ -97,17 +97,6 @@ jobs:
           & signtool sign /v /fd sha256 /tr http://timestamp.sectigo.com /td sha256 /f C:\actions-runner\code_sign.cer /csp "eToken Base Cryptographic Provider" /kc ${{ secrets.WIN_TOKEN_CONTAINER }} "UltiMaker-Cura.exe"
         timeout-minutes: 2
 
-      - name: Create the Windows msi installer (Powershell)
-        run: |
-          python ..\cura_inst\packaging\msi\create_windows_msi.py --source_path ..\cura_inst --dist_path .\UltiMaker-Cura --filename "${{ steps.prepare-distribution.outputs.INSTALLER_FILENAME }}.msi" --name "${{ steps.prepare-distribution.outputs.CURA_APP_NAME }}" --version "${{ steps.prepare-distribution.outputs.CURA_VERSION_FULL }}"
-        working-directory: dist
-
-      - name: Sign the Windows msi installer (Powershell)
-        run: |
-          & signtool sign /v /fd sha256 /tr http://timestamp.sectigo.com /td sha256 /f C:\actions-runner\code_sign.cer /csp "eToken Base Cryptographic Provider" /kc ${{ secrets.WIN_TOKEN_CONTAINER }} "${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.msi"
-        working-directory: dist
-        timeout-minutes: 2
-
       - name: Create the Windows exe installer (Powershell)
         run: |
           python ..\cura_inst\packaging\NSIS\create_windows_installer.py --source_path ../cura_inst --dist_path . --filename "${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.exe" --version "${{ steps.prepare-distribution.outputs.CURA_VERSION_FULL }}"
@@ -119,20 +108,31 @@ jobs:
         working-directory: dist
         timeout-minutes: 2
 
-      - name: Upload the installer msi
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}-msi
-          path: dist/${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.msi
-          retention-days: 5
-
       - name: Upload the installer exe
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}-exe
           path: dist/${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.exe
+          retention-days: 5
+
+      - name: Create the Windows msi installer (Powershell)
+        run: |
+          python ..\cura_inst\packaging\msi\create_windows_msi.py --source_path ..\cura_inst --dist_path .\UltiMaker-Cura --filename "${{ steps.prepare-distribution.outputs.INSTALLER_FILENAME }}.msi" --name "${{ steps.prepare-distribution.outputs.CURA_APP_NAME }}" --version "${{ steps.prepare-distribution.outputs.CURA_VERSION_FULL }}"
+        working-directory: dist
+
+      - name: Sign the Windows msi installer (Powershell)
+        run: |
+          & signtool sign /v /fd sha256 /tr http://timestamp.sectigo.com /td sha256 /f C:\actions-runner\code_sign.cer /csp "eToken Base Cryptographic Provider" /kc ${{ secrets.WIN_TOKEN_CONTAINER }} "${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.msi"
+        working-directory: dist
+        timeout-minutes: 2
+
+      - name: Upload the installer msi
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}-msi
+          path: dist/${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.msi
           retention-days: 5
 
       - name: Upload the application exe
