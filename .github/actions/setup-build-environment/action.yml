@@ -65,6 +65,7 @@ runs:
 
     - name: Setup Python and pip
       uses: actions/setup-python@v5
+      id: setup-python
       with:
         python-version: '3.13'
 
@@ -73,6 +74,8 @@ runs:
       shell: bash
       run: |
         pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
+
+        echo "Installed Python for GitHub: ${{ steps.setup-python.outputs.python-path }}"
 
         conan profile detect -f
         conan config install https://github.com/Ultimaker/conan-config.git -a "-b CURA-11622_conan_v2"
