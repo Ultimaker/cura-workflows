@@ -12,30 +12,21 @@ on:
         required: true
         type: boolean
 
-jobs:
-  parse-version:
-    name: Parse input version string
-    runs-on: ubuntu-latest
-    outputs:
-      branch_name: ${{ steps.version_parser.outputs.major }}.${{ steps.version_parser.outputs.minor }}
-    steps:
-      - name: Parse version string
-        id: version_parser
-        uses: booxmedialtd/ws-action-parse-semver@v1.4.7
-        with:
-          input_string: ${{ inputs.cura_version }}
+      branch:
+        required: true
+        type: string
 
+jobs:
   freeze-packages-versions:
     name: Freeze packages versions
     runs-on: ubuntu-latest
-    needs: [parse-version]
     strategy:
       matrix:
         repository: [Cura, Uranium, CuraEngine, cura-binary-data, fdm_materials]
         include:
-          - main_branch: ${{ inputs.create_feature_branch && 'main' || needs.parse-version.outputs.branch_name }}
+          - main_branch: ${{ inputs.create_feature_branch && 'main' || inputs.branch }}
           - repository: fdm_materials
-            main_branch: ${{ inputs.create_feature_branch && 'master' || needs.parse-version.outputs.branch_name }}
+            main_branch: ${{ inputs.create_feature_branch && 'master' || inputs.branch }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -65,5 +56,5 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5.0.1
         with:
           commit_message: Set conan package version ${{ inputs.cura_version }}
-          branch: ${{ needs.parse-version.outputs.branch_name }}
+          branch: ${{ inputs.branch }}
           create_branch: true
