@@ -72,7 +72,8 @@ jobs:
 
       - name: Gather/build the packages
         run: |
-            $env:PATH += ";$env:Python_ROOT_DIR"
+            $pydir = type pydir.txt
+            $env:PATH += ";$pydir"
             conan install --requires "${{ inputs.cura_conan_version }}" ${{ inputs.conan_args }} --build=missing --update -of cura_inst --deployer-package="*" --profile installer.jinja -c user.sentry:token="${{ secrets.CURAENGINE_SENTRY_TOKEN }}" ${{ inputs.enterprise && '-o "cura/*:enterprise=True"' || '' }} ${{ inputs.staging && '-o "cura/*:staging=True"' || '' }} ${{ inputs.private_data && '-o "cura/*:internal=True"' || '' }}
 
       # - name: Set Environment variables for Cura (Powershell)
@@ -102,7 +103,8 @@ jobs:
 
       - name: Create the Windows exe installer (Powershell)
         run: |
-          $env:PATH += ";$env:Python_ROOT_DIR"
+          $pydir = type pydir.txt
+          $env:PATH += ";$pydir"
           python ..\cura_inst\packaging\NSIS\create_windows_installer.py --source_path ../cura_inst --dist_path . --filename "${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.exe" --version "${{ steps.prepare-distribution.outputs.CURA_VERSION_FULL }}"
         working-directory: dist
 
@@ -122,7 +124,8 @@ jobs:
 
       - name: Create the Windows msi installer (Powershell)
         run: |
-          $env:PATH += ";$env:Python_ROOT_DIR"
+          $pydir = type pydir.txt
+          $env:PATH += ";$pydir"
           python ..\cura_inst\packaging\msi\create_windows_msi.py --source_path ..\cura_inst --dist_path .\UltiMaker-Cura --filename "${{ steps.prepare-distribution.outputs.INSTALLER_FILENAME }}.msi" --name "${{ steps.prepare-distribution.outputs.CURA_APP_NAME }}" --version "${{ steps.prepare-distribution.outputs.CURA_VERSION_FULL }}"
         working-directory: dist
 
@@ -166,5 +169,6 @@ jobs:
       - name: Clean local cache
         if: ${{ always() && startsWith(inputs.operating_system, 'self-hosted') }}
         run: |
-            $env:PATH += ";$env:Python_ROOT_DIR"
+            $pydir = type pydir.txt
+            $env:PATH += ";$pydir"
             conan remove '*' --lru=1w -c
