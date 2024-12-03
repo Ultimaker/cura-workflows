@@ -111,7 +111,7 @@ jobs:
 
       - name: Create the Windows msi installer (Powershell)
         run: |
-          python ..\cura_inst\packaging\msi\create_windows_msi.py ..\cura_inst .\UltiMaker-Cura "${{steps.prepare-distribution.outputs.INSTALLER_FILENAME }}.msi" "$Env:CURA_APP_NAME"
+          python ..\cura_inst\packaging\msi\create_windows_msi.py ..\cura_inst .\UltiMaker-Cura "${{steps.prepare-distribution.outputs.INSTALLER_FILENAME }}.msi" "${{steps.prepare-distribution.outputs.CURA_APP_NAME }}"
         working-directory: dist
 
       - name: Sign the Windows msi installer (Powershell)
