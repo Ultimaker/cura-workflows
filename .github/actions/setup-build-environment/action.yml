@@ -71,8 +71,8 @@ runs:
     - name: Setup Python and pip
       uses: actions/setup-python@v5
       id: setup-python
-      update-environment: ${{ inputs.python_set_env_vars }}
       with:
+        update-environment: ${{ inputs.python_set_env_vars }}
         python-version: '3.13'
 
     - name: Install Python requirements and setup Conan environment (Bash)
