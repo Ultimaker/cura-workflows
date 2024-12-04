@@ -74,7 +74,7 @@ jobs:
             $pydir = type pydir.txt
             $env:PATH += ";$pydir;$pydir/Scripts"
 
-            edho $pydir
+            echo $pydir
             echo $env:PATH
             dir $pydir
             dir $pydir/Scripts
