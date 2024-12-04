@@ -85,7 +85,7 @@ runs:
         hash -r
         # Will be in the PATH twice if update-environment is true, but that's OK <- needed for Windows
 
-        echo "Full PATH=$PATH"
+        ls -la $pydir
         echo "Installed Python for GitHub in: $pydir"
 
         python -m pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
