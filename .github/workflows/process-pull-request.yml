@@ -12,10 +12,6 @@ permissions:
   contents: read
   pull-requests: write
 
-env:
-  CONAN_LOGIN_USERNAME: ${{ secrets.CONAN_USER }}
-  CONAN_PASSWORD: ${{ secrets.CONAN_PASS }}
-
 jobs:
   add_label:
     runs-on: ubuntu-latest

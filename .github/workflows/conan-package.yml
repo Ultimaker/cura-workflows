@@ -50,18 +50,16 @@ env:
   SENTRY_TOKEN: ${{ secrets.CURAENGINE_SENTRY_TOKEN }}
 
 jobs:
-# FIXME: Use main once merged
   conan-recipe-version:
     name: Calculate version numbers
-    uses: ultimaker/cura-workflows/.github/workflows/conan-recipe-version.yml@CURA-11622_conan_v2
+    uses: ./.github/workflows/conan-recipe-version.yml
     with:
       conan_recipe_root: ${{ inputs.conan_recipe_root }}
 
-# FIXME: Use main once merged
   conan-recipe-export-specific:
     name: Upload specific package recipe
     needs: [ conan-recipe-version ]
-    uses: ultimaker/cura-workflows/.github/workflows/conan-recipe-export.yml@CURA-11622_conan_v2
+    uses: ./.github/workflows/conan-recipe-export.yml
     with:
       version: ${{ needs.conan-recipe-version.outputs.version_full }}
       user: ${{ needs.conan-recipe-version.outputs.user }}
@@ -70,11 +68,10 @@ jobs:
       conan_recipe_root: ${{ inputs.conan_recipe_root }}
     secrets: inherit
 
-# FIXME: Use main once merged
   conan-recipe-export-latest:
     name: Upload latest package recipe
     needs: [ conan-recipe-version ]
-    uses: ultimaker/cura-workflows/.github/workflows/conan-recipe-export.yml@CURA-11622_conan_v2
+    uses: ./.github/workflows/conan-recipe-export.yml
     with:
       version: ${{ needs.conan-recipe-version.outputs.version_base }}
       user: ${{ needs.conan-recipe-version.outputs.user }}
@@ -83,12 +80,11 @@ jobs:
       conan_recipe_root: ${{ inputs.conan_recipe_root }}
     secrets: inherit
 
-# FIXME: Use main once merged
-# FIXME: Re-enable if condition to build package only when required
-  make-runners_list:
+  make-runners-list:
     name: Make the proper runners list
-    uses: ultimaker/cura-workflows/.github/workflows/make-runners-list.yml@CURA-11622_conan_v2
-    #if: ${{ (github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master' || needs.conan-recipe-version.outputs.is_release_branch == 'true')) }}
+    needs: [ conan-recipe-version ]
+    uses: ./.github/workflows/make-runners-list.yml
+    if: ${{ (github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master' || needs.conan-recipe-version.outputs.is_release_branch == 'true')) }}
     with:
       platform_linux: ${{ inputs.platform_linux }}
       platform_windows: ${{ inputs.platform_windows }}
@@ -97,15 +93,14 @@ jobs:
 
   conan-package-create:
     name: Create and upload package
-    needs: [ conan-recipe-version, conan-recipe-export-specific, make-runners_list ]
+    needs: [ conan-recipe-version, conan-recipe-export-specific, make-runners-list ]
     runs-on: ${{ matrix.runner }}
     strategy:
-      matrix: ${{ fromJson(needs.make-runners_list.outputs.matrix) }}
+      matrix: ${{ fromJson(needs.make-runners-list.outputs.matrix) }}
 
     steps:
-# FIXME: use main once merged
       - name: Setup the build environment
-        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@CURA-11622_conan_v2
+        uses: ./.github/actions/setup-build-environment
         with:
           conan_user: ${{ secrets.CONAN_USER }}
           conan_password: ${{ secrets.CONAN_PASS }}
@@ -115,8 +110,7 @@ jobs:
       - name: Create the Package (binaries)
         run: conan create ${{ inputs.conan_recipe_root }} --version ${{ needs.conan-recipe-version.outputs.version_base }} --user ${{ needs.conan-recipe-version.outputs.user }} --channel ${{ needs.conan-recipe-version.outputs.channel }} ${{ inputs.conan_extra_args }} --build=missing ${{ matrix.platform_conan_extra_args }} -c tools.build:skip_test=True
 
-# FIXME: use main once merged
       - name: Upload the Package
-        uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@CURA-11622_conan_v2
+        uses: ./.github/actions/upload-conan-package
         with:
           private_data: ${{ inputs.private_data }}

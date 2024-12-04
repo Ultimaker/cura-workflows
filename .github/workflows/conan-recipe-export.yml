@@ -49,9 +49,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-# FIXME: use main once merged
       - name: Setup the build environment
-        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@CURA-11622_conan_v2
+        uses: ./.github/actions/setup-build-environment
         with:
           repository: ${{ inputs.repository }}
           branch: ${{ inputs.branch }}
@@ -66,9 +65,8 @@ jobs:
           PACKAGE_REFERENCE=$(cat export_output.json | jq -r '.reference')
           echo "package_reference=$PACKAGE_REFERENCE" >> $GITHUB_OUTPUT
 
-# FIXME: use main once merged
       - name: Upload the Recipe
-        uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@CURA-11622_conan_v2
+        uses: ./.github/actions/upload-conan-package
         with:
           package_name: ${{ steps.export-local-cache.outputs.package_reference }}
           private_data: ${{ inputs.private_data }}

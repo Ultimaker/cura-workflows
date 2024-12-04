@@ -64,8 +64,6 @@ runs:
       uses: actions/checkout@v4
       with:
         repository: Ultimaker/Cura-workflows
-# FIXME: use main once merged
-        ref: CURA-11622_conan_v2
         path: Cura-workflows
 
     - name: Setup Python and pip
@@ -76,7 +74,6 @@ runs:
         python-version: '3.13'
 
     - name: Install Python requirements and setup Conan environment (Bash)
-# FIXME: use use main once merged
       shell: bash
       run: |
         pydir="$(dirname "${{ steps.setup-python.outputs.python-path }}")"
@@ -89,7 +86,7 @@ runs:
         python -m pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
 
         conan profile detect -f
-        conan config install https://github.com/Ultimaker/conan-config.git -a "-b CURA-11622_conan_v2"
+        conan config install https://github.com/Ultimaker/conan-config.git
 
         if [ "${{ inputs.conan_user }}" != "" ] && [ "${{ inputs.conan_password }}" != "" ]; then
           conan remote login cura-conan2 ${{ inputs.conan_user }} -p ${{ inputs.conan_password }}

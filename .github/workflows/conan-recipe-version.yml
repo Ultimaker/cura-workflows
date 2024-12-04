@@ -87,9 +87,8 @@ jobs:
       is_release_branch: ${{ steps.get-conan-broadcast-data.outputs.is_release_branch }}
 
     steps:
-# FIXME: use main once merged
       - name: Setup the build environment
-        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@CURA-11622_conan_v2
+        uses: ./.github/actions/setup-build-environment
         with:
           repository: ${{ inputs.repository }}
           branch: ${{ inputs.branch }}

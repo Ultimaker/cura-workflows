@@ -21,10 +21,9 @@ jobs:
     name: Run unit tests
     runs-on: ubuntu-latest
 
-# FIXME: use main once merged
     steps:
       - name: Setup the build environment
-        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@CURA-11622_conan_v2
+        uses: ./.github/actions/setup-build-environment
         with:
           install_system_dependencies: true
 

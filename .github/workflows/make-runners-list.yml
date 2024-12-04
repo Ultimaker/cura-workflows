@@ -39,8 +39,6 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: Ultimaker/Cura-workflows
-# FIXME: use main once merged
-        ref: CURA-11622_conan_v2
         path: Cura-workflows
 
     - name: Make the runners list from script

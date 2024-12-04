@@ -27,10 +27,9 @@ permissions:
   contents: read
 
 jobs:
-# FIXME: Use main once merged
   conan-recipe-version:
     name: Calculate version numbers
-    uses: ultimaker/cura-workflows/.github/workflows/conan-recipe-version.yml@CURA-11622_conan_v2
+    uses: ./.github/workflows/conan-recipe-version.yml
     with:
       repository: ${{ inputs.repository }}
       branch: ${{ inputs.branch }}
@@ -39,11 +38,10 @@ jobs:
       channel: stable
       release: true
 
-# FIXME: Use main once merged
   conan-recipe-export:
     name: Upload package recipe
     needs: [ conan-recipe-version ]
-    uses: ultimaker/cura-workflows/.github/workflows/conan-recipe-export.yml@CURA-11622_conan_v2
+    uses: ./.github/workflows/conan-recipe-export.yml
     with:
       repository: ${{ inputs.repository }}
       branch: ${{ inputs.branch }}

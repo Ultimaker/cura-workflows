@@ -52,9 +52,8 @@ jobs:
     name: Run benchmark
     runs-on: ubuntu-latest
     steps:
-# FIXME: use main once merged
       - name: Setup the build environment
-        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@CURA-11622_conan_v2
+        uses: ./.github/actions/setup-build-environment
         with:
           install_system_dependencies: true
 

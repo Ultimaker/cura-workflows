@@ -63,9 +63,8 @@ jobs:
     runs-on: ${{ inputs.operating_system }}
 
     steps:
-# FIXME: use main once merged
       - name: Setup the build environment
-        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@CURA-11622_conan_v2
+        uses: ./.github/actions/setup-build-environment
         with:
           conan_user: ${{ secrets.CONAN_USER }}
           conan_password: ${{ secrets.CONAN_PASS }}
@@ -131,10 +130,9 @@ jobs:
             dist/${{ steps.prepare-distribution.outputs.INSTALLER_FILENAME }}.pkg
           retention-days: 5
 
-# FIXME: Use main once merged
       - name: Upload the built Package(s)
         if: ${{ always() && ! inputs.private_data }}
-        uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@CURA-11622_conan_v2
+        uses: ./.github/actions/upload-conan-package
         with:
           package_name: '*'
 
