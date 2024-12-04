@@ -52,17 +52,17 @@ on:
         default: 'main'
         type: string
 
-      private_data:
-        description: 'Export to private data'
-        required: false
-        default: false
-        type: boolean
-
       conan_recipe_root:
         description: 'Path to conanfile.py'
         required: false
         default: "."
         type: string
+
+      private_data:
+        description: 'Export to private data'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -72,7 +72,7 @@ jobs:
     name: Calculate version numbers
     uses: ./.github/workflows/conan-recipe-version.yml
     with:
-      repository: ${{ inputs.repository }}
+      repository: Ultimaker/${{ inputs.repository }}
       branch: ${{ inputs.branch }}
       conan_recipe_root: ${{ inputs.conan_recipe_root }}
       user: ultimaker
@@ -84,7 +84,7 @@ jobs:
     needs: [ conan-recipe-version ]
     uses: ./.github/workflows/conan-recipe-export.yml
     with:
-      repository: ${{ inputs.repository }}
+      repository: Ultimaker/${{ inputs.repository }}
       branch: ${{ inputs.branch }}
       version: ${{ needs.conan-recipe-version.outputs.version_base }}
       user: ultimaker
