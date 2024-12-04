@@ -76,28 +76,33 @@ runs:
     - name: Install Python requirements and setup Conan environment (Bash)
       shell: bash
       run: |
-        pydir="$(dirname "${{ steps.setup-python.outputs.python-path }}")"
+        if [[ "${{ inputs.python_set_env_vars }}" == "true" ]]; then
+          pydir=""
+          pydirex=""
+          conandir=""
+        else
+          pydir="$(dirname "${{ steps.setup-python.outputs.python-path }}")"
+          pydirex="$pydir"/
+          conandir="$pydir"/Scripts/
+          PATH+=":$pydir"
+          hash -r
+          echo "Installed Python for GitHub in: $pydir"
+        fi
         echo $pydir >> pydir.txt
-        PATH+=":$pydir"
-        hash -r
-        # Will be in the PATH twice if update-environment is true, but that's OK <- needed for Windows
 
-        ls -la $pydir
-        echo "Installed Python for GitHub in: $pydir"
+        "$pydirex"python -m pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
 
-        "$pydir"/python -m pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
-
-        "$pydir"/Scripts/conan profile detect -f
-        "$pydir"/Scripts/conan config install https://github.com/Ultimaker/conan-config.git
+        "$conandir"conan profile detect -f
+        "$conandir"conan config install https://github.com/Ultimaker/conan-config.git
 
         if [ "${{ inputs.conan_user }}" != "" ] && [ "${{ inputs.conan_password }}" != "" ]; then
-          "$pydir"/Scripts/conan remote login cura-conan2 ${{ inputs.conan_user }} -p ${{ inputs.conan_password }}
+          "$conandir"conan remote login cura-conan2 ${{ inputs.conan_user }} -p ${{ inputs.conan_password }}
         fi
 
         if [ "${{ inputs.private_data }}" == "true" ]; then
-          "$pydir"/Scripts/conan remote enable cura-private-conan2
+          "$conandir"conan remote enable cura-private-conan2
           if [ "${{ inputs.conan_user }}" != "" ] && [ "${{ inputs.conan_password }}" != "" ]; then
-            "$pydir"/Scripts/conan remote login cura-private-conan2 ${{ inputs.conan_user }} -p ${{ inputs.conan_password }}
+            "$conandir"conan remote login cura-private-conan2 ${{ inputs.conan_user }} -p ${{ inputs.conan_password }}
           fi
         fi
 
