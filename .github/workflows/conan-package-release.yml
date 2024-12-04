@@ -1,4 +1,4 @@
-name: Create Conan package release
+name: Create Conan package release for ${{ inputs.repository }}
 
 on:
   workflow_call:
