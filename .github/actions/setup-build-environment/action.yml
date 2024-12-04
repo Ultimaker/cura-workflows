@@ -76,7 +76,7 @@ runs:
     - name: Install Python requirements and setup Conan environment (Bash)
       shell: bash
       run: |
-        pydir="$(dirname "`echo "${{ steps.setup-python.outputs.python-path }}" | tr '\\' '/' | tr 'C:' '/c'`")"
+        pydir="$(dirname "${{ steps.setup-python.outputs.python-path }}")"
         echo $pydir >> pydir.txt
         PATH+=":$pydir"
         hash -r
