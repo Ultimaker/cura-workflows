@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Setup the environment
-        uses: ./.github/actions/setup-build-environment
+        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@main
 
       - uses: greguintow/get-diff-action@v7
         with:

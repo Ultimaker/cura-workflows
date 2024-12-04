@@ -100,7 +100,7 @@ jobs:
 
     steps:
       - name: Setup the build environment
-        uses: ./.github/actions/setup-build-environment
+        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@main
         with:
           conan_user: ${{ secrets.CONAN_USER }}
           conan_password: ${{ secrets.CONAN_PASS }}
@@ -111,6 +111,6 @@ jobs:
         run: conan create ${{ inputs.conan_recipe_root }} --version ${{ needs.conan-recipe-version.outputs.version_base }} --user ${{ needs.conan-recipe-version.outputs.user }} --channel ${{ needs.conan-recipe-version.outputs.channel }} ${{ inputs.conan_extra_args }} --build=missing ${{ matrix.platform_conan_extra_args }} -c tools.build:skip_test=True
 
       - name: Upload the Package
-        uses: ./.github/actions/upload-conan-package
+        uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@main
         with:
           private_data: ${{ inputs.private_data }}

@@ -23,7 +23,7 @@ jobs:
 
     steps:
       - name: Setup the build environment
-        uses: ./.github/actions/setup-build-environment
+        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@main
         with:
           install_system_dependencies: true
 
