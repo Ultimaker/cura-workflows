@@ -92,7 +92,7 @@ jobs:
 
   conan-package-create:
     name: Create and upload package
-    needs: [ conan-recipe-version, make-runners-list ]
+    needs: [ conan-recipe-version, conan-recipe-export-latest, make-runners-list ]
     runs-on: ${{ matrix.runner }}
     strategy:
       matrix: ${{ fromJson(needs.make-runners-list.outputs.matrix) }}
