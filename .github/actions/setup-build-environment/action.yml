@@ -85,19 +85,19 @@ runs:
         ls -la $pydir
         echo "Installed Python for GitHub in: $pydir"
 
-        python -m pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
+        "$pydir"/python -m pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
 
-        conan profile detect -f
-        conan config install https://github.com/Ultimaker/conan-config.git
+        "$pydir"/Scripts/conan profile detect -f
+        "$pydir"/Scripts/conan config install https://github.com/Ultimaker/conan-config.git
 
         if [ "${{ inputs.conan_user }}" != "" ] && [ "${{ inputs.conan_password }}" != "" ]; then
-          conan remote login cura-conan2 ${{ inputs.conan_user }} -p ${{ inputs.conan_password }}
+          "$pydir"/Scripts/conan remote login cura-conan2 ${{ inputs.conan_user }} -p ${{ inputs.conan_password }}
         fi
 
         if [ "${{ inputs.private_data }}" == "true" ]; then
-          conan remote enable cura-private-conan2
+          "$pydir"/Scripts/conan remote enable cura-private-conan2
           if [ "${{ inputs.conan_user }}" != "" ] && [ "${{ inputs.conan_password }}" != "" ]; then
-            conan remote login cura-private-conan2 ${{ inputs.conan_user }} -p ${{ inputs.conan_password }}
+            "$pydir"/Scripts/conan remote login cura-private-conan2 ${{ inputs.conan_user }} -p ${{ inputs.conan_password }}
           fi
         fi
 
