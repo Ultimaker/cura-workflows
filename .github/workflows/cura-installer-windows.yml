@@ -73,6 +73,13 @@ jobs:
         run: |
             $pydir = type pydir.txt
             $env:PATH += ";$pydir;$pydir/Scripts"
+
+            echo "++++"
+            echo $pydir
+            dir $pydir
+            dir $pydir/Scripts
+            echo "++++"
+
             conan install --requires "${{ inputs.cura_conan_version }}" ${{ inputs.conan_args }} --build=missing --update -of cura_inst --deployer-package="*" --profile installer.jinja -c user.sentry:token="${{ secrets.CURAENGINE_SENTRY_TOKEN }}" ${{ inputs.enterprise && '-o "cura/*:enterprise=True"' || '' }} ${{ inputs.staging && '-o "cura/*:staging=True"' || '' }} ${{ inputs.private_data && '-o "cura/*:internal=True"' || '' }}
 
       # - name: Set Environment variables for Cura (Powershell)
