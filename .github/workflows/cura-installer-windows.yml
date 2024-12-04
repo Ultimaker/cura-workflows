@@ -111,6 +111,15 @@ jobs:
         run: |
           $pydir = type ../pydir.txt
           $env:PATH += ";$pydir;$pydir/Scripts"
+
+          echo "++++"
+          dir
+          dir ..
+          echo $pydir
+          dir $pydir
+          dir $pydir/Scripts
+          echo "++++"
+
           python ..\cura_inst\packaging\NSIS\create_windows_installer.py --source_path ../cura_inst --dist_path . --filename "${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.exe" --version "${{ steps.prepare-distribution.outputs.CURA_VERSION_FULL }}"
         working-directory: dist
 
