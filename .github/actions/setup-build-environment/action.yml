@@ -1,0 +1,112 @@
+# composite action, not to be run on its own, but included at the beginning of a build script
+
+name: 'Setup the build environment'
+description: 'Clones the required repositories, and properly sets Python and conan up'
+
+inputs:
+  repository:
+    required: false
+    default: ''
+    type: string
+
+  conan_user:
+    required: false
+    default: ''
+    type: string
+
+  conan_password:
+    required: false
+    default: ''
+    type: string
+
+  private_data:
+    required: false
+    default: false
+    type: boolean
+
+  install_system_dependencies:
+    required: false
+    default: false
+    type: boolean
+
+  branch:
+    required: false
+    default: ''
+    type: string
+
+  repository_path:
+    required: false
+    default: ''
+    type: string
+
+  python_set_env_vars:
+    required: false
+    default: true
+    type: boolean
+
+runs:
+  using: "composite"
+  steps:
+    - name: Cleanup workspace
+      shell: bash
+      run: |
+        set -e
+        find . -mindepth 1 -delete
+
+    - name: Checkout repo
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ inputs.repository }}
+        ref: ${{ inputs.branch }}
+        path: ${{ inputs.repository_path }}
+
+    - name: Checkout Cura-workflows repo
+      uses: actions/checkout@v4
+      with:
+        repository: Ultimaker/Cura-workflows
+        path: Cura-workflows
+
+    - name: Setup Python and pip
+      uses: actions/setup-python@v5
+      id: setup-python
+      with:
+        update-environment: ${{ inputs.python_set_env_vars }}
+        python-version: '3.13'
+
+    - name: Install Python requirements and setup Conan environment (Bash)
+      shell: bash
+      run: |
+        pydir="$(dirname "${{ steps.setup-python.outputs.python-path }}")"
+        echo $pydir >> pydir.txt
+        PATH+=":$pydir"
+        hash -r
+        # Will be in the PATH twice if update-environment is true, but that's OK <- needed for Windows
+
+        echo "Full PATH=$PATH"
+        echo "Installed Python for GitHub in: $pydir"
+
+        python -m pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
+
+        conan profile detect -f
+        conan config install https://github.com/Ultimaker/conan-config.git
+
+        if [ "${{ inputs.conan_user }}" != "" ] && [ "${{ inputs.conan_password }}" != "" ]; then
+          conan remote login cura-conan2 ${{ inputs.conan_user }} -p ${{ inputs.conan_password }}
+        fi
+
+        if [ "${{ inputs.private_data }}" == "true" ]; then
+          conan remote enable cura-private-conan2
+          if [ "${{ inputs.conan_user }}" != "" ] && [ "${{ inputs.conan_password }}" != "" ]; then
+            conan remote login cura-private-conan2 ${{ inputs.conan_user }} -p ${{ inputs.conan_password }}
+          fi
+        fi
+
+        if [ "${{ inputs.install_system_dependencies }}" == "true" ]; then
+          if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+            chmod +x Cura-workflows/runner_scripts/ubuntu_setup.sh
+            sudo ./Cura-workflows/runner_scripts/ubuntu_setup.sh
+          elif [[ "$OSTYPE" == "darwin"* ]]; then
+            chmod +x Cura-workflows/runner_scripts/macos_setup.sh
+            ./Cura-workflows/runner_scripts/macos_setup.sh
+          fi
+        fi

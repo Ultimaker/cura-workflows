@@ -1,0 +1,77 @@
+name: All installers
+run-name: ${{ inputs.cura_conan_version }} by @${{ github.actor }}
+
+on:
+  workflow_call:
+    inputs:
+      cura_conan_version:
+        required: true
+        type: string
+      conan_args:
+        default: ''
+        required: false
+        type: string
+      enterprise:
+        default: false
+        required: false
+        type: boolean
+      staging:
+        default: false
+        required: false
+        type: boolean
+      private_data:
+        required: false
+        default: false
+        type: boolean
+
+
+jobs:
+  windows-installer:
+    name: Create Windows installer
+    uses: ./.github/workflows/cura-installer-windows.yml
+    with:
+      cura_conan_version: ${{ inputs.cura_conan_version }}
+      conan_args: ${{ inputs.conan_args }}
+      enterprise: ${{ inputs.enterprise == 'true' }}
+      staging: ${{ inputs.staging == 'true' }}
+      operating_system: self-hosted-Windows-X64
+      private_data: ${{ inputs.private_data }}
+    secrets: inherit
+
+  linux-installer:
+    name: Create Linux AppImage
+    uses: ./.github/workflows/cura-installer-linux.yml
+    with:
+      cura_conan_version: ${{ inputs.cura_conan_version }}
+      conan_args: ${{ inputs.conan_args }}
+      enterprise: ${{ inputs.enterprise == 'true' }}
+      staging: ${{ inputs.staging == 'true' }}
+      operating_system: self-hosted-Ubuntu22-X64
+      private_data: ${{ inputs.private_data }}
+    secrets: inherit
+
+  macos-installer:
+    name: Create MacOS-X64 packages
+    uses: ./.github/workflows/cura-installer-macos.yml
+    with:
+      cura_conan_version: ${{ inputs.cura_conan_version }}
+      conan_args: ${{ inputs.conan_args }}
+      enterprise: ${{ inputs.enterprise == 'true' }}
+      staging: ${{ inputs.staging == 'true' }}
+      architecture: X64
+      operating_system: self-hosted-X64
+      private_data: ${{ inputs.private_data }}
+    secrets: inherit
+
+  macos-arm-installer:
+    name: Create MacOS-ARM64 packages
+    uses: ./.github/workflows/cura-installer-macos.yml
+    with:
+      cura_conan_version: ${{ inputs.cura_conan_version }}
+      conan_args: ${{ inputs.conan_args }}
+      enterprise: ${{ inputs.enterprise == 'true' }}
+      staging: ${{ inputs.staging == 'true' }}
+      architecture: ARM64
+      operating_system: self-hosted-ARM64
+      private_data: ${{ inputs.private_data }}
+    secrets: inherit

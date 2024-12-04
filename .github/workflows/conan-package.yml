@@ -1,0 +1,116 @@
+name: Create and upload Conan package
+
+on:
+  workflow_call:
+    inputs:
+      private_data:
+        required: false
+        default: false
+        type: boolean
+
+      conan_extra_args:
+        required: false
+        default: ""
+        type: string
+
+      install_system_dependencies:
+        required: false
+        default: true
+        type: boolean
+
+      conan_recipe_root:
+        required: false
+        default: "."
+        type: string
+
+      platform_linux:
+        required: false
+        default: true
+        type: boolean
+
+      platform_windows:
+        required: false
+        default: true
+        type: boolean
+
+      platform_mac:
+        required: false
+        default: true
+        type: boolean
+
+      platform_wasm:
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+env:
+  SENTRY_TOKEN: ${{ secrets.CURAENGINE_SENTRY_TOKEN }}
+
+jobs:
+  conan-recipe-version:
+    name: Calculate version numbers
+    uses: ./.github/workflows/conan-recipe-version.yml
+    with:
+      conan_recipe_root: ${{ inputs.conan_recipe_root }}
+
+  conan-recipe-export-specific:
+    name: Upload specific package recipe
+    needs: [ conan-recipe-version ]
+    uses: ./.github/workflows/conan-recipe-export.yml
+    with:
+      version: ${{ needs.conan-recipe-version.outputs.version_full }}
+      user: ${{ needs.conan-recipe-version.outputs.user }}
+      channel: ${{ needs.conan-recipe-version.outputs.channel }}
+      private_data: ${{ inputs.private_data }}
+      conan_recipe_root: ${{ inputs.conan_recipe_root }}
+    secrets: inherit
+
+  conan-recipe-export-latest:
+    name: Upload latest package recipe
+    needs: [ conan-recipe-version ]
+    uses: ./.github/workflows/conan-recipe-export.yml
+    with:
+      version: ${{ needs.conan-recipe-version.outputs.version_base }}
+      user: ${{ needs.conan-recipe-version.outputs.user }}
+      channel: ${{ needs.conan-recipe-version.outputs.channel }}
+      private_data: ${{ inputs.private_data }}
+      conan_recipe_root: ${{ inputs.conan_recipe_root }}
+    secrets: inherit
+
+  make-runners-list:
+    name: Make the proper runners list
+    needs: [ conan-recipe-version ]
+    uses: ./.github/workflows/make-runners-list.yml
+    if: ${{ (github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master' || needs.conan-recipe-version.outputs.is_release_branch == 'true')) }}
+    with:
+      platform_linux: ${{ inputs.platform_linux }}
+      platform_windows: ${{ inputs.platform_windows }}
+      platform_mac: ${{ inputs.platform_mac }}
+      platform_wasm: ${{ inputs.platform_wasm }}
+
+  conan-package-create:
+    name: Create and upload package
+    needs: [ conan-recipe-version, conan-recipe-export-specific, make-runners-list ]
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix: ${{ fromJson(needs.make-runners-list.outputs.matrix) }}
+
+    steps:
+      - name: Setup the build environment
+        uses: ./.github/actions/setup-build-environment
+        with:
+          conan_user: ${{ secrets.CONAN_USER }}
+          conan_password: ${{ secrets.CONAN_PASS }}
+          private_data: ${{ inputs.private_data }}
+          install_system_dependencies: ${{ inputs.install_system_dependencies }}
+
+      - name: Create the Package (binaries)
+        run: conan create ${{ inputs.conan_recipe_root }} --version ${{ needs.conan-recipe-version.outputs.version_base }} --user ${{ needs.conan-recipe-version.outputs.user }} --channel ${{ needs.conan-recipe-version.outputs.channel }} ${{ inputs.conan_extra_args }} --build=missing ${{ matrix.platform_conan_extra_args }} -c tools.build:skip_test=True
+
+      - name: Upload the Package
+        uses: ./.github/actions/upload-conan-package
+        with:
+          private_data: ${{ inputs.private_data }}

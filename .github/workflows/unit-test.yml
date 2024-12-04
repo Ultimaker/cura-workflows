@@ -1,37 +1,14 @@
----
 name: unit-test
 
 on:
   workflow_call:
     inputs:
-      recipe_id_full:
-        required: true
-        type: string
-
-      conan_extra_args:
-        required: false
-        default: ''
-        type: string
-
-      unit_test_cmd:
-        required: true
-        type: string
-
-      conan_generator_dir:
-        required: false
-        default: './build/Release/generators'
-        type: string
-
-      unit_test_dir:
-        required: true
-        type: string
-
-      build:
+      test_use_ctest:
         required: false
         default: false
         type: boolean
 
-      conan_internal:
+      test_use_pytest:
         required: false
         default: false
         type: boolean
@@ -39,98 +16,31 @@ on:
 permissions:
   contents: read
 
-env:
-  CONAN_LOGIN_USERNAME: ${{ secrets.CONAN_USER }}
-  CONAN_PASSWORD: ${{ secrets.CONAN_PASS }}
-
 jobs:
   testing:
+    name: Run unit tests
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+      - name: Setup the build environment
+        uses: ./.github/actions/setup-build-environment
         with:
-          fetch-depth: 1
-          ref: ${{ github.head_ref }}
+          install_system_dependencies: true
 
-      - name: Checkout repo PR
-        uses: actions/checkout@v4
-        if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
-        with:
-          fetch-depth: 1
-          ref: ${{ github.base_ref }}
+      - name: Install dependencies and build unit test
+        run: conan build . -s build_type=Release --build=missing --update -c tools.build:skip_test=False ${{ inputs.test_use_pytest && '-g VirtualPythonEnv' || '' }}
 
-      - name: Sync pip requirements
-        run: wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/.github/workflows/requirements-runner.txt -O .github/workflows/requirements-runner.txt
+      - name: Run ctest-based unit test
+        if: ${{ inputs.test_use_ctest }}
+        run: ctest --output-junit unit_tests_results.xml
+        working-directory: build/Release/tests
 
-      - name: Setup Python and pip
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.11.x
-          cache: pip
-          cache-dependency-path: .github/workflows/requirements-runner.txt
-
-      - name: Install Python requirements and Create default Conan profile
-        run: pip install -r .github/workflows/requirements-runner.txt
-
-      - name: Install Linux system requirements for building
+      - name: Run pytest-based unit test
+        if: ${{ inputs.test_use_pytest }}
         run: |
-          mkdir runner_scripts
-          wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/ubuntu_setup.sh -O runner_scripts/ubuntu_setup.sh
-          chmod +x runner_scripts/ubuntu_setup.sh
-          sudo ./runner_scripts/ubuntu_setup.sh
-
-      - name: Setup pipeline caches
-        run: |
-          mkdir -p /home/runner/.conan/downloads
-
-      - name: Create default Conan profile
-        run: conan profile new default --detect
-
-      - name: Get Conan configuration
-        run: |
-          conan config install https://github.com/Ultimaker/conan-config.git
-          conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/${{ runner.os }}/${{ runner.arch }}"
-
-      - name: Add Cura private Artifactory remote
-        if: ${{ inputs.conan_internal }}
-        run: |
-          conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/internal"
-          conan user -p ${{ secrets.CONAN_PASS }} -r cura-private ${{ secrets.CONAN_USER }}
-
-      - name: Cache Conan downloads
-        uses: actions/cache@v3
-        with:
-          path: /home/runner/.conan/downloads
-          key: ${{ runner.os }}-conan-downloads-${{ github.run_id }}
-          restore-keys: |
-            ${{ runner.os }}-conan-downloads-
-
-      - name: Install dependencies
-        run: conan install . ${{ inputs.recipe_id_full }} -s build_type=Release --build=missing --update -g GitHubActionsRunEnv -g GitHubActionsBuildEnv ${{ inputs.conan_extra_args }}
-
-      - name: Set Environment variables from Conan install (bash)
-        run: |
-          for file in activate_github_actions*.sh; do
-            if [ -f "$file" ]; then
-              . "./$file"
-            fi
-          done
-          echo "$PATH" >> $GITHUB_PATH
-        working-directory: ${{ inputs.conan_generator_dir }}
-
-      - name: Build
-        if: ${{ inputs.build == true }}
-        run: |
-          cmake --preset release
-          cmake --build --preset release
-
-      - name: Run Unit Test
-        id: run-test
-        run: ${{ inputs.unit_test_cmd  }}
-        working-directory: ${{ inputs.unit_test_dir }}
+          source ../build/generators/virtual_python_env.sh
+          pytest --junitxml=unit_tests_results.xml
+        working-directory: tests
 
       - name: Save PR metadata
         if: always()
@@ -138,15 +48,14 @@ jobs:
           echo ${{ github.event.number }} > pr-id.txt
           echo ${{ github.event.pull_request.head.repo.full_name }} > pr-head-repo.txt
           echo ${{ github.event.pull_request.head.ref }} > pr-head-ref.txt
-        working-directory: ${{ inputs.unit_test_dir }}
 
       - name: Upload Test Results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-result
           path: |
-            ${{ inputs.unit_test_dir }}/**/*.xml
-            ${{ inputs.unit_test_dir }}/pr-id.txt
-            ${{ inputs.unit_test_dir }}/pr-head-repo.txt
-            ${{ inputs.unit_test_dir }}/pr-head-ref.txt
+            ./**/unit_tests_results.xml
+            pr-id.txt
+            pr-head-repo.txt
+            pr-head-ref.txt

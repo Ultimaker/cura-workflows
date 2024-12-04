@@ -3,15 +3,29 @@ name: Export Conan Recipe to server
 on:
   workflow_call:
     inputs:
-      recipe_id_full:
+      repository:
+        required: false
+        default: ''
+        type: string
+
+      branch:
+        required: false
+        default: ''
+        type: string
+
+      version:
         required: true
         type: string
 
-      recipe_id_latest:
-        required: false
+      user:
+        required: true
         type: string
 
-      conan_internal:
+      channel:
+        required: true
+        type: string
+
+      private_data:
         required: false
         default: false
         type: boolean
@@ -29,93 +43,30 @@ on:
 permissions:
   contents: read
 
-env:
-  CONAN_LOGIN_USERNAME: ${{ secrets.CONAN_USER }}
-  CONAN_PASSWORD: ${{ secrets.CONAN_PASS }}
-  SENTRY_TOKEN: ${{ secrets.CURAENGINE_SENTRY_TOKEN }}
-
 jobs:
   package-export:
+    name: Upload package recipe
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+      - name: Setup the build environment
+        uses: ./.github/actions/setup-build-environment
         with:
-          fetch-depth: 1
-          ref: ${{ github.head_ref }}
+          repository: ${{ inputs.repository }}
+          branch: ${{ inputs.branch }}
+          conan_user: ${{ secrets.CONAN_USER }}
+          conan_password: ${{ secrets.CONAN_PASS }}
+          private_data: ${{ inputs.private_data }}
 
-      - name: Checkout repo PR
-        uses: actions/checkout@v4
-        if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+      - name: Export the Package to local cache
+        id: export-local-cache
+        run: |
+          conan export ${{ inputs.conan_recipe_root }} --version ${{ inputs.version }} --user ${{ inputs.user }} --channel ${{ inputs.channel }} ${{ inputs.conan_extra_args }} -f json > export_output.json
+          PACKAGE_REFERENCE=$(cat export_output.json | jq -r '.reference')
+          echo "package_reference=$PACKAGE_REFERENCE" >> $GITHUB_OUTPUT
+
+      - name: Upload the Recipe
+        uses: ./.github/actions/upload-conan-package
         with:
-          fetch-depth: 1
-          ref: ${{ github.base_ref }}
-
-      - name: Sync pip requirements
-        run: wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/.github/workflows/requirements-runner.txt -O .github/workflows/requirements-runner.txt
-
-      - name: Setup Python and pip
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.11.x
-          cache: pip
-          cache-dependency-path: .github/workflows/requirements-runner.txt
-
-      - name: Install Python requirements and Create default Conan profile
-        run: pip install -r .github/workflows/requirements-runner.txt
-
-      - name: Setup pipeline caches
-        run: |
-          mkdir -p /home/runner/.conan/data
-
-      - name: Create default Conan profile
-        run: conan profile new default --detect
-
-      - name: Get Conan configuration
-        run: |
-          conan config install https://github.com/Ultimaker/conan-config.git
-          conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/${{ runner.os }}/${{ runner.arch }}"
-
-      - name: Add Cura private Artifactory remote
-        if: ${{ inputs.conan_internal }}
-        run: |
-          conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/internal"
-          conan user -p ${{ secrets.CONAN_PASS }} -r cura-private ${{ secrets.CONAN_USER }}
-
-      - name: Add runner credentials to cura remote
-        run: conan user -p ${{ secrets.CONAN_PASS }} -r cura ${{ secrets.CONAN_USER }}
-
-      - name: Add Cura private Artifactory remote
-        if: ${{ inputs.conan_internal }}
-        run: |
-          conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/internal"
-          conan user -p ${{ secrets.CONAN_PASS }} -r cura-private ${{ secrets.CONAN_USER }}
-
-      - name: Cache Conan downloads
-        uses: actions/cache@v3
-        with:
-          path: /home/runner/.conan/downloads
-          key: ${{ runner.os }}-conan-downloads-${{ github.run_id }}
-          restore-keys: |
-            ${{ runner.os }}-conan-downloads-
-
-      - name: Export the Package
-        run: conan export ${{ inputs.conan_recipe_root }} ${{ inputs.recipe_id_full }} ${{ inputs.conan_extra_args }}
-
-      - name: Create the latest alias
-        if: always()
-        run: conan alias ${{ inputs.recipe_id_latest }} ${{ inputs.recipe_id_full }}
-
-      - name: Upload the Package(s)
-        if: ${{ always() && !inputs.conan_internal}}
-        run: |
-          conan upload ${{ inputs.recipe_id_full }} -r cura --all -c
-          conan upload ${{ inputs.recipe_id_latest }} -r cura -c
-
-      - name: Upload the Package(s) to the private Artifactory
-        if: ${{ always() && inputs.conan_internal }}
-        run: |
-          conan upload ${{ inputs.recipe_id_full }} -r cura-private --all -c
-          conan upload ${{ inputs.recipe_id_latest }} -r cura-private -c
+          package_name: ${{ steps.export-local-cache.outputs.package_reference }}
+          private_data: ${{ inputs.private_data }}

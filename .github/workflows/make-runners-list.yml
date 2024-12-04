@@ -1,0 +1,48 @@
+name: Builds the proper runners list
+
+on:
+  workflow_call:
+    inputs:
+      platform_linux:
+        required: true
+        type: boolean
+
+      platform_windows:
+        required: true
+        type: boolean
+
+      platform_mac:
+        required: true
+        type: boolean
+
+      platform_wasm:
+        required: true
+        type: boolean
+
+    outputs:
+      matrix:
+        description: The runners list as a JSON text
+        value: ${{ jobs.make-runners-list.outputs.matrix }}
+
+permissions:
+  contents: read
+
+jobs:
+  make-runners-list:
+    name: Make the runners list
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.call-make-runner-script.outputs.matrix }}
+
+    steps:
+    - name: Checkout Cura-workflows repo
+      uses: actions/checkout@v4
+      with:
+        repository: Ultimaker/Cura-workflows
+        path: Cura-workflows
+
+    - name: Make the runners list from script
+      id: call-make-runner-script
+      run: |
+        RUNNERS_LIST=$(python ./Cura-workflows/runner_scripts/make_runners_list.py ${{ inputs.platform_linux && '--platform-linux' || '' }} ${{ inputs.platform_windows && '--platform-windows' || '' }} ${{ inputs.platform_mac && '--platform-mac' || '' }} ${{ inputs.platform_wasm && '--platform-wasm' || '' }})
+        echo "matrix=$RUNNERS_LIST" >> $GITHUB_OUTPUT

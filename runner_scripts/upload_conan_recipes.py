@@ -1,16 +1,22 @@
 import argparse
 import os
+import subprocess
 import re
 import yaml
 
 from pathlib import Path
 
 def upload_changed_recipes(args):
-    files = args.Files
-    configs = dict(zip([ str(f).split("/")[1] for f in files ], [ Path(*str(f).split("/")[:2]).joinpath("config.yml") for f in files ]))
+    configs = {}
+
+    for file in args.Files:
+        file_path = Path(file)
+        config_path = file_path.parent.parent.joinpath("config.yml")
+        package_name = file_path.parent.parent.name
+        configs[package_name] = config_path
 
     packages = []
-    channel = "stable" if "main" in args.branch else re.match(r"(CURA-\d*|NP-\d*|PP-\d*)", args.branch)[0].lower().replace("-", "_")
+    channel = "stable" if "main" in args.branch else re.match(r"(CURA|NP|PP)-\d*", args.branch)[0].lower().replace("-", "_")
 
     for name, config in configs.items():
         if not config.exists():
@@ -23,10 +29,8 @@ def upload_changed_recipes(args):
         for version, data in versions.items():
             conanfile = config.parent.joinpath(data["folder"], "conanfile.py")
             package = f"{name}/{version}@{args.user}/{channel}"
-            create_cmd = f"conan create {conanfile} {package}"
-            os.system(create_cmd)
-            upload_cmd = f"conan upload {package} -r {args.remote} -c"
-            os.system(upload_cmd)
+            subprocess.run(["conan", "export", conanfile, "--name", name, "--version", version, "--user", args.user, "--channel", channel], check = True)
+            subprocess.run(["conan", "upload", package, "-r", args.remote, "-c"], check = True)
             packages.append(package)
 
     summary_env = os.environ["GITHUB_STEP_SUMMARY"]
@@ -37,10 +41,10 @@ def upload_changed_recipes(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description = 'Upload all the changed recipes in the recipe folder')
-    parser.add_argument('--user', type = str, help = 'User')
-    parser.add_argument('--branch', type = str, help = 'Branch')
-    parser.add_argument('--remote', type = str, help = 'Remote')
-    parser.add_argument("Files", metavar="F", type=str, nargs="+", help="Files or directories to format")
+    parser.add_argument('--user', type = str, help = 'Conan package user')
+    parser.add_argument('--branch', type = str, help = 'Development branch')
+    parser.add_argument('--remote', type = str, help = 'Name of the remote conan repository')
+    parser.add_argument("Files", metavar="FILES", type=str, nargs="+", help="Files or directories to format")
 
     args = parser.parse_args()
     upload_changed_recipes(args)

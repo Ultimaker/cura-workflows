@@ -1,4 +1,5 @@
-conan>=1.64.0,<2.0.0
+conan==2.7.1
 sip>=6.8.1
 sentry-cli==2.21.2
-passlib
+pyyaml
+semver

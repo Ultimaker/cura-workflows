@@ -3,13 +3,29 @@ name: Get Conan Recipe Version
 on:
   workflow_call:
     inputs:
-      project_name:
-        required: true
+      repository:
+        required: false
+        default: ''
+        type: string
+
+      branch:
+        required: false
+        default: ''
+        type: string
+
+      conan_recipe_root:
+        required: false
+        default: "."
         type: string
 
       user:
         required: false
         default: ultimaker
+        type: string
+
+      channel:
+        required: false
+        default: ''
         type: string
 
       release:
@@ -23,75 +39,63 @@ on:
         type: string
 
     outputs:
-      recipe_id_full:
-        description: "The full Conan recipe id: <name>/<version>@<user>/<channel>"
-        value: ${{ jobs.get-semver.outputs.recipe_id_full }}
+      package_name:
+        description: "Package name"
+        value: ${{ inputs.package_name }}
 
-      recipe_id_latest:
-        description: "The full Conan recipe aliased (latest) id: <name>/(latest)@<user>/<channel>"
-        value: ${{ jobs.get-semver.outputs.recipe_id_latest }}
+      version_base:
+        description: "Base version number: <major>.<minor>.<patch>-<releasetag>"
+        value: ${{ jobs.make-versions.outputs.version_base }}
 
-      recipe_semver_full:
-        description: "The full semver <Major>.<Minor>.<Patch>-<PreReleaseTag>+<BuildMetaData>"
-        value: ${{ jobs.get-semver.outputs.semver_full }}
-
-      is_release_branch:
-        description: "is current branch a release branch?"
-        value: ${{ jobs.get-semver.outputs.release_branch }}
-
-      user:
-        description: "The conan user"
-        value: ${{ jobs.get-semver.outputs.user }}
+      version_full:
+        description: "Full unique version number: <major>.<minor>.<patch>-<releasetag>+<commit>"
+        value: ${{ jobs.make-versions.outputs.version_full }}
 
       channel:
         description: "The conan channel"
-        value: ${{ jobs.get-semver.outputs.channel }}
+        value: ${{ jobs.make-versions.outputs.channel }}
 
-      project_name:
-        description: "The conan projectname"
-        value: ${{ inputs.project_name }}
+      user:
+        description: "The conan user"
+        value: ${{ jobs.make-versions.outputs.user }}
+
+      package_version_full:
+        description: "The unique Conan package id: <name>/<version>+<commit>@<user>/<channel>"
+        value: ${{ jobs.make-versions.outputs.package_version_full }}
+
+      package_version_latest:
+        description: "The most recent version for the user+channel: <name>/<version>@<user>/<channel>"
+        value: ${{ jobs.make-versions.outputs.package_version_latest }}
+
+      is_release_branch:
+        description: "is current branch a release branch?"
+        value: ${{ jobs.make-versions.outputs.release_branch }}
 
 jobs:
-  get-semver:
+  make-versions:
+    name: Generate version numbers
 
     runs-on: ubuntu-latest
 
     outputs:
-      recipe_id_full: ${{ steps.get-conan-broadcast-data.outputs.recipe_id_full }}
-      recipe_id_latest: ${{ steps.get-conan-broadcast-data.outputs.recipe_id_latest }}
-      semver_full: ${{ steps.get-conan-broadcast-data.outputs.semver_full }}
-      is_release_branch: ${{ steps.get-conan-broadcast-data.outputs.is_release_branch }}
-      user: ${{ steps.get-conan-broadcast-data.outputs.user }}
+      version_base: ${{ steps.get-conan-broadcast-data.outputs.version_base }}
+      version_full: ${{ steps.get-conan-broadcast-data.outputs.version_full }}
       channel: ${{ steps.get-conan-broadcast-data.outputs.channel }}
+      user: ${{ steps.get-conan-broadcast-data.outputs.user }}
+      package_version_full: ${{ steps.get-conan-broadcast-data.outputs.package_version_full }}
+      package_version_latest: ${{ steps.get-conan-broadcast-data.outputs.package_version_latest }}
+      is_release_branch: ${{ steps.get-conan-broadcast-data.outputs.is_release_branch }}
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+      - name: Setup the build environment
+        uses: ./.github/actions/setup-build-environment
         with:
-          fetch-depth: 1
-          sparse-checkout: 'conandata.yml'
-          ref: ${{ github.head_ref }}
-
-      - name: Checkout repo PR
-        uses: actions/checkout@v4
-        if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
-        with:
-          fetch-depth: 1
-          sparse-checkout: 'conandata.yml'
-          ref: ${{ github.base_ref }}
-
-      - name: Setup Python and pip
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.12.x"
-
-      - name: Install pyyaml
-        run: pip install pyyaml
+          repository: ${{ inputs.repository }}
+          branch: ${{ inputs.branch }}
 
       - id: get-conan-broadcast-data
         name: Get Conan broadcast data
         run: |
-          mkdir runner_scripts
-          wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/get_conan_broadcast_data.py -O runner_scripts/get_conan_broadcast_data.py
-          python runner_scripts/get_conan_broadcast_data.py --user ${{ inputs.user }} --project_name "${{ inputs.project_name }}" --sha "${{ github.sha }}" --event_name "${{ github.event_name }}" --ref_name "${{ github.ref_name }}" --head_ref "${{ github.head_ref }}" --release "${{ inputs.release }}" --version "${{ inputs.version }}"
+          package_name=$(conan inspect "${{ inputs.conan_recipe_root }}" | awk '/^name:/ {print $2}')
+
+          python Cura-workflows/runner_scripts/get_conan_broadcast_data.py --user "${{ inputs.user }}" --channel "${{ inputs.channel }}" --package_name "$package_name" --sha "${{ github.sha }}" --event_name "${{ github.event_name }}" --ref_name "${{ inputs.branch != '' && inputs.branch || github.ref_name }}" --head_ref "${{ github.head_ref }}" --release "${{ inputs.release }}" --version "${{ inputs.version }}" --version-output "$GITHUB_OUTPUT" --summary-output "$GITHUB_STEP_SUMMARY"
