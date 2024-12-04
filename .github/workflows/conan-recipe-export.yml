@@ -66,7 +66,7 @@ jobs:
           echo "package_reference=$PACKAGE_REFERENCE" >> $GITHUB_OUTPUT
 
       - name: Upload the Recipe
-        uses: ./.github/actions/upload-conan-package
+        uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@main
         with:
           package_name: ${{ steps.export-local-cache.outputs.package_reference }}
           private_data: ${{ inputs.private_data }}
