@@ -1,4 +1,4 @@
-name: Create and upload Conan package
+name: Create Conan package release
 
 on:
   workflow_call:
