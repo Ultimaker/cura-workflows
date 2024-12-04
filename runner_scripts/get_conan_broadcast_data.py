@@ -25,25 +25,15 @@ def get_conan_broadcast_data(args):
 
     version_full = f"{version_base}+{version_sha}"
 
+    user = "ultimaker"
+
+    ref_name = args.head_ref if args.event_name == "pull_request" else args.ref_name
     if args.release == "true":
-        user = "_"
-        channel = "_"
-        is_release_branch = True
+        channel = "stable"
+    elif ref_name in ("main", "master"):
+        channel = 'testing'
     else:
-        user = args.user.lower()
-        is_release_branch = False
-        if args.channel or args.user_channel:
-            channel = args.channel.lower() if args.channel else args.user_channel.split("/")[1].lower()
-        else:
-            ref_name = args.head_ref if args.event_name == "pull_request" else args.ref_name
-            if "beta" in version_base and args.event_name != "pull_request" and ref_name == '.'.join(version_base.split('.')[:2]):
-                channel = "stable"
-                is_release_branch = True
-            else:
-                if ref_name in ("main", "master"):
-                    channel = 'testing'
-                else:
-                    channel = "_".join(ref_name.replace("-", "_").split("_")[:2]).lower()
+        channel = "_".join(ref_name.replace("-", "_").split("_")[:2]).lower()
 
     data = {
         "package_name": args.package_name,
@@ -53,7 +43,6 @@ def get_conan_broadcast_data(args):
         "version_base": version_base,
         "channel": channel,
         "user": user,
-        "is_release_branch": f"{str(is_release_branch).lower()}",
     }
 
     version_output = sys.stdout
@@ -75,15 +64,12 @@ def get_conan_broadcast_data(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description = 'Get Conan broadcast data')
-    parser.add_argument('--user',           type = str, help = 'Conan user')
-    parser.add_argument('--channel',        type = str, help = 'Conan channel')
-    parser.add_argument('--user_channel',   type = str, help = 'Conan User and Channel in format `user/channel` ')
     parser.add_argument('--package_name',   type = str, help = 'Name of the package', required=True)
+    parser.add_argument('--release',        type = str, help = 'Is a release')
     parser.add_argument('--sha',            type = str, help = 'Commit SHA')
     parser.add_argument('--event_name',     type = str, help = 'Github event name')
     parser.add_argument('--ref_name',       type = str, help = 'Github name reference')
     parser.add_argument('--head_ref',       type = str, help = 'Github source branch name')
-    parser.add_argument('--release',        type = str, help = 'Is a release')
     parser.add_argument('--version',        type = str, help = 'User override version')
     parser.add_argument('--version-output', type = str, help = 'Path of output file to write versions, otherwise print to stdout')
     parser.add_argument('--summary-output', type = str, help = 'Path of output file to write summary, otherwise print to stdout')

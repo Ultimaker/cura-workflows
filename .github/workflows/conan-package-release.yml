@@ -75,8 +75,6 @@ jobs:
       repository: Ultimaker/${{ inputs.repository }}
       branch: ${{ inputs.branch }}
       conan_recipe_root: ${{ inputs.conan_recipe_root }}
-      user: ultimaker
-      channel: stable
       release: true
 
   conan-recipe-export:
@@ -87,8 +85,8 @@ jobs:
       repository: Ultimaker/${{ inputs.repository }}
       branch: ${{ inputs.branch }}
       version: ${{ needs.conan-recipe-version.outputs.version_base }}
-      user: ultimaker
-      channel: stable
+      user: ${{ needs.conan-recipe-version.outputs.user }}
+      channel: ${{ needs.conan-recipe-version.outputs.channel }}
       private_data: ${{ inputs.private_data }}
       conan_recipe_root: ${{ inputs.conan_recipe_root }}
     secrets: inherit

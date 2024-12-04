@@ -82,9 +82,8 @@ jobs:
 
   make-runners-list:
     name: Make the proper runners list
-    needs: [ conan-recipe-version ]
     uses: ./.github/workflows/make-runners-list.yml
-    if: ${{ (github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master' || needs.conan-recipe-version.outputs.is_release_branch == 'true')) }}
+    if: ${{ (github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master') }}
     with:
       platform_linux: ${{ inputs.platform_linux }}
       platform_windows: ${{ inputs.platform_windows }}
