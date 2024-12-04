@@ -27,8 +27,9 @@ def get_conan_broadcast_data(args):
 
     user = "ultimaker"
 
+    is_release = args.release == "true"
     ref_name = args.head_ref if args.event_name == "pull_request" else args.ref_name
-    if args.release == "true":
+    if is_release:
         channel = "stable"
     elif ref_name in ("main", "master"):
         channel = 'testing'
@@ -55,6 +56,10 @@ def get_conan_broadcast_data(args):
     if args.summary_output is not None:
         summary_output = open(args.summary_output, "a")
     for key, value in data.items():
+        if key.endswith("_full") and is_release:
+            # we dont't use full version for release package, so don't display them
+            continue
+
         if key == "package_name":
             summary_output.write(f"# {value}\n")
         else:
