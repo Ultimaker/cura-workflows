@@ -102,7 +102,7 @@ jobs:
 
       - name: Create the Windows exe installer (Powershell)
         run: |
-          $pydir = type pydir.txt
+          $pydir = type ../pydir.txt
           $env:PATH += ";$pydir;$pydir/Scripts"
           python ..\cura_inst\packaging\NSIS\create_windows_installer.py --source_path ../cura_inst --dist_path . --filename "${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.exe" --version "${{ steps.prepare-distribution.outputs.CURA_VERSION_FULL }}"
         working-directory: dist
@@ -123,7 +123,7 @@ jobs:
 
       - name: Create the Windows msi installer (Powershell)
         run: |
-          $pydir = type pydir.txt
+          $pydir = type ../pydir.txt
           $env:PATH += ";$pydir;$pydir/Scripts"
           python ..\cura_inst\packaging\msi\create_windows_msi.py --source_path ..\cura_inst --dist_path .\UltiMaker-Cura --filename "${{ steps.prepare-distribution.outputs.INSTALLER_FILENAME }}.msi" --name "${{ steps.prepare-distribution.outputs.CURA_APP_NAME }}" --version "${{ steps.prepare-distribution.outputs.CURA_VERSION_FULL }}"
         working-directory: dist
