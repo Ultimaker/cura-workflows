@@ -15,15 +15,15 @@ permissions:
 
 jobs:
   publish-test-results:
-    if: ${{ fromJSON(inputs.workflow_run).event == 'pull_request' && fromJSON(inputs.workflow_run).conclusion == 'success' }}
+    if: ${{ fromJSON(inputs.workflow_run_json).event == 'pull_request' && fromJSON(inputs.workflow_run_json).conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
-          workflow: ${{ fromJSON(inputs.workflow_run).workflow_id }}
-          run_id: ${{ fromJSON(inputs.workflow_run).id }}
+          workflow: ${{ fromJSON(inputs.workflow_run_json).workflow_id }}
+          run_id: ${{ fromJSON(inputs.workflow_run_json).id }}
 
       - name: Extract PR details
         id: extract-pr-details
