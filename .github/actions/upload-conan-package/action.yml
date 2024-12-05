@@ -14,8 +14,8 @@ inputs:
     type: boolean
   python_set_env_vars:
     required: false
-	default: true
-	type: boolean
+    default: true
+    type: boolean
 
 runs:
   using: "composite"
