@@ -89,9 +89,23 @@ jobs:
         id: prepare-distribution
         shell: cmd
         run: |
+            echo "+++___+++___+++"
+            set
+            echo "___+++___+++___"
+
             call cura_inst\conanrun.bat
+
+            echo "+++___+++___+++"
+            set
+            echo "___+++___+++___"
+
             python -m venv cura_installer_venv
             call cura_installer_venv\Scripts\Activate.bat
+
+            echo "+++___+++___+++"
+            set
+            echo "___+++___+++___"
+
             python -m pip install -r cura_inst\packaging\pip_requirements_core_basic.txt --no-warn-script-location
             python -m pip install -r cura_inst\packaging\pip_requirements_core_hashes.txt --no-warn-script-location
             python -m pip install -r cura_inst\packaging\pip_requirements_installer_basic.txt --no-warn-script-location
@@ -99,9 +113,9 @@ jobs:
             python Cura-workflows\runner_scripts\prepare_installer.py --os ${{ runner.os }} --architecture X64 ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }} --summary-output %GITHUB_STEP_SUMMARY% --variables-output %GITHUB_OUTPUT%
 
             echo "+++___+++___+++"
-            python -c "import PyQt6.QtNetwork; print( PyQt6.QtNetwork.__file__ ); print( PyQt6.QtNetwork.__path__ )"
-            python -c "import PyQt6.sip; print( PyQt6.sip.__file__ ); print( PyQt6.sip.__path__ )"
-            echo "___+++___+++___"
+            dir /s \*python*dll
+            python -c "import PyQt6.sip; print(PyQt6.sip.__file__)"
+            echo "+++___+++___+++"
 
             pyinstaller cura_inst\UltiMaker-Cura.spec
 
