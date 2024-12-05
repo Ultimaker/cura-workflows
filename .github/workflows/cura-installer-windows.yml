@@ -113,8 +113,8 @@ jobs:
             python Cura-workflows\runner_scripts\prepare_installer.py --os ${{ runner.os }} --architecture X64 ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }} --summary-output %GITHUB_STEP_SUMMARY% --variables-output %GITHUB_OUTPUT%
 
             echo "+++___+++___+++"
-            dir /s python*dll
-            python -c "import PyQt6.sip; print(PyQt6.sip.__path__)"
+            dir /s \*python*dll
+            python -c "import PyQt6.sip; print(PyQt6.sip.__file__)"
             echo "+++___+++___+++"
 
             pyinstaller cura_inst\UltiMaker-Cura.spec
