@@ -98,6 +98,11 @@ jobs:
 
             python Cura-workflows\runner_scripts\prepare_installer.py --os ${{ runner.os }} --architecture X64 ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }} --summary-output %GITHUB_STEP_SUMMARY% --variables-output %GITHUB_OUTPUT%
 
+            echo "+++___+++___+++"
+            python -c "import PyQt6.QtNetwork; print( PyQt6.QtNetwork.__file__ ); print( PyQt6.QtNetwork.__path__ )"
+            python -c "import PyQt6.sip; print( PyQt6.sip.__file__ ); print( PyQt6.sip.__path__ )"
+            echo "___+++___+++___"
+
             pyinstaller cura_inst\UltiMaker-Cura.spec
 
       - name: Sign the internal executables
@@ -179,6 +184,7 @@ jobs:
         uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@main
         with:
           package_name: '*'
+          python_set_env_vars: false
 
       - name: Clean local cache
         if: ${{ always() && startsWith(inputs.operating_system, 'self-hosted') }}
