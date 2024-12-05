@@ -3,8 +3,9 @@ name: unit-test-post
 on:
   workflow_call:
     inputs:
-      workflow_run:
+      workflow_run_json:
         required: true
+        type: string
 
 permissions:
   contents: read
@@ -14,15 +15,15 @@ permissions:
 
 jobs:
   publish-test-results:
-    if: ${{ inputs.workflow_run.event == 'pull_request' && inputs.workflow_run.conclusion == 'success' }}
+    if: ${{ fromJSON(inputs.workflow_run).event == 'pull_request' && fromJSON(inputs.workflow_run).conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
-          workflow: ${{ inputs.workflow_run.workflow_id }}
-          run_id: ${{ inputs.workflow_run.id }}
+          workflow: ${{ fromJSON(inputs.workflow_run).workflow_id }}
+          run_id: ${{ fromJSON(inputs.workflow_run).id }}
 
       - name: Extract PR details
         id: extract-pr-details
