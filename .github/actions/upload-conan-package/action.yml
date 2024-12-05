@@ -12,6 +12,10 @@ inputs:
     required: false
     default: false
     type: boolean
+  python_set_env_vars:
+    required: false
+	default: true
+	type: boolean
 
 runs:
   using: "composite"
@@ -19,8 +23,19 @@ runs:
       - name: Upload the Package(s)
         shell: bash
         run: |
-          if [ "${{ inputs.private_data }}" == "true" ]; then
-            conan upload "${{ inputs.package_name }}" -r cura-private-conan2 -c
+          if [[ "${{ inputs.python_set_env_vars }}" == "true" ]]; then
+            pydir=""
+            conandir=""
           else
-            conan upload "${{ inputs.package_name }}" -r cura-conan2 -c
+            pydir=`cat pydir.txt`
+            conandir="$pydir"/Scripts/
+            PATH+=":$pydir"
+            hash -r
+            echo "Found Python for GitHub in: $pydir"
+          fi
+
+          if [ "${{ inputs.private_data }}" == "true" ]; then
+            "$conandir"conan upload "${{ inputs.package_name }}" -r cura-private-conan2 -c
+          else
+            "$conandir"conan upload "${{ inputs.package_name }}" -r cura-conan2 -c
           fi

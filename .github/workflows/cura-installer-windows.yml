@@ -179,6 +179,7 @@ jobs:
         uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@main
         with:
           package_name: '*'
+          python_set_env_vars: false
 
       - name: Clean local cache
         if: ${{ always() && startsWith(inputs.operating_system, 'self-hosted') }}
