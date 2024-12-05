@@ -22,28 +22,28 @@ jobs:
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
-          workflow: ${{ fromJSON(inputs.workflow_run_json).workflow_id }}
-          run_id: ${{ fromJSON(inputs.workflow_run_json).id }}
-
-      - name: Extract PR details
-        id: extract-pr-details
-        run: |
-          echo "pr_id=$(pr-id.txt)" >> "$GITHUB_OUTPUT"
-          echo "pr_head_repo=$(pr-head-repo.txt)" >> "$GITHUB_OUTPUT"
-          echo "pr_head_ref=$(pr-head-ref.txt)" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/checkout@v4
-        with:
-          repository: ${{ steps.extract-pr-details.outputs.pr_head_repo }}
-          ref: ${{ steps.extract-pr-details.outputs.pr_head_ref }}
-          persist-credentials: false
+          run-id: ${{ fromJSON(inputs.workflow_run_json).id }}
+      #
+      # - name: Extract PR details
+      #   id: extract-pr-details
+      #   run: |
+      #     echo "pr_id=$(pr-id.txt)" >> "$GITHUB_OUTPUT"
+      #     echo "pr_head_repo=$(pr-head-repo.txt)" >> "$GITHUB_OUTPUT"
+      #     echo "pr_head_ref=$(pr-head-ref.txt)" >> "$GITHUB_OUTPUT"
+      #
+      # - uses: actions/checkout@v4
+      #   with:
+      #     repository: ${{ steps.extract-pr-details.outputs.pr_head_repo }}
+      #     ref: ${{ steps.extract-pr-details.outputs.pr_head_ref }}
+      #     persist-credentials: false
 
       - name: Publish Unit Test Results
         id: publish-test-results
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
-          github-token: ${{ secrets.CURA_UNIT_TESTS_POST_PAT }}
-          files: "tests/**/unit_tests_results.xml"
+          commit: ${{ fromJSON(inputs.workflow_run_json).head_commit.id }}
+          github_token: ${{ secrets.CURA_UNIT_TESTS_POST_PAT }}
+          files: "**/unit_tests_results.xml"
 
       - name: Conclusion
         run: echo "Conclusion is ${{ steps.publish-test-results.outputs.json && fromJSON( steps.publish-test-results.outputs.json ).conclusion }}"
