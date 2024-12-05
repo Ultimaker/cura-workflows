@@ -22,6 +22,7 @@ jobs:
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
+          github-token: ${{ secrets.CURA_UNIT_TESTS_POST_PAT }}
           run-id: ${{ fromJSON(inputs.workflow_run_json).id }}
       #
       # - name: Extract PR details
