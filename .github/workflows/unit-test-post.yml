@@ -3,7 +3,19 @@ name: unit-test-post
 on:
   workflow_call:
     inputs:
-      conclusion:
+      trigger_workflow_event:
+        required: true
+        type: string
+
+      trigger_workflow_conclusion:
+        required: true
+        type: string
+
+      trigger_workflow_id:
+        required: true
+        type: string
+
+      trigger_workflow_run_id:
         required: true
         type: string
 
@@ -15,15 +27,15 @@ permissions:
 
 jobs:
   publish-test-results:
-    if: ${{ github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ inputs.trigger_workflow_event == 'pull_request' && inputs.trigger_workflow_conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
-          workflow: ${{ github.event.workflow_run.workflow_id }}
-          run_id: ${{ github.event.workflow_run.id }}
+          workflow: ${{ inputs.trigger_workflow_id }}
+          run_id: ${{ inputs.trigger_workflow_run_id }}
 
       - name: Extract PR details
         id: extract-pr-details
