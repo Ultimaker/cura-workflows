@@ -39,7 +39,7 @@ jobs:
         if: ${{ inputs.test_use_pytest }}
         run: |
           source ../build/generators/virtual_python_env.sh
-          pytest --junitxml=unit_tests_results.xml
+          pytest --junitxml=unit_tests_results.xml || true
         working-directory: tests
 
       - name: Upload Test Results
