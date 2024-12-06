@@ -43,7 +43,6 @@ jobs:
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
           commit: ${{ fromJSON(inputs.workflow_run_json).head_commit.id }}
-          github_token: ${{ secrets.CURA_UNIT_TESTS_POST_PAT }}
           files: "**/unit_tests_results.xml"
 
       - name: Conclusion
