@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   publish-test-results:
-    if: ${{ fromJSON(inputs.workflow_run_json).event == 'pull_request' && fromJSON(inputs.workflow_run_json).conclusion == 'success' }}
+    if: ${{ fromJSON(inputs.workflow_run_json).conclusion != 'skipped' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -30,7 +30,7 @@ jobs:
         id: publish-test-results
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
-          commit: ${{ fromJSON(inputs.workflow_run_json).head_commit.id }}
+          commit: ${{ fromJSON(inputs.workflow_run_json).head_sha }}
           files: artifacts/test-results/**/unit_tests_results.xml
           event_file: artifacts/unit-test-metadata/event.json
           event_name: ${{ fromJSON(inputs.workflow_run_json).event }}
