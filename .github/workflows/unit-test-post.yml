@@ -31,6 +31,6 @@ jobs:
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
           commit: ${{ fromJSON(inputs.workflow_run_json).head_commit.id }}
-          files: artifacts/test-results/unit_tests_results.xml
+          files: artifacts/test-results/**/unit_tests_results.xml
           event_file: artifacts/unit-test-metadata/event.json
           event_name: ${{ fromJSON(inputs.workflow_run_json).event }}
