@@ -9,7 +9,7 @@ on:
 
 permissions:
   contents: read
-  issues: write
+  issues: read
   checks: write
   pull-requests: write
 
@@ -24,13 +24,13 @@ jobs:
         with:
           github-token: ${{ secrets.CURA_UNIT_TESTS_POST_PAT }}
           run-id: ${{ fromJSON(inputs.workflow_run_json).id }}
+          path: artifacts
 
       - name: Publish Unit Test Results
         id: publish-test-results
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
           commit: ${{ fromJSON(inputs.workflow_run_json).head_commit.id }}
-          files: "**/unit_tests_results.xml"
-
-      - name: Conclusion
-        run: echo "Conclusion is ${{ steps.publish-test-results.outputs.json && fromJSON( steps.publish-test-results.outputs.json ).conclusion }}"
+          files: artifacts/test-results/unit_tests_results.xml
+          event_file: artifacts/unit-test-metadata/event.json
+          event_name: ${{ fromJSON(inputs.workflow_run_json).event }}

@@ -46,5 +46,11 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-result
+          name: test-results
           path: ./**/unit_tests_results.xml
+
+      - name: Upload metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-metadata
+          path: ${{ github.event_path }}
