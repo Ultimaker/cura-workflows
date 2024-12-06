@@ -42,20 +42,9 @@ jobs:
           pytest --junitxml=unit_tests_results.xml
         working-directory: tests
 
-      - name: Save PR metadata
-        if: always()
-        run: |
-          echo ${{ github.event.number }} > pr-id.txt
-          echo ${{ github.event.pull_request.head.repo.full_name }} > pr-head-repo.txt
-          echo ${{ github.event.pull_request.head.ref }} > pr-head-ref.txt
-
       - name: Upload Test Results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-result
-          path: |
-            ./**/unit_tests_results.xml
-            pr-id.txt
-            pr-head-repo.txt
-            pr-head-ref.txt
+          path: ./**/unit_tests_results.xml
