@@ -25,7 +25,7 @@ jobs:
           repository_path: _sources
 
       - name: Gather/build the packages
-        run: conan install --requires "${{ inputs.package_version_full }}" -pr:h cura_wasm.jinja --build=missing --update -of .
+        run: conan install --requires "${{ inputs.package_version_full }}" -pr:h cura_wasm.jinja -g npm --build=missing --update -of .
 
       - name: Use Node.js
         uses: actions/setup-node@v4
@@ -38,3 +38,13 @@ jobs:
           npm publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload nodejs package
+        uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@main
+        with:
+          package_name: "nodejs*"
+
+      - name: Upload emsdk package
+        uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@main
+        with:
+          package_name: "emsdk*"
