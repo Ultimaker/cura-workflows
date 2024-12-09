@@ -1,0 +1,40 @@
+name: NPM package
+
+on:
+  workflow_call:
+    inputs:
+      version_full:
+        required: true
+        type: string
+
+jobs:
+  publish-npm:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Setup the build environment
+        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@NP-637_conan_v2_wasm  # Change to `main` after merge
+        with:
+          conan_user: ${{ secrets.CONAN_USER }}
+          conan_password: ${{ secrets.CONAN_PASS }}
+          conan_config_branch: "NP-637_conan_v2_wasm"  # Remove this line after merging https://github.com/Ultimaker/cura-workflows/pull/32
+          install_system_dependencies: true
+          repository_path: _sources
+
+      - name: Gather/build the packages
+        run: conan install --requires "${{ inputs.version_full }}" -pr:h cura_wasm.jinja --build=missing --update -of .
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@ultimaker'
+
+      - name: Publish to GitHub Packages
+        run: |
+          npm publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
