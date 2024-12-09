@@ -10,12 +10,23 @@ on:
 jobs:
   publish-npm:
     runs-on: ubuntu-latest
+    continue-on-error: true
     permissions:
       contents: read
       packages: write
 
     steps:
+      - name: Check branch criteria
+        id: branch-check
+        run: |
+          echo "BRANCH_NAME=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
+          if [[ "${BRANCH_NAME}" != "main" && ! "${BRANCH_NAME}" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)*$ && ! "${BRANCH_NAME}" =~ ^NP-.* ]]; then
+            echo "Branch does not meet criteria: ${BRANCH_NAME}"
+            exit 1
+          fi
+
       - name: Setup the build environment
+        if: steps.branch-check.outcome == 'success'
         uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@NP-637_conan_v2_wasm  # Change to `main` after merge
         with:
           conan_user: ${{ secrets.CONAN_USER }}
@@ -25,28 +36,31 @@ jobs:
           repository_path: _sources
 
       - name: Gather/build the packages
+        if: steps.branch-check.outcome == 'success'
         run: conan install --requires "${{ inputs.package_version_full }}" -pr:h cura_wasm.jinja -g npm --build=missing --update -of .
 
       - name: Use Node.js
+        if: steps.branch-check.outcome == 'success'
         uses: actions/setup-node@v4
         with:
           registry-url: 'https://npm.pkg.github.com'
           scope: '@ultimaker'
 
       - name: Publish to GitHub Packages
+        if: steps.branch-check.outcome == 'success'
         run: |
           npm publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload nodejs package
-        if: ${{ always() }}
+        if: steps.branch-check.outcome == 'success'
         uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@main
         with:
           package_name: "nodejs*"
 
       - name: Upload emsdk package
-        if: ${{ always() }}
+        if: steps.branch-check.outcome == 'success'
         uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@main
         with:
           package_name: "emsdk*"
