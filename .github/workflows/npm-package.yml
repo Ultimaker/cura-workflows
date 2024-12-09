@@ -40,11 +40,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload nodejs package
+        if: ${{ always() }}
         uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@main
         with:
           package_name: "nodejs*"
 
       - name: Upload emsdk package
+        if: ${{ always() }}
         uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@main
         with:
           package_name: "emsdk*"
