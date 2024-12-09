@@ -44,6 +44,11 @@ inputs:
     default: true
     type: boolean
 
+  conan_config_branch:
+    required: false
+    default: 'master'
+    type: string
+
 runs:
   using: "composite"
   steps:
@@ -93,7 +98,7 @@ runs:
         "$pydirex"python -m pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
 
         "$conandir"conan profile detect -f
-        "$conandir"conan config install https://github.com/Ultimaker/conan-config.git
+        "$conandir"conan config install https://github.com/Ultimaker/conan-config.git -a "-b ${{ inputs.conan_config_branch }}"
 
         if [ "${{ inputs.conan_user }}" != "" ] && [ "${{ inputs.conan_password }}" != "" ]; then
           "$conandir"conan remote login cura-conan2 ${{ inputs.conan_user }} -p ${{ inputs.conan_password }}
