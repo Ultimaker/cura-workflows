@@ -3,7 +3,7 @@ name: NPM package
 on:
   workflow_call:
     inputs:
-      version_full:
+      package_version_full:
         required: true
         type: string
 
@@ -25,7 +25,7 @@ jobs:
           repository_path: _sources
 
       - name: Gather/build the packages
-        run: conan install --requires "${{ inputs.version_full }}" -pr:h cura_wasm.jinja --build=missing --update -of .
+        run: conan install --requires "${{ inputs.package_version_full }}" -pr:h cura_wasm.jinja --build=missing --update -of .
 
       - name: Use Node.js
         uses: actions/setup-node@v4

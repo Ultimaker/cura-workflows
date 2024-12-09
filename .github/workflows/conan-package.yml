@@ -44,9 +44,9 @@ on:
         type: boolean
 
     outputs:
-      version_full:
+      package_version_full:
         description: The full version number
-        value: ${{ jobs.conan-recipe-version.outputs.version_full }}
+        value: ${{ jobs.conan-recipe-version.outputs.package_version_full }}
 
 permissions:
   contents: read
