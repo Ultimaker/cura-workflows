@@ -46,7 +46,7 @@ on:
     outputs:
       version_full:
         description: The full version number
-        value: ${{ needs.conan-recipe-version.outputs.version_full }}
+        value: ${{ jobs.conan-recipe-version.outputs.version_full }}
 
 permissions:
   contents: read
