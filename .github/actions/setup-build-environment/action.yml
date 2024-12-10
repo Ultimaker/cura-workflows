@@ -84,8 +84,6 @@ runs:
           pydir="$(dirname "${{ steps.setup-python.outputs.python-path }}")"
           pydirex="$pydir"/
           conandir="$pydir"/Scripts/
-          PATH+=":$pydir"
-          hash -r
           echo "Installed Python for GitHub in: $pydir"
         fi
         echo $pydir >> pydir.txt

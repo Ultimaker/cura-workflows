@@ -73,49 +73,22 @@ jobs:
         run: |
             $pydir = type pydir.txt
             $env:PATH += ";$pydir;$pydir/Scripts"
-
-            echo "++++"
-            echo $pydir
-            dir $pydir
-            dir $pydir/Scripts
-            echo "++++"
-
             conan install --requires "${{ inputs.cura_conan_version }}" ${{ inputs.conan_args }} --build=missing --update -of cura_inst --deployer-package="*" --profile installer.jinja -c user.sentry:token="${{ secrets.CURAENGINE_SENTRY_TOKEN }}" ${{ inputs.enterprise && '-o "cura/*:enterprise=True"' || '' }} ${{ inputs.staging && '-o "cura/*:staging=True"' || '' }} ${{ inputs.private_data && '-o "cura/*:internal=True"' || '' }}
-
-      # - name: Set Environment variables for Cura (Powershell)
-      #   run: echo "${Env:WIX}\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Create the Cura distribution with pyinstaller
         id: prepare-distribution
         shell: cmd
         run: |
-            echo "+++___+++___+++"
-            set
-            echo "___+++___+++___"
-
             call cura_inst\conanrun.bat
-
-            echo "+++___+++___+++"
-            set
-            echo "___+++___+++___"
 
             python -m venv cura_installer_venv
             call cura_installer_venv\Scripts\Activate.bat
-
-            echo "+++___+++___+++"
-            set
-            echo "___+++___+++___"
 
             python -m pip install -r cura_inst\packaging\pip_requirements_core_basic.txt --no-warn-script-location
             python -m pip install -r cura_inst\packaging\pip_requirements_core_hashes.txt --no-warn-script-location
             python -m pip install -r cura_inst\packaging\pip_requirements_installer_basic.txt --no-warn-script-location
 
             python Cura-workflows\runner_scripts\prepare_installer.py --os ${{ runner.os }} --architecture X64 ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }} --summary-output %GITHUB_STEP_SUMMARY% --variables-output %GITHUB_OUTPUT%
-
-            echo "+++___+++___+++"
-            dir /s \*python*dll
-            python -c "import PyQt6.sip; print(PyQt6.sip.__file__)"
-            echo "+++___+++___+++"
 
             pyinstaller cura_inst\UltiMaker-Cura.spec
 
@@ -130,15 +103,6 @@ jobs:
         run: |
           $pydir = type ../pydir.txt
           $env:PATH += ";$pydir;$pydir/Scripts"
-
-          echo "++++"
-          dir
-          dir ..
-          echo $pydir
-          dir $pydir
-          dir $pydir/Scripts
-          echo "++++"
-
           python ..\cura_inst\packaging\NSIS\create_windows_installer.py --source_path ../cura_inst --dist_path . --filename "${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.exe" --version "${{ steps.prepare-distribution.outputs.CURA_VERSION_FULL }}"
         working-directory: dist
 

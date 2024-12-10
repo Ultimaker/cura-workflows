@@ -29,8 +29,6 @@ runs:
           else
             pydir=`cat pydir.txt`
             conandir="$pydir"/Scripts/
-            PATH+=":$pydir"
-            hash -r
             echo "Found Python for GitHub in: $pydir"
           fi
 
