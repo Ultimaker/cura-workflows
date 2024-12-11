@@ -99,6 +99,10 @@ jobs:
           & signtool sign /v /fd sha256 /tr http://timestamp.sectigo.com /td sha256 /f C:\actions-runner\code_sign.cer /csp "eToken Base Cryptographic Provider" /kc ${{ secrets.WIN_TOKEN_CONTAINER }} "UltiMaker-Cura.exe"
         timeout-minutes: 2
 
+      - name: Workaround (some libs linking against python3 instead of python312)
+        working-directory: dist/UltiMaker-Cura
+        run: New-Item -ItemType symboliclink -Path ./python3.dll -Target ./python312.dll
+
       - name: Create the Windows exe installer (Powershell)
         run: |
           $pydir = type ../pydir.txt
