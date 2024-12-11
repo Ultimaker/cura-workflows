@@ -17,15 +17,6 @@ def pre_find_module_path(api):
     logger.info("Override get_qt_binaries in hooks/qt.py")
     qt.get_qt_binaries = get_qt_binaries
 
-    logger.info("Exclude unwanted Qt dependencies")
-    keys_to_delete = [key for key in qt._qt_dynamic_dependencies_dict.keys() if key not in (
-        "qtquick3d",
-        "quick3d",
-        "qt6quick3d",
-    )]
-    for key in keys_to_delete:
-        del qt._qt_dynamic_dependencies_dict[key]
-
     logger.info("Exclude unused Qt plugins")
     from PyInstaller.utils import misc
     misc.files_in_dir = files_in_dir
