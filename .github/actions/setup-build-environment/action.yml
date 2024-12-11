@@ -90,6 +90,16 @@ runs:
 
         "$pydirex"python -m pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
 
+        if [ "${{ inputs.install_system_dependencies }}" == "true" ]; then
+          if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+            chmod +x Cura-workflows/runner_scripts/ubuntu_setup.sh
+            sudo ./Cura-workflows/runner_scripts/ubuntu_setup.sh
+          elif [[ "$OSTYPE" == "darwin"* ]]; then
+            chmod +x Cura-workflows/runner_scripts/macos_setup.sh
+            ./Cura-workflows/runner_scripts/macos_setup.sh
+          fi
+        fi
+
         "$conandir"conan profile detect -f
         "$conandir"conan config install https://github.com/Ultimaker/conan-config.git
 
@@ -101,15 +111,5 @@ runs:
           "$conandir"conan remote enable cura-private-conan2
           if [ "${{ inputs.conan_user }}" != "" ] && [ "${{ inputs.conan_password }}" != "" ]; then
             "$conandir"conan remote login cura-private-conan2 ${{ inputs.conan_user }} -p ${{ inputs.conan_password }}
-          fi
-        fi
-
-        if [ "${{ inputs.install_system_dependencies }}" == "true" ]; then
-          if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-            chmod +x Cura-workflows/runner_scripts/ubuntu_setup.sh
-            sudo ./Cura-workflows/runner_scripts/ubuntu_setup.sh
-          elif [[ "$OSTYPE" == "darwin"* ]]; then
-            chmod +x Cura-workflows/runner_scripts/macos_setup.sh
-            ./Cura-workflows/runner_scripts/macos_setup.sh
           fi
         fi
