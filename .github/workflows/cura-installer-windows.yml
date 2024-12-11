@@ -100,8 +100,8 @@ jobs:
         timeout-minutes: 2
 
       - name: Workaround (some libs linking against python3 instead of python312)
-        working-directory: dist/UltiMaker-Cura
-        run: New-Item -ItemType symboliclink -Path ./python3.dll -Target ./python312.dll
+        run: |
+          copy Cura-workflows/python_dll_workaround/* dist/UltiMaker-Cura/.
 
       - name: Yet another step deleting unwanted additional Qt files and folders
         working-directory: dist/UltiMaker-Cura
