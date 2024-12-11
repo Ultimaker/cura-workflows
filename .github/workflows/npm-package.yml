@@ -24,6 +24,7 @@ jobs:
       - name: Setup the build environment
         uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@NP-637_conan_v2_wasm  # Change to `main` after merge
         with:
+          private_data: ${{ inputs.private_data }}
           conan_user: ${{ secrets.CONAN_USER }}
           conan_password: ${{ secrets.CONAN_PASS }}
           conan_config_branch: "NP-637_conan_v2_wasm"  # Remove this line after merging https://github.com/Ultimaker/cura-workflows/pull/32
