@@ -7,6 +7,11 @@ on:
         required: true
         type: string
 
+      private_data:
+        required: false
+        default: false
+        type: boolean
+
 jobs:
   publish-npm:
     runs-on: ubuntu-latest
