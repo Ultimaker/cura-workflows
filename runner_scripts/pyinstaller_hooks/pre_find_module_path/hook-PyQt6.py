@@ -10,7 +10,6 @@ def pre_find_module_path(api):
     """
     Hook to apply modifications to default PyQt6 hook that exclude unwanted items,
     like some differently licenced ones that somehow got through our other filtering processes.
-    (This is the last line of defence, so to speak.)
     """
     from PyInstaller.utils.hooks import qt
 

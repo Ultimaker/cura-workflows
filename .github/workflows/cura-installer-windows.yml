@@ -103,6 +103,22 @@ jobs:
         working-directory: dist/UltiMaker-Cura
         run: New-Item -ItemType symboliclink -Path ./python3.dll -Target ./python312.dll
 
+      - name: Yet another step deleting unwanted additional Qt files and folders
+        working-directory: dist/UltiMaker-Cura
+        run: |
+         Remove-Item .\* -Include "*assimp*" -Recurse -Force
+         Remove-Item .\* -Include "*qt6charts*" -Recurse -Force
+         Remove-Item .\* -Include "*qt6coap*" -Recurse -Force
+         Remove-Item .\* -Include "*qt6datavis*" -Recurse -Force
+         Remove-Item .\* -Include "*qt6labsani*" -Recurse -Force
+         Remove-Item .\* -Include "*qt6mqtt*" -Recurse -Force
+         Remove-Item .\* -Include "*qt6networkauth*" -Recurse -Force
+         Remove-Item .\* -Include "*quick3d*" -Recurse -Force
+         Remove-Item .\* -Include "*qt6timeline*" -Recurse -Force
+         Remove-Item .\* -Include "*qt6virtualkey*" -Recurse -Force
+         Remove-Item .\* -Include "*waylandcomp*" -Recurse -Force
+         Remove-Item .\* -Include "*qt5compat*" -Recurse -Force
+
       - name: Create the Windows exe installer (Powershell)
         run: |
           $pydir = type ../pydir.txt
