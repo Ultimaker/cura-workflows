@@ -99,13 +99,21 @@ runs:
           pydir="$(dirname "${{ steps.setup-python.outputs.python-path }}")"
           pydirex="$pydir"/
           conandir="$pydir"/Scripts/
-          PATH+=":$pydir"
-          hash -r
           echo "Installed Python for GitHub in: $pydir"
         fi
         echo $pydir >> pydir.txt
 
         "$pydirex"python -m pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
+
+        if [ "${{ inputs.install_system_dependencies }}" == "true" ]; then
+          if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+            chmod +x Cura-workflows/runner_scripts/ubuntu_setup.sh
+            sudo ./Cura-workflows/runner_scripts/ubuntu_setup.sh
+          elif [[ "$OSTYPE" == "darwin"* ]]; then
+            chmod +x Cura-workflows/runner_scripts/macos_setup.sh
+            ./Cura-workflows/runner_scripts/macos_setup.sh
+          fi
+        fi
 
         "$conandir"conan profile detect -f
         "$conandir"conan config install https://github.com/Ultimaker/conan-config.git -a "-b ${{ inputs.conan_config_branch }}"
