@@ -37,13 +37,16 @@ jobs:
 
       - name: Run ctest-based unit test
         if: ${{ inputs.test_use_ctest }}
-        run: ctest --output-junit unit_tests_results.xml
+        run: |
+          . ../generators/conanrun.sh
+          ctest --output-junit unit_tests_results.xml
         working-directory: build/Release/tests
 
       - name: Run pytest-based unit test
         if: ${{ inputs.test_use_pytest }}
         run: |
-          source ../build/generators/virtual_python_env.sh
+          . ../generators/conanrun.sh
+          . ../build/generators/virtual_python_env.sh
           pytest --junitxml=unit_tests_results.xml || true
         working-directory: tests
 
