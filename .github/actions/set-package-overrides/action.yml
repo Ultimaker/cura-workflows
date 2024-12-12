@@ -1,0 +1,20 @@
+# composite action, not to be run on its own, but included in a build script
+
+name: 'Set package overrides'
+description: 'Forces conan packages overrides based on a manually given list of packages versions'
+
+inputs:
+  package_overrides:
+    required: true
+    type: string
+
+runs:
+  using: "composite"
+  steps:
+      - name: Set the conan packages overrides
+        shell: bash
+        run: |
+          conan lock create .
+          for package_version in "${{ inputs.package_overrides }}"; do
+            conan lock update --requires "$package_version"
+          done
