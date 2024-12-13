@@ -60,6 +60,7 @@ jobs:
     uses: ./.github/workflows/conan-recipe-version.yml
     with:
       conan_recipe_root: ${{ inputs.conan_recipe_root }}
+      internal: ${{ inputs.private_data }}
 
   conan-recipe-export-specific:
     name: Upload specific package recipe

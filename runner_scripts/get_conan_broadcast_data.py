@@ -25,7 +25,7 @@ def get_conan_broadcast_data(args):
 
     version_full = f"{version_base}+{version_sha}"
 
-    user = "ultimaker"
+    user = "internal" if args.internal else "ultimaker"
 
     is_release = args.release == "true"
     ref_name = args.head_ref if args.event_name == "pull_request" else args.ref_name
@@ -76,6 +76,7 @@ if __name__ == "__main__":
     parser.add_argument('--ref_name',       type = str, help = 'Github name reference')
     parser.add_argument('--head_ref',       type = str, help = 'Github source branch name')
     parser.add_argument('--version',        type = str, help = 'User override version')
+    parser.add_argument('--internal',       action='store_true', help = 'This is an internal version')
     parser.add_argument('--version-output', type = str, help = 'Path of output file to write versions, otherwise print to stdout')
     parser.add_argument('--summary-output', type = str, help = 'Path of output file to write summary, otherwise print to stdout')
 

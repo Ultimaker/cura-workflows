@@ -23,6 +23,11 @@ on:
         default: false
         type: boolean
 
+      internal:
+        required: false
+        default: false
+        type: boolean
+
       version:
         required: false
         default: ''
@@ -83,4 +88,4 @@ jobs:
         run: |
           package_name=$(conan inspect "${{ inputs.conan_recipe_root }}" | awk '/^name:/ {print $2}')
 
-          python Cura-workflows/runner_scripts/get_conan_broadcast_data.py --package_name "$package_name" --sha "${{ github.sha }}" --event_name "${{ github.event_name }}" --ref_name "${{ inputs.branch != '' && inputs.branch || github.ref_name }}" --head_ref "${{ github.head_ref }}" --release "${{ inputs.release }}" --version "${{ inputs.version }}" --version-output "$GITHUB_OUTPUT" --summary-output "$GITHUB_STEP_SUMMARY"
+          python Cura-workflows/runner_scripts/get_conan_broadcast_data.py --package_name "$package_name" --sha "${{ github.sha }}" --event_name "${{ github.event_name }}" --ref_name "${{ inputs.branch != '' && inputs.branch || github.ref_name }}" --head_ref "${{ github.head_ref }}" --release "${{ inputs.release }}" --version "${{ inputs.version }}" ${{ inputs.internal && '--internal' || '' }} --version-output "$GITHUB_OUTPUT" --summary-output "$GITHUB_STEP_SUMMARY"
