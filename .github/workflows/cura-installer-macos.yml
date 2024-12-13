@@ -122,6 +122,7 @@ jobs:
 
           python Cura-workflows/runner_scripts/prepare_installer.py --os ${{ runner.os }} --architecture ${{ inputs.architecture }} ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }} --summary-output "$GITHUB_STEP_SUMMARY" --variables-output "$GITHUB_OUTPUT"
 
+          plutil -convert xml1 cura_inst/packaging/MacOS/cura.entitlements
           pyinstaller ./cura_inst/UltiMaker-Cura.spec
 
       - name: Create the Macos dmg (Bash)
