@@ -5,7 +5,8 @@ on:
   workflow_call:
     inputs:
       cura_conan_version:
-        required: true
+        default: ''
+        required: false
         type: string
       package_overrides:
         default: ''

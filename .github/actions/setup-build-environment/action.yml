@@ -36,7 +36,7 @@ inputs:
 
   repository_path:
     required: false
-    default: ''
+    default: '.'
     type: string
 
   python_set_env_vars:
@@ -48,6 +48,10 @@ inputs:
     required: false
     default: 'master'
     type: string
+
+outputs:
+  package:
+    value: ${{ steps.setup-environment.outputs.package }}
 
 runs:
   using: "composite"
@@ -79,6 +83,7 @@ runs:
         python-version: '3.13'
 
     - name: Install Python requirements and setup Conan environment (Bash)
+      id: setup-environment
       shell: bash
       run: |
         if [ "${{ inputs.install_system_dependencies }}" == "true" ]; then
@@ -91,19 +96,14 @@ runs:
           fi
         fi
         
-        if [[ "${{ inputs.python_set_env_vars }}" == "true" ]]; then
-          pydir=""
-          pydirex=""
-          conandir=""
-        else
+        if [[ "${{ inputs.python_set_env_vars }}" == "false" ]]; then
           pydir="$(dirname "${{ steps.setup-python.outputs.python-path }}")"
-          pydirex="$pydir"/
-          conandir="$pydir"/Scripts/
-          echo "Installed Python for GitHub in: $pydir"
+          PATH+=":$pydir:$pydir/Scripts"
           echo $pydir >> pydir.txt
+          echo "Installed Python for GitHub in: $pydir"
         fi
 
-        "$pydirex"python -m pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
+        python -m pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
 
         if [ "${{ inputs.install_system_dependencies }}" == "true" ]; then
           if [[ "$OSTYPE" == "linux-gnu"* ]]; then
@@ -115,16 +115,21 @@ runs:
           fi
         fi
 
-        "$conandir"conan profile detect -f
-        "$conandir"conan config install https://github.com/Ultimaker/conan-config.git -a "-b ${{ inputs.conan_config_branch }}"
+        conan profile detect -f
+        conan config install https://github.com/Ultimaker/conan-config.git -a "-b ${{ inputs.conan_config_branch }}"
 
         if [ "${{ inputs.conan_user }}" != "" ] && [ "${{ inputs.conan_password }}" != "" ]; then
-          "$conandir"conan remote login cura-conan2 ${{ inputs.conan_user }} -p ${{ inputs.conan_password }}
+          conan remote login cura-conan2 ${{ inputs.conan_user }} -p ${{ inputs.conan_password }}
         fi
 
         if [ "${{ inputs.private_data }}" == "true" ]; then
-          "$conandir"conan remote enable cura-private-conan2
+          conan remote enable cura-private-conan2
           if [ "${{ inputs.conan_user }}" != "" ] && [ "${{ inputs.conan_password }}" != "" ]; then
-            "$conandir"conan remote login cura-private-conan2 ${{ inputs.conan_user }} -p ${{ inputs.conan_password }}
+            conan remote login cura-private-conan2 ${{ inputs.conan_user }} -p ${{ inputs.conan_password }}
           fi
         fi
+
+        conan inspect ${{ inputs.repository_path }} > package_details.txt
+        package_name=$(cat package_details.txt | awk '/^name:/ {print $2}')
+        package_version=$(cat package_details.txt | awk '/^version:/ {print $2}')
+        echo "package=$package_name/$package_version" >> $GITHUB_OUTPUT
