@@ -25,6 +25,14 @@ runs:
         id: set-overrides
         shell: bash
         run: |
+          if [[ -f pydir.txt ]]; then
+            pydir=$(cat pydir.txt)
+            PATH+=":$pydir:$pydir/Scripts"
+          fi
+
+          $pydir = type pydir.txt
+            $env:PATH += ";$pydir;$pydir/Scripts"
+
           profile_path=$(conan profile path "${{ inputs.profile }}")
 
           profile_override_suffix=.override

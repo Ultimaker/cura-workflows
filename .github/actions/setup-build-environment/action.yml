@@ -100,8 +100,8 @@ runs:
           pydirex="$pydir"/
           conandir="$pydir"/Scripts/
           echo "Installed Python for GitHub in: $pydir"
+          echo $pydir >> pydir.txt
         fi
-        echo $pydir >> pydir.txt
 
         "$pydirex"python -m pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
 
