@@ -21,7 +21,7 @@ jobs:
 
     steps:
       - name: Setup the build environment
-        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@main
+        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@NP-637  #FIXME: Use `main` once merged
         with:
           private_data: ${{ inputs.private_data }}
           conan_user: ${{ secrets.CONAN_USER }}
