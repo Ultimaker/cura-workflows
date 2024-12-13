@@ -18,17 +18,23 @@ on:
         default: ""
         type: string
 
+      runs_on:
+        required: false
+        default: "ubuntu-latest"
+        type: string
+
+
 permissions:
   contents: read
 
 jobs:
   testing:
     name: Run unit tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runs_on }}
 
     steps:
       - name: Setup the build environment
-        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@main
+        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@NP-637
         with:
           install_system_dependencies: true
 
