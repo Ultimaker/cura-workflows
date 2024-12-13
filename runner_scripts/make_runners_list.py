@@ -12,7 +12,7 @@ def make_runners_list(args):
     if args.platform_mac:
         runners_list.append({"runner": "macos-latest", "conan_extra_args": ""})
     if args.platform_wasm:
-        runners_list.append({"runner": "ubuntu-2024", "conan_extra_args": "-pr:h cura_wasm.jinja"})
+        runners_list.append({"runner": "ubuntu-24.04", "conan_extra_args": "-pr:h cura_wasm.jinja"})
 
     runners_data = {"include": runners_list}
     print(json.dumps(runners_data))
