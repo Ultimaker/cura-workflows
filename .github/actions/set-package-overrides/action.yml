@@ -33,6 +33,7 @@ runs:
 
           echo "[replace_requires]" >> "$profile_path_override"
           for package_version in ${{ inputs.package_overrides }}; do
+            package_name=$(echo "$package_version" | cut -d'/' -f1)
             echo $package_name/*@*/*: $package_version >> "$profile_path_override"
           done
 
