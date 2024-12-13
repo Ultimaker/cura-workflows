@@ -97,7 +97,7 @@ jobs:
       platform_wasm: ${{ inputs.platform_wasm }}
 
   conan-package-create:
-    name: Create and upload package
+    name: Build package
     needs: [ conan-recipe-version, conan-recipe-export-latest, make-runners-list ]
     runs-on: ${{ matrix.runner }}
     strategy:
