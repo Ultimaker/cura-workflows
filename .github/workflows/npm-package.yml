@@ -45,5 +45,5 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload all packages on a push to main
-        if: {{ github.ref_name == 'main' && github.event_name == 'push' }}
+        if: ${{ github.ref_name == 'main' && github.event_name == 'push' }}
         uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@main
