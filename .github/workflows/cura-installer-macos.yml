@@ -79,9 +79,11 @@ jobs:
           repository_path: _cura_sources # we don't want the actual sources to interfere with the built conan package
 
       - name: Set packages overrides
+        id: set-overrides
         uses: ultimaker/cura-workflows/.github/actions/set-package-overrides@main
         with:
           package_overrides: ${{ inputs.package_overrides }}
+          profile: installer.jinja
 
       - name: Remove Macos keychain (Bash)
         run: security delete-keychain signing_temp.keychain || true
@@ -107,7 +109,7 @@ jobs:
         run: security unlock -p "${{  steps.macos-keychain-developer-cert.outputs.keychain-password }}" signing_temp.keychain
 
       - name: Gather/build the packages
-        run: conan install --requires "${{ inputs.cura_conan_version }}" ${{ inputs.conan_args }} --build=missing --update -of cura_inst --deployer-package="*" --profile installer.jinja -c user.sentry:token="${{ secrets.CURAENGINE_SENTRY_TOKEN }}" ${{ inputs.enterprise && '-o "cura/*:enterprise=True"' || '' }} ${{ inputs.staging && '-o "cura/*:staging=True"' || '' }} ${{ inputs.private_data && '-o "cura/*:internal=True"' || '' }}
+        run: conan install --requires "${{ inputs.cura_conan_version }}" ${{ inputs.conan_args }} --build=missing --update -of cura_inst --deployer-package="*" --profile ${{ steps.set-overrides.outputs.profile }} -c user.sentry:token="${{ secrets.CURAENGINE_SENTRY_TOKEN }}" ${{ inputs.enterprise && '-o "cura/*:enterprise=True"' || '' }} ${{ inputs.staging && '-o "cura/*:staging=True"' || '' }} ${{ inputs.private_data && '-o "cura/*:internal=True"' || '' }}
 
       - name: Create the Cura distribution with pyinstaller
         id: prepare-distribution

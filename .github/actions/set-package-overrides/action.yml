@@ -8,13 +8,25 @@ inputs:
     required: true
     type: string
 
+  profile:
+    default: default
+    required: false
+    type: string
+
+outputs:
+  profile: ${{ inputs.profile }}
+
 runs:
   using: "composite"
   steps:
       - name: Set the conan packages overrides
         shell: bash
         run: |
-          conan lock create .
-          for package_version in "${{ inputs.package_overrides }}"; do
-            conan lock update --requires "$package_version"
+          profile_path=$(conan profile path "${{ inputs.profile }}")
+          profile_path_override=$profile_path.override
+          cp -r "$profile_path" "$profile_path_override"
+
+          echo "[replace_requires]" >> "$profile_path_override"
+          for package_version in ${{ inputs.package_overrides }}; do
+            echo $package_name/*@*/*: $package_version >> "$profile_path_override"
           done

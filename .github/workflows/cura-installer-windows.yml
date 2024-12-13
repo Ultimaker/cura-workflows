@@ -76,15 +76,17 @@ jobs:
           python_set_env_vars: false
 
       - name: Set packages overrides
+        id: set-overrides
         uses: ultimaker/cura-workflows/.github/actions/set-package-overrides@main
         with:
           package_overrides: ${{ inputs.package_overrides }}
+          profile: installer.jinja
 
       - name: Gather/build the packages
         run: |
             $pydir = type pydir.txt
             $env:PATH += ";$pydir;$pydir/Scripts"
-            conan install --requires "${{ inputs.cura_conan_version }}" ${{ inputs.conan_args }} --build=missing --update -of cura_inst --deployer-package="*" --profile installer.jinja -c user.sentry:token="${{ secrets.CURAENGINE_SENTRY_TOKEN }}" ${{ inputs.enterprise && '-o "cura/*:enterprise=True"' || '' }} ${{ inputs.staging && '-o "cura/*:staging=True"' || '' }} ${{ inputs.private_data && '-o "cura/*:internal=True"' || '' }}
+            conan install --requires "${{ inputs.cura_conan_version }}" ${{ inputs.conan_args }} --build=missing --update -of cura_inst --deployer-package="*" --profile ${{ steps.set-overrides.outputs.profile }} -c user.sentry:token="${{ secrets.CURAENGINE_SENTRY_TOKEN }}" ${{ inputs.enterprise && '-o "cura/*:enterprise=True"' || '' }} ${{ inputs.staging && '-o "cura/*:staging=True"' || '' }} ${{ inputs.private_data && '-o "cura/*:internal=True"' || '' }}
 
       - name: Create the Cura distribution with pyinstaller
         id: prepare-distribution
