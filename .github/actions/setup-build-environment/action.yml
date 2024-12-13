@@ -50,8 +50,10 @@ inputs:
     type: string
 
 outputs:
-  package:
-    value: ${{ steps.setup-environment.outputs.package }}
+  package_name:
+    value: ${{ steps.setup-environment.outputs.package_name }}
+  package_version:
+    value: ${{ steps.setup-environment.outputs.package_version }}
 
 runs:
   using: "composite"
@@ -132,4 +134,5 @@ runs:
         conan inspect ${{ inputs.repository_path }} > package_details.txt
         package_name=$(cat package_details.txt | awk '/^name:/ {print $2}')
         package_version=$(cat package_details.txt | awk '/^version:/ {print $2}')
-        echo "package=$package_name/$package_version" >> $GITHUB_OUTPUT
+        echo "package_name=$package_name" >> $GITHUB_OUTPUT
+        echo "package_version=$package_version" >> $GITHUB_OUTPUT
