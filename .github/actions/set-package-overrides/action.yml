@@ -14,19 +14,24 @@ inputs:
     type: string
 
 outputs:
-  profile: ${{ inputs.profile }}
+  profile: ${{ steps.set-overrides.outputs.profile_override }}
 
 runs:
   using: "composite"
   steps:
       - name: Set the conan packages overrides
+        id: set-overrides
         shell: bash
         run: |
           profile_path=$(conan profile path "${{ inputs.profile }}")
-          profile_path_override=$profile_path.override
+
+          profile_override_suffix=.override
+          profile_path_override=$profile_path$profile_override_suffix
           cp -r "$profile_path" "$profile_path_override"
 
           echo "[replace_requires]" >> "$profile_path_override"
           for package_version in ${{ inputs.package_overrides }}; do
             echo $package_name/*@*/*: $package_version >> "$profile_path_override"
           done
+
+          echo "profile_override=${{ inputs.profile }}$profile_override_suffix" >> $GITHUB_OUTPUT
