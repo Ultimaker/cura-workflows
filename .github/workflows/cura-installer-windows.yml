@@ -11,7 +11,7 @@ on:
         type: string
 
       package_overrides:
-        description: 'Space-separated List of specific packages to be used'
+        description: 'List of specific packages to be used (space-separated)'
         default: ''
         required: false
         type: string
