@@ -194,8 +194,7 @@ jobs:
       - name: Upload the built Package(s)
         if: ${{ always() && ! inputs.private_data }}
         uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@main
-        with:
-          package_name: '*'
+        continue-on-error: true
 
       - name: Clean local cache
         if: ${{ always() && startsWith(inputs.operating_system, 'self-hosted') }}
