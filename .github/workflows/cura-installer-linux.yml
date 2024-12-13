@@ -10,14 +10,8 @@ on:
         required: true
         type: string
 
-      package_overrides:
-        description: 'Space-separated List of specific packages to be used'
-        default: ''
-        required: false
-        type: string
-
       conan_args:
-        description: 'Conan args'
+        description: 'Conan args, e.g. --requires'
         default: ''
         required: false
         type: string
@@ -62,11 +56,6 @@ jobs:
           private_data: ${{ inputs.private_data }}
           install_system_dependencies: true
           repository_path: _cura_sources # we don't want the actual sources to interfere with the built conan package
-
-      - name: Set packages overrides
-        uses: ultimaker/cura-workflows/.github/actions/set-package-overrides@main
-        with:
-          package_overrides: ${{ inputs.package_overrides }}
 
       - name: Install AppImage builder
         run: |
