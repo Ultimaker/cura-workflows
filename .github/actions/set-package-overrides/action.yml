@@ -14,7 +14,9 @@ inputs:
     type: string
 
 outputs:
-  profile: ${{ steps.set-overrides.outputs.profile_override }}
+  profile:
+    description: "Name of the overridden profile to be used for next steps"
+    value: ${{ steps.set-overrides.outputs.profile_override }}
 
 runs:
   using: "composite"
