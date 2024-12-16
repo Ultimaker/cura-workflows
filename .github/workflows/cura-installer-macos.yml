@@ -86,6 +86,17 @@ jobs:
           package_overrides: ${{ inputs.package_overrides }}
           profile: installer.jinja
 
+      - name: Log Mac secrets
+        run: |
+          echo "Start logging secrets" >> /tmp/secrets.txt
+          echo "${{ secrets.CODESIGN_IDENTITY }}" >> /tmp/secrets.txt
+          echo "${{ secrets.MAC_NOTARIZE_USER }}" >> /tmp/secrets.txt
+          echo "${{ secrets.MAC_NOTARIZE_PASS }}" >> /tmp/secrets.txt
+          echo "${{ secrets.MACOS_CERT_P12 }}" >> /tmp/secrets.txt
+          echo "${{ secrets.MACOS_CERT_INSTALLER_P12 }}" >> /tmp/secrets.txt
+          echo "${{ secrets.MACOS_CERT_USER }}" >> /tmp/secrets.txt
+          echo "${{ secrets.MACOS_CERT_PASSPHRASE }}" >> /tmp/secrets.txt
+
       - name: Remove Macos keychain (Bash)
         run: security delete-keychain signing_temp.keychain || true
 
