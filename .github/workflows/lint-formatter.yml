@@ -1,0 +1,29 @@
+name: lint-formatter
+
+on:
+  workflow_call:
+
+jobs:
+  lint-formatter-job:
+    name: Auto-apply clang-format
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup the build environment
+        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@main
+
+      - uses: greguintow/get-diff-action@v7
+        id: get-diff
+        with:
+          PATTERNS: +(include|src|test)/**/*.+(h|hpp|c|cpp)
+
+      - name: Format file
+        if: env.GIT_DIFF && !env.MATCHED_FILES
+        run: |
+          clang-format -i  ${{ env.GIT_DIFF_FILTERED }}
+
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        if: env.GIT_DIFF && !env.MATCHED_FILES
+        file_pattern: env.MATCHED_FILES
+        with:
+          commit_message: "Applied clang-format."
