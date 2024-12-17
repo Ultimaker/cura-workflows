@@ -28,7 +28,7 @@ jobs:
 
       - name: Format files
         if: env.GIT_DIFF && !env.MATCHED_FILES
-        run: ${{ inputs.command }} ${{ env.GIT_DIFF_FILTERED }} --verbose
+        run: ${{ inputs.command }} ${{ env.GIT_DIFF_FILTERED }}
 
       - name: Convert files list
         id: convert-files-list
