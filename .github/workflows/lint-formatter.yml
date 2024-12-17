@@ -24,6 +24,6 @@ jobs:
 
       - uses: stefanzweifel/git-auto-commit-action@v5
         if: env.GIT_DIFF && !env.MATCHED_FILES
-        file_pattern: env.MATCHED_FILES
         with:
           commit_message: "Applied clang-format."
+          file_pattern: env.MATCHED_FILES
