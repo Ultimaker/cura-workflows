@@ -21,7 +21,14 @@ jobs:
         if: env.GIT_DIFF && !env.MATCHED_FILES
         run: clang-format -i  ${{ env.GIT_DIFF_FILTERED }} --verbose
 
+      - name: Convert files list
+        id: convert-files-list
+        if: env.GIT_DIFF && !env.MATCHED_FILES
+        run: echo "files_list=${{ env.GIT_DIFF_FILTERED }}" | sed "s/'//g"
+
       - uses: stefanzweifel/git-auto-commit-action@v5
         if: env.GIT_DIFF && !env.MATCHED_FILES
         with:
           commit_message: "Apply clang-format"
+          file_pattern: ${{ steps.convert-files-list.outputs.files_list }}
+
