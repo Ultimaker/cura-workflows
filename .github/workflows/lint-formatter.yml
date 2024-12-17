@@ -2,6 +2,16 @@ name: lint-formatter
 
 on:
   workflow_call:
+    inputs:
+      file_patterns:
+        required: true
+        type: string
+      command:
+        required: true
+        type: string
+      commit_message:
+        required: true
+        type: string
 
 jobs:
   lint-formatter-job:
@@ -13,13 +23,12 @@ jobs:
         uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@main
 
       - uses: greguintow/get-diff-action@v7
-        id: get-diff
         with:
-          PATTERNS: +(include|src|test)/**/*.+(h|hpp|c|cpp)
+          PATTERNS: ${{ inputs.file_patterns }}
 
       - name: Format files
         if: env.GIT_DIFF && !env.MATCHED_FILES
-        run: clang-format -i  ${{ env.GIT_DIFF_FILTERED }} --verbose
+        run: ${{ inputs.command }} ${{ env.GIT_DIFF_FILTERED }} --verbose
 
       - name: Convert files list
         id: convert-files-list
@@ -29,6 +38,6 @@ jobs:
       - uses: stefanzweifel/git-auto-commit-action@v5
         if: env.GIT_DIFF && !env.MATCHED_FILES
         with:
-          commit_message: "Apply clang-format"
+          commit_message: ${{ inputs.commit_message }}
           file_pattern: ${{ steps.convert-files-list.outputs.files_list }}
 
