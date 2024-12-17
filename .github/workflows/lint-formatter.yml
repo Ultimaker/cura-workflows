@@ -17,14 +17,11 @@ jobs:
         with:
           PATTERNS: +(include|src|test)/**/*.+(h|hpp|c|cpp)
 
-      - name: Format file
+      - name: Format files
         if: env.GIT_DIFF && !env.MATCHED_FILES
-        run: |
-          clang-format -i  ${{ env.GIT_DIFF_FILTERED }} --verbose
+        run: clang-format -i  ${{ env.GIT_DIFF_FILTERED }} --verbose
 
       - uses: stefanzweifel/git-auto-commit-action@v5
         if: env.GIT_DIFF && !env.MATCHED_FILES
         with:
-          commit_message: "Applied clang-format."
-          file_pattern: ${{ env.GIT_DIFF_FILTERED }}
-          disable_globbing: true
+          commit_message: "Apply clang-format"
