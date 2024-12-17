@@ -45,7 +45,6 @@ jobs:
       - name: Run pytest-based unit test
         if: ${{ inputs.test_use_pytest }}
         run: |
-          . ../build/generators/conanrun.sh
           . ../build/generators/virtual_python_env.sh
           pytest --junitxml=unit_tests_results.xml || true
         working-directory: tests
