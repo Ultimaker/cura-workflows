@@ -109,6 +109,7 @@ jobs:
           conan_user: ${{ secrets.CONAN_USER }}
           conan_password: ${{ secrets.CONAN_PASS }}
           private_data: ${{ inputs.private_data }}
+          conan_config_branch: NP-637  # FIXME: remove this line once merged
           install_system_dependencies: ${{ inputs.install_system_dependencies }}
 
       - name: Create the Package (binaries)
