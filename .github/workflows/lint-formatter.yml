@@ -20,7 +20,7 @@ jobs:
       - name: Format file
         if: env.GIT_DIFF && !env.MATCHED_FILES
         run: |
-          clang-format -i  ${{ env.GIT_DIFF_FILTERED }} --output-replacements-xml --verbose
+          clang-format -i  ${{ env.GIT_DIFF_FILTERED }} --verbose
 
       - uses: stefanzweifel/git-auto-commit-action@v5
         if: env.GIT_DIFF && !env.MATCHED_FILES
