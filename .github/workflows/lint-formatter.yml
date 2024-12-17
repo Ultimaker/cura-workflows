@@ -27,3 +27,4 @@ jobs:
         with:
           commit_message: "Applied clang-format."
           file_pattern: ${{ env.GIT_DIFF_FILTERED }}
+          disable_globbing: true
