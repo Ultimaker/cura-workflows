@@ -15,7 +15,7 @@ on:
 
 jobs:
   lint-formatter-job:
-    name: Auto-apply clang-format
+    name: Auto-apply file formatting
 
     runs-on: ubuntu-latest
     steps:
