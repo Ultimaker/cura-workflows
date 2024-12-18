@@ -46,7 +46,7 @@ jobs:
         if: ${{ inputs.test_use_pytest }}
         run: |
           . ../build/generators/virtual_python_env.sh
-          pytest --junitxml=unit_tests_results.xml || true
+          pytest --junitxml=unit_tests_results.xml
         working-directory: tests
 
       - name: Upload Test Results
@@ -57,6 +57,7 @@ jobs:
           path: ./**/unit_tests_results.xml
 
       - name: Upload metadata
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: unit-test-metadata
