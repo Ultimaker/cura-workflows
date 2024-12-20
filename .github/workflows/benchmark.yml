@@ -63,7 +63,7 @@ jobs:
       - name: Run benchmark
         id: run-test
         run: |
-          source build/Release/generators/conanrun.sh
+          source generators/conanrun.sh
           ${{ inputs.benchmark_cmd }}
         working-directory: build/Release
 
