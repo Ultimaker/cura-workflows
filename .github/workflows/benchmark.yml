@@ -71,7 +71,7 @@ jobs:
         uses: benchmark-action/github-action-benchmark@v1
         with:
           name: ${{ inputs.name }}
-          output-file-path: ${{ inputs.output_file_path }}
+          output-file-path: build/Release/${{ inputs.output_file_path }}
           gh-repository: github.com/Ultimaker/CuraEngineBenchmarks
           gh-pages-branch: main
           benchmark-data-dir-path: ${{ inputs.data_dir }}
