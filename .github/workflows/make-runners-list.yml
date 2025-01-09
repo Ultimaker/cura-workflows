@@ -40,7 +40,7 @@ jobs:
       with:
         repository: Ultimaker/Cura-workflows
         path: Cura-workflows
-        ref: NP-637
+        ref: main
 
     - name: Make the runners list from script
       id: call-make-runner-script
