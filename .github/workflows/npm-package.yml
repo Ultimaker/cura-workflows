@@ -14,19 +14,18 @@ on:
 
 jobs:
   publish-npm:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
 
     steps:
       - name: Setup the build environment
-        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@NP-637  #FIXME: Use `main` once merged
+        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@main
         with:
           private_data: ${{ inputs.private_data }}
           conan_user: ${{ secrets.CONAN_USER }}
           conan_password: ${{ secrets.CONAN_PASS }}
-          conan_config_branch: NP-637  # FIXME: remove this line once merged
           install_system_dependencies: true
           repository_path: _sources
 
