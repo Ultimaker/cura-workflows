@@ -12,6 +12,11 @@ on:
         default: false
         type: boolean
 
+      conan_extra_args:
+        required: false
+        default: ""
+        type: string
+
 jobs:
   publish-npm:
     runs-on: ubuntu-latest
@@ -30,7 +35,7 @@ jobs:
           repository_path: _sources
 
       - name: Gather/build the packages
-        run: conan install --requires "${{ inputs.package_version_full }}" -pr:h cura_wasm.jinja -g npm --build=missing --update -of .
+        run: conan install --requires "${{ inputs.package_version_full }}" -pr:h cura_wasm.jinja -g npm --build=missing --update ${{ inputs.conan_extra_args }} -of .
 
       - name: Use Node.js
         uses: actions/setup-node@v4
