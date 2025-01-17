@@ -76,7 +76,7 @@ runs:
       with:
         repository: Ultimaker/Cura-workflows
         path: Cura-workflows
-        ref: main
+        ref: CURA-test-arm
 
     - name: Setup Python and pip
       uses: actions/setup-python@v5
