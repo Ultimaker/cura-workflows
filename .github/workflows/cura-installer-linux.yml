@@ -56,7 +56,7 @@ jobs:
     steps:
       - name: Setup the build environment
         id: setup-environment
-        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@main
+        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@CURA-test-arm
         with:
           conan_user: ${{ secrets.CONAN_USER }}
           conan_password: ${{ secrets.CONAN_PASS }}
@@ -66,7 +66,7 @@ jobs:
 
       - name: Set packages overrides
         id: set-overrides
-        uses: ultimaker/cura-workflows/.github/actions/set-package-overrides@main
+        uses: ultimaker/cura-workflows/.github/actions/set-package-overrides@CURA-test-arm
         with:
           package_overrides: ${{ inputs.package_overrides }}
           profile: installer.jinja
@@ -116,7 +116,7 @@ jobs:
 
       - name: Upload the built Package(s)
         if: ${{ always() && ! inputs.private_data }}
-        uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@main
+        uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@CURA-test-arm
         continue-on-error: true
 
       - name: Clean local cache
