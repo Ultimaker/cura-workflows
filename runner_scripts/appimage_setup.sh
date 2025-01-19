@@ -6,7 +6,7 @@ chmod +x $GITHUB_WORKSPACE/appimagetool
 echo "APPIMAGETOOL_LOCATION=$GITHUB_WORKSPACE/appimagetool" >> $GITHUB_ENV
 
 # Get the AppImage builder
-sudo pip3 install git+hhttps://github.com/Frederic98/appimage-builder.git
+sudo pip3 install git+https://github.com/Frederic98/appimage-builder.git
 echo "APPIMAGEBUILDER_LOCATION=appimage-builder" >> $GITHUB_ENV
 # wget --no-check-certificate --quiet -O $GITHUB_WORKSPACE/appimage-builder-x86_64.AppImage https://github.com/AppImageCrafters/appimage-builder/releases/download/v1.1.0/appimage-builder-1.1.0-x86_64.AppImage
 # chmod +x appimage-builder-x86_64.AppImage
