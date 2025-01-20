@@ -23,6 +23,7 @@ def set_installer_filename(args):
     if args.variables_output is not None:
         variables_output = open(args.variables_output, "a")
     variables_output.write(f"INSTALLER_FILENAME={installer_filename}\n")
+    variables_output.write(f"CURA_VERSION={CuraVersion.CuraVersion}\n")
     variables_output.write(f"CURA_VERSION_FULL={CuraVersion.CuraVersionFull}\n")
     variables_output.write(f"CURA_APP_NAME={CuraVersion.CuraAppDisplayName}\n")
 
