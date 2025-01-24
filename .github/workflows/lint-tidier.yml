@@ -26,8 +26,8 @@ jobs:
       - name: Build application and tests
         run: |
           source build/Release/generators/conanbuild.sh
-          cmake --preset release
-          cmake --build --preset release
+          cmake --preset conan-release
+          cmake --build --preset conan-release
 
       - name: Create results directory
         run: mkdir linter-result
