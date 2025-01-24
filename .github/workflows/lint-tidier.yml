@@ -11,6 +11,8 @@ jobs:
     steps:
       - name: Setup the build environment
         uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@main
+        with:
+          install_system_dependencies: true
 
       - uses: greguintow/get-diff-action@v7
         with:
