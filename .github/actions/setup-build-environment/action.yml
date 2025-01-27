@@ -132,8 +132,10 @@ runs:
           fi
         fi
 
-        conan inspect ${{ inputs.repository_path }} > package_details.txt
-        package_name=$(cat package_details.txt | awk '/^name:/ {print $2}')
-        package_version=$(cat package_details.txt | awk '/^version:/ {print $2}')
-        echo "package_name=$package_name" >> $GITHUB_OUTPUT
-        echo "package_version=$package_version" >> $GITHUB_OUTPUT
+        if [[ -f ${{ inputs.repository_path }}/conanfile.py ]]; then
+          conan inspect ${{ inputs.repository_path }} > package_details.txt
+          package_name=$(cat package_details.txt | awk '/^name:/ {print $2}')
+          package_version=$(cat package_details.txt | awk '/^version:/ {print $2}')
+          echo "package_name=$package_name" >> $GITHUB_OUTPUT
+          echo "package_version=$package_version" >> $GITHUB_OUTPUT
+        fi
