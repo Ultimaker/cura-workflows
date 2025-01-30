@@ -38,8 +38,8 @@ jobs:
       cura_conan_version: ${{ inputs.cura_conan_version }}
       package_overrides: ${{ inputs.package_overrides }}
       conan_args: ${{ inputs.conan_args }}
-      enterprise: ${{ inputs.enterprise == 'true' }}
-      staging: ${{ inputs.staging == 'true' }}
+      enterprise: ${{ inputs.enterprise }}
+      staging: ${{ inputs.staging }}
       operating_system: self-hosted-Windows-X64
       private_data: ${{ inputs.private_data }}
     secrets: inherit
@@ -51,8 +51,8 @@ jobs:
       cura_conan_version: ${{ inputs.cura_conan_version }}
       package_overrides: ${{ inputs.package_overrides }}
       conan_args: ${{ inputs.conan_args }}
-      enterprise: ${{ inputs.enterprise == 'true' }}
-      staging: ${{ inputs.staging == 'true' }}
+      enterprise: ${{ inputs.enterprise }}
+      staging: ${{ inputs.staging }}
       operating_system: self-hosted-Ubuntu22-X64
       private_data: ${{ inputs.private_data }}
     secrets: inherit
@@ -64,8 +64,8 @@ jobs:
       cura_conan_version: ${{ inputs.cura_conan_version }}
       package_overrides: ${{ inputs.package_overrides }}
       conan_args: ${{ inputs.conan_args }}
-      enterprise: ${{ inputs.enterprise == 'true' }}
-      staging: ${{ inputs.staging == 'true' }}
+      enterprise: ${{ inputs.enterprise }}
+      staging: ${{ inputs.staging }}
       architecture: X64
       operating_system: self-hosted-X64
       private_data: ${{ inputs.private_data }}
@@ -78,8 +78,8 @@ jobs:
       cura_conan_version: ${{ inputs.cura_conan_version }}
       package_overrides: ${{ inputs.package_overrides }}
       conan_args: ${{ inputs.conan_args }}
-      enterprise: ${{ inputs.enterprise == 'true' }}
-      staging: ${{ inputs.staging == 'true' }}
+      enterprise: ${{ inputs.enterprise }}
+      staging: ${{ inputs.staging }}
       architecture: ARM64
       operating_system: self-hosted-ARM64
       private_data: ${{ inputs.private_data }}
