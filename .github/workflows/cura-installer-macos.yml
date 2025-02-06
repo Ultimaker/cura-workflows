@@ -128,7 +128,7 @@ jobs:
       - name: Restore the pynavlib path
         run: |
           codesign --remove-signature "dist/UltiMaker Cura.app/Contents/Frameworks/pynavlib/_pynavlib.cpython-312-darwin.so"
-          install_name_tool -change @rpath/3DconnexionNavLib /Library/Frameworks/3DconnexionNavLib.framework/3DconnexionNavLib "dist/UltiMaker Cura.app/Contents/Frameworks/pynavlib/_pynavlib.cpython-312-darwin.so"
+          install_name_tool -change @rpath/3DconnexionNavlib /Library/Frameworks/3DconnexionNavlib.framework/3DconnexionNavlib "dist/UltiMaker Cura.app/Contents/Frameworks/pynavlib/_pynavlib.cpython-312-darwin.so"
           codesign -s "$CODESIGN_IDENTITY" "dist/UltiMaker Cura.app/Contents/Frameworks/pynavlib/_pynavlib.cpython-312-darwin.so"
 
       - name: Create the Macos dmg (Bash)
