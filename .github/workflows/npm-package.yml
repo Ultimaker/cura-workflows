@@ -43,9 +43,15 @@ jobs:
           registry-url: 'https://npm.pkg.github.com'
           scope: '@ultimaker'
 
-      - name: Publish to GitHub Packages
+      - name: Publish to GitHub Packages (with version)
+        run: npm publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to GitHub Packages (with alias)
+        if: ${{ github.ref_name == 'main' }}
         run: |
-          npm publish
+          npm publish --tag latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
