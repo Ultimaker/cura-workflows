@@ -3,3 +3,4 @@ sip>=6.8.1
 sentry-cli==2.21.2
 pyyaml
 semver
+gitpython
