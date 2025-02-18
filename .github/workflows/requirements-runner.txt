@@ -2,4 +2,4 @@ conan>=1.64.0,<2.0.0
 sip>=6.8.1
 sentry-cli==2.21.2
 passlib
-node-semver
+node-semver==0.6.1

@@ -152,7 +152,7 @@ jobs:
         run: |
           mkdir -p .github/workflows
           cd .github/workflows
-          curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/.github/workflows/requirements-runner.txt
+          curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-12400_legal_fix/.github/workflows/requirements-runner.txt
 
       - name: Setup Python and pip
         uses: actions/setup-python@v4
@@ -173,7 +173,7 @@ jobs:
 
       - name: Get Conan configuration
         run: |
-          conan config install https://github.com/Ultimaker/conan-config.git
+          conan config install https://github.com/Ultimaker/conan-config.git -a "-b CURA-12400_legal_fix"
           conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/${{ runner.os }}/${{ runner.arch }}"
 
       - name: Add Cura private Artifactory remote
@@ -199,13 +199,13 @@ jobs:
         name: Get Conan broadcast data
         run: |
           mkdir runner_scripts
-          wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/get_conan_broadcast_data.py -O runner_scripts/get_conan_broadcast_data.py
+          wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-12400_legal_fix/runner_scripts/get_conan_broadcast_data.py -O runner_scripts/get_conan_broadcast_data.py
           python runner_scripts/get_conan_broadcast_data.py --user_channel ${{ inputs.conan_user_channel }} --project_name $CONAN_PROJECT_NAME --release ${{ inputs.conan_release }} --version ${{ inputs.version }}
 
       - name: Install system requirements for building
         run: |
           mkdir -p runner_scripts
-          wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/ubuntu_setup.sh -O runner_scripts/ubuntu_setup.sh
+          wget https://raw.githubusercontent.com/Ultimaker/cura-workflows/CURA-12400_legal_fix/runner_scripts/ubuntu_setup.sh -O runner_scripts/ubuntu_setup.sh
           chmod +x runner_scripts/ubuntu_setup.sh
           sudo ./runner_scripts/ubuntu_setup.sh
 
