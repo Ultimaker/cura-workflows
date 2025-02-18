@@ -108,9 +108,6 @@ jobs:
           conan config install https://github.com/Ultimaker/conan-config.git
           conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/${{ runner.os }}/${{ runner.arch }}"
 
-      - name: Add runner credentials to cura remote
-        run: conan user -p ${{ secrets.CONAN_PASS }} -r cura ${{ secrets.CONAN_USER }}
-
       - name: Add Cura private Artifactory remote
         if: ${{ inputs.conan_internal }}
         run: |
@@ -180,10 +177,6 @@ jobs:
         run: |
           conan remove "*@internal/*" -f || true
           conan remove "cura_private_data*" -f || true
-
-      - name: Upload the Package(s)
-        if: ${{ always() && ! inputs.conan_internal }}
-        run: conan upload "*" -r cura --all -c
 
       - name: Upload the dmg
         uses: actions/upload-artifact@v4.3.3

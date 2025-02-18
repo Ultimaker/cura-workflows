@@ -73,7 +73,6 @@ jobs:
         with:
           repository: Ultimaker/Cura-workflows
           path: Cura-workflows
-          ref: CURA-12400_legal_fix
 
       - name: Setup Python and pip
         uses: actions/setup-python@v4
@@ -92,6 +91,9 @@ jobs:
         run: |
           conan config install https://github.com/Ultimaker/conan-config.git
           conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/${{ runner.os }}/${{ runner.arch }}"
+
+      - name: Add runner credentials to cura remote
+        run: conan user -p ${{ secrets.CONAN_PASS }} -r cura ${{ secrets.CONAN_USER }}
 
       - name: Add Cura private Artifactory remote
         if: ${{ inputs.conan_internal }}
@@ -116,7 +118,6 @@ jobs:
         run: |
           & signtool sign /v /fd sha256 /tr http://timestamp.sectigo.com /td sha256 /f C:\actions-runner\code_sign.cer /csp "eToken Base Cryptographic Provider" /kc ${{ secrets.WIN_TOKEN_CONTAINER }} "CuraEngine.exe"
           & signtool sign /v /fd sha256 /tr http://timestamp.sectigo.com /td sha256 /f C:\actions-runner\code_sign.cer /csp "eToken Base Cryptographic Provider" /kc ${{ secrets.WIN_TOKEN_CONTAINER }} "UltiMaker-Cura.exe"
-        timeout-minutes: 2
 
       - name: Output the name file name and extension
         id: filename
@@ -154,6 +155,10 @@ jobs:
         run: |
           conan remove "*@internal/*" -f
           conan remove "cura_private_data*" -f
+
+#      - name: Upload the Package(s)
+#        if: ${{ always() && ! inputs.conan_internal }}
+#        run: conan upload "*" -r cura --all -c
 
       - name: Upload the installer msi
         if: ${{ always() }}
