@@ -73,6 +73,7 @@ jobs:
         with:
           repository: Ultimaker/Cura-workflows
           path: Cura-workflows
+          ref: CURA-12400_legal_fix
 
       - name: Setup Python and pip
         uses: actions/setup-python@v4
