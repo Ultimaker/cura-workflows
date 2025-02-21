@@ -38,7 +38,7 @@ jobs:
       - name: Update conan packages versions
         run: |
           PACKAGE_VERSION=${{ inputs.cura_version }}
-          sed -i "s^/version:.*/version: \"$PACKAGE_VERSION\"/g" conandata.yml
+          sed -i "s/^version:.*/version: \"$PACKAGE_VERSION\"/g" conandata.yml
           sed -i "s/\"uranium\/.*/\"uranium\/$PACKAGE_VERSION\"/g" conandata.yml
           sed -i "s/\"cura_resources\/.*/\"cura_resources\/$PACKAGE_VERSION\"/g" conandata.yml
           sed -i "s/\"curaengine\/.*/\"curaengine\/$PACKAGE_VERSION\"/g" conandata.yml
