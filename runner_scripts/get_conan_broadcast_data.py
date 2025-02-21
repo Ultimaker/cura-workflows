@@ -64,7 +64,7 @@ def get_conan_broadcast_data(args):
     if args.summary_output is not None:
         summary_output = open(args.summary_output, "a")
     for key, value in data.items():
-        if key.endswith("_full") and args.release:
+        if value =="" or (key.endswith("_full") and args.release):
             # we dont't use full version for release package, so don't display them
             continue
 
