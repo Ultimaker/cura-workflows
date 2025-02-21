@@ -2,6 +2,7 @@ import argparse
 import os
 import yaml
 import sys
+import re
 
 def get_conan_broadcast_data(args):
     if args.version is not None and args.version != "":
@@ -27,19 +28,26 @@ def get_conan_broadcast_data(args):
 
     user = "internal" if args.internal else "ultimaker"
 
-    is_release = args.release == "true"
     ref_name = args.head_ref if args.event_name == "pull_request" else args.ref_name
-    if is_release:
-        channel = "stable"
+    is_feature_branch = re.fullmatch(r"\d+.\d+", ref_name)
+    if args.release or is_feature_branch:
+        user = ""
+        channel = ""
     elif ref_name in ("main", "master"):
         channel = 'testing'
     else:
         channel = "_".join(ref_name.replace("-", "_").split("_")[:2]).lower()
 
+    user_channel = ""
+    if user != "":
+        user_channel = f"@{user}"
+        if channel != "":
+            user_channel += f"/{channel}"
+
     data = {
         "package_name": args.package_name,
-        "package_version_full": f"{args.package_name}/{version_full}@{user}/{channel}",
-        "package_version_latest": f"{args.package_name}/{version_base}@{user}/{channel}",
+        "package_version_full": f"{args.package_name}/{version_full}{user_channel}",
+        "package_version_latest": f"{args.package_name}/{version_base}{user_channel}",
         "version_full": version_full,
         "version_base": version_base,
         "channel": channel,
@@ -56,7 +64,7 @@ def get_conan_broadcast_data(args):
     if args.summary_output is not None:
         summary_output = open(args.summary_output, "a")
     for key, value in data.items():
-        if key.endswith("_full") and is_release:
+        if key.endswith("_full") and args.release:
             # we dont't use full version for release package, so don't display them
             continue
 
@@ -70,7 +78,7 @@ def get_conan_broadcast_data(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description = 'Get Conan broadcast data')
     parser.add_argument('--package_name',   type = str, help = 'Name of the package', required=True)
-    parser.add_argument('--release',        type = str, help = 'Is a release')
+    parser.add_argument('--release',        action='store_true', help = 'Is a release')
     parser.add_argument('--sha',            type = str, help = 'Commit SHA')
     parser.add_argument('--event_name',     type = str, help = 'Github event name')
     parser.add_argument('--ref_name',       type = str, help = 'Github name reference')
