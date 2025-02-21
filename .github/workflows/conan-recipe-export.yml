@@ -18,11 +18,13 @@ on:
         type: string
 
       user:
-        required: true
+        required: false
+        default: ''
         type: string
 
       channel:
-        required: true
+        required: false
+        default: ''
         type: string
 
       private_data:
@@ -61,7 +63,7 @@ jobs:
       - name: Export the Package to local cache
         id: export-local-cache
         run: |
-          conan export ${{ inputs.conan_recipe_root }} --version ${{ inputs.version }} --user ${{ inputs.user }} --channel ${{ inputs.channel }} ${{ inputs.conan_extra_args }} -f json > export_output.json
+          conan export ${{ inputs.conan_recipe_root }} --version ${{ inputs.version }} --user "${{ inputs.user }}" --channel "${{ inputs.channel }}" ${{ inputs.conan_extra_args }} -f json > export_output.json
           PACKAGE_REFERENCE=$(cat export_output.json | jq -r '.reference')
           echo "package_reference=$PACKAGE_REFERENCE" >> $GITHUB_OUTPUT
 
