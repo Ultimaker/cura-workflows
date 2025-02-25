@@ -113,6 +113,18 @@ jobs:
           & signtool sign /v /fd sha256 /tr http://timestamp.sectigo.com /td sha256 /f C:\actions-runner\code_sign.cer /csp "eToken Base Cryptographic Provider" /kc ${{ secrets.WIN_TOKEN_CONTAINER }} "UltiMaker-Cura.exe"
         timeout-minutes: 2
 
+      - name: Workaround (need exact version of msvc redistributables)
+        run: |
+          $MSDIR="C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Redist/MSVC"
+          if ( (dir $MSDIR).Count -ne 1 ) { throw "(!!!) MULTIPLE MSVC VERSIONS IN '$MSDIR' -- NEED EXACTLY 1 TO SELECT A REDISTRIBUTABLE (!!!)" }
+          $MSDIR_R=(dir $MSDIR)[0].FullName
+          copy $MSDIR_R/x64/Microsoft.VC142.CRT/concrt140.dll dist/UltiMaker-Cura/.
+          copy $MSDIR_R/x64/Microsoft.VC142.CRT/msvcp140.dll dist/UltiMaker-Cura/.
+          copy $MSDIR_R/x64/Microsoft.VC142.CRT/msvcp140_1.dll dist/UltiMaker-Cura/.
+          copy $MSDIR_R/x64/Microsoft.VC142.CRT/msvcp140_2.dll dist/UltiMaker-Cura/.
+          copy $MSDIR_R/x64/Microsoft.VC142.CRT/vcruntime140.dll dist/UltiMaker-Cura/.
+          copy $MSDIR_R/x64/Microsoft.VC142.CRT/vcruntime140_1.dll dist/UltiMaker-Cura/.
+
       - name: Workaround (some libs linking against python3 instead of python312)
         run: |
           copy Cura-workflows/python_dll_workaround/* dist/UltiMaker-Cura/.
