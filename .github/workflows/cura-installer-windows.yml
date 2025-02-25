@@ -116,8 +116,8 @@ jobs:
       - name: Workaround (need exact version of msvc redistributables)
         run: |
           $MSDIR="C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Redist/MSVC"
-          if ( (dir $MSDIR).Count -ne 1 ) { throw "(!!!) MULTIPLE MSVC VERSIONS IN '$MSDIR' -- NEED EXACTLY 1 TO SELECT A REDISTRIBUTABLE (!!!)" }
-          $MSDIR_R=(dir $MSDIR)[0].FullName
+          if ( (dir -Exclude "v*" $MSDIR).Count -ne 1 ) { throw "(!!!) MULTIPLE MSVC VERSIONS IN '$MSDIR' -- NEED EXACTLY 1 TO SELECT A REDISTRIBUTABLE (!!!)" }
+          $MSDIR_R=(dir -Exclude "v*" $MSDIR)[0].FullName
           copy $MSDIR_R/x64/Microsoft.VC142.CRT/concrt140.dll dist/UltiMaker-Cura/.
           copy $MSDIR_R/x64/Microsoft.VC142.CRT/msvcp140.dll dist/UltiMaker-Cura/.
           copy $MSDIR_R/x64/Microsoft.VC142.CRT/msvcp140_1.dll dist/UltiMaker-Cura/.
