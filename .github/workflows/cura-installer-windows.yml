@@ -118,12 +118,13 @@ jobs:
           $MSDIR="C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Redist/MSVC"
           if ( (dir -Exclude "v*" $MSDIR).Count -ne 1 ) { throw "(!!!) MULTIPLE MSVC VERSIONS IN '$MSDIR' -- NEED EXACTLY 1 TO SELECT A REDISTRIBUTABLE (!!!)" }
           $MSDIR_R=(dir -Exclude "v*" $MSDIR)[0].FullName
-          copy $MSDIR_R/x64/Microsoft.VC142.CRT/concrt140.dll dist/UltiMaker-Cura/.
-          copy $MSDIR_R/x64/Microsoft.VC142.CRT/msvcp140.dll dist/UltiMaker-Cura/.
-          copy $MSDIR_R/x64/Microsoft.VC142.CRT/msvcp140_1.dll dist/UltiMaker-Cura/.
-          copy $MSDIR_R/x64/Microsoft.VC142.CRT/msvcp140_2.dll dist/UltiMaker-Cura/.
-          copy $MSDIR_R/x64/Microsoft.VC142.CRT/vcruntime140.dll dist/UltiMaker-Cura/.
-          copy $MSDIR_R/x64/Microsoft.VC142.CRT/vcruntime140_1.dll dist/UltiMaker-Cura/.
+          $MSDIR_DLLS=(dir $MSDIR_R/x64/Microsoft.VC*.CRT)[0].FullName
+          copy $MSDIR_DLLS/concrt140.dll dist/UltiMaker-Cura/.
+          copy $MSDIR_DLLS/msvcp140.dll dist/UltiMaker-Cura/.
+          copy $MSDIR_DLLS/msvcp140_1.dll dist/UltiMaker-Cura/.
+          copy $MSDIR_DLLS/msvcp140_2.dll dist/UltiMaker-Cura/.
+          copy $MSDIR_DLLS/vcruntime140.dll dist/UltiMaker-Cura/.
+          copy $MSDIR_DLLS/vcruntime140_1.dll dist/UltiMaker-Cura/.
 
       - name: Workaround (some libs linking against python3 instead of python312)
         run: |
