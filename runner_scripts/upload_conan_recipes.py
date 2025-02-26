@@ -21,15 +21,15 @@ def upload_changed_recipes(args):
     channel = "" if is_release else re.match(r"(CURA|NP|PP)-\d*", args.branch)[0].lower().replace("-", "_")
     user = "" if is_release else "ultimaker"
 
-    for name, config in configs.items():
-        if not config.exists():
+    for name, config_file in configs.items():
+        if not config_file.exists():
             continue
 
         actual_user = user
         actual_channel = channel
 
         versions = {}
-        with open(config, "r") as f:
+        with open(config_file, "r") as f:
             config = yaml.safe_load(f)
             versions = config["versions"]
             if "user" in config:
@@ -38,7 +38,7 @@ def upload_changed_recipes(args):
                 actual_channel = config["channel"]
 
         for version, data in versions.items():
-            conanfile = config.parent.joinpath(data["folder"], "conanfile.py")
+            conanfile = config_file.parent.joinpath(data["folder"], "conanfile.py")
 
             conan_export = ["conan", "export", conanfile, "--name", name, "--version", version, "-f", "json"]
 
