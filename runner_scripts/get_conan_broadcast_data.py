@@ -29,8 +29,8 @@ def get_conan_broadcast_data(args):
     user = "internal" if args.internal else "ultimaker"
 
     ref_name = args.head_ref if args.event_name == "pull_request" else args.ref_name
-    is_feature_branch = re.fullmatch(r"\d+.\d+", ref_name)
-    if args.release or is_feature_branch:
+    is_release_branch = re.fullmatch(r"\d+.\d+", ref_name)
+    if args.release or is_release_branch:
         user = ""
         channel = ""
     elif ref_name in ("main", "master"):

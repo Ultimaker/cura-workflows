@@ -151,7 +151,7 @@ jobs:
           retention-days: 5
 
       - name: Upload the built Package(s)
-        if: ${{ always() && ! inputs.private_data }}
+        if: ${{ always() }}
         uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@main
         continue-on-error: true
 

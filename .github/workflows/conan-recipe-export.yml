@@ -71,4 +71,3 @@ jobs:
         uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@main
         with:
           package_name: ${{ steps.export-local-cache.outputs.package_reference }}
-          private_data: ${{ inputs.private_data }}
