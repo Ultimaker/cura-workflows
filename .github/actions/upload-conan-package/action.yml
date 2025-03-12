@@ -21,12 +21,4 @@ runs:
             PATH+=":$pydir:$pydir/Scripts"
           fi
 
-          packages=$(conan list -c "${{ inputs.package_name }}" -f json | jq -r '.["Local Cache"] | keys[] ')
-
-          for package in $packages; do
-            if [[ $package == *"@internal"* ]]; then
-              conan upload "${{ inputs.package_name }}" -r cura-private-conan2 -c
-            else
-              conan upload "${{ inputs.package_name }}" -r cura-conan2 -c
-            fi
-          done
+          python Cura-workflows/runner_scripts/upload_conan_package.py ${{ inputs.package_name }}
