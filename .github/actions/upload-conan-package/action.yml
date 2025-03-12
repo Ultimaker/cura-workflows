@@ -21,4 +21,4 @@ runs:
             PATH+=":$pydir:$pydir/Scripts"
           fi
 
-          python Cura-workflows/runner_scripts/upload_conan_package.py ${{ inputs.package_name }}
+          python Cura-workflows/runner_scripts/upload_conan_package.py "${{ inputs.package_name }}"
