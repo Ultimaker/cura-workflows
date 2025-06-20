@@ -21,10 +21,7 @@ jobs:
           set -euo pipefail
           JIRA_TICKET="${{ github.event.inputs.jira_ticket_number }}"
           # Regex to validate the format: "cura_" followed by one or more digits.
-          # The '^' and '$' anchors ensure the entire string matches the pattern.
           if [[ ! "$JIRA_TICKET" =~ ^cura_[0-9]+$ ]]; then
-            # Output an error message that will appear as an annotation in the GitHub Actions UI.
-            # This provides immediate and clear feedback to the user about the expected format.
             echo "::error::Invalid Jira ticket number format. Expected format: cura_<digits> (e.g., cura_12345)."
             # Exit with a non-zero status code to fail the workflow immediately.
             exit 1
@@ -52,7 +49,7 @@ jobs:
           JSON_ONLY=$(echo "$SEARCH_RESULT" | sed -n '/^{/,$p')
 
           # Filter lines without a '+' character
-          FOUND_ITEMS=$(jq -r '.["cura-conan2"] | keys[] | select(index("+") | not)' <<< "$JSON_ONLY")
+          FOUND_ITEMS=$(jq -r 'to_entries[] | .value | keys[] | select(index("+") | not)' <<< "$JSON_DATA")
 
           if [ -n "$FOUND_ITEMS" ]; then
             mapfile -t DISCOVERED_PACKAGES <<< "$FOUND_ITEMS"
