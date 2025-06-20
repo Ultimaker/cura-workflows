@@ -31,14 +31,15 @@ jobs:
           fi
           echo "Jira ticket number '$JIRA_TICKET' is valid."
 
-      - name: Setup Conan Client
-        uses: conan-io/setup-conan@v1
+      - name: Setup the build environment
+        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@main
+        with:
+          conan_user: ${{ secrets.CONAN_USER }}
+          conan_password: ${{ secrets.CONAN_PASS }}
+          private_data: true
 
       - name: Discover Conan Packages
         id: conan_search
-        env:
-          CONAN_LOGIN_USERNAME: ${{ secrets.CONAN_USER }}
-          CONAN_PASSWORD: ${{ secrets.CONAN_PASS }}
         run: |
           set -euo pipefail
 
