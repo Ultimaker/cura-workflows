@@ -1,10 +1,10 @@
 name: Conan Package Discovery by Jira Ticket
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       jira_ticket_number:
-        description: 'Jira ticket number for Conan package discovery (e.g., cura_12345)'
+        default: ''
         required: true
         type: string
 
