@@ -66,10 +66,12 @@ jobs:
           echo "$SEARCH_RESULT"
           echo "::endgroup::"
 
-          # The jq query extracts the recipe reference and remote name for each found package.
-          # It filters out recipes that contain a '+' in their version, only keep the latest version,
-          # and formats the output as a Markdown list item.
-          FOUND_ITEMS=$(echo "$SEARCH_RESULT" | jq -r 'to_entries[] | select(.value | length > 0) | .key as $remote_name | .value | keys_unsorted[] as $rid | select(($rid | contains("+")) | not) | "- \`\\($rid)\\` (Remote: \`\\($remote_name)\\`)"' 2>/dev/null || true)
+          # The output of 'conan list' may contain informational lines before the JSON object.
+          # This 'sed' command extracts the JSON object, which starts with '{'.
+          JSON_ONLY=$(echo "$SEARCH_RESULT" | sed -n '/^{/,$p')
+
+          # Filter lines without a '+' character
+          FOUND_ITEMS=$(jq -r '.["cura-conan2"] | keys[] | select(index("+") | not)' <<< "$JSON_ONLY")
 
           if [ -n "$FOUND_ITEMS" ]; then
             # Read the formatted lines into the DISCOVERED_PACKAGES array.
