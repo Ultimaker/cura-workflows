@@ -19,14 +19,34 @@ jobs:
         id: validate_input
         run: |
           set -euo pipefail
-          JIRA_TICKET="${{ github.event.inputs.jira_ticket_number }}"
-          # Regex to validate the format: "cura_" followed by one or more digits.
-          if [[ ! "$JIRA_TICKET" =~ ^cura_[0-9]+$ ]]; then
-            echo "::error::Invalid Jira ticket number format. Expected format: cura_<digits> (e.g., cura_12345)."
-            # Exit with a non-zero status code to fail the workflow immediately.
+          INPUT_TICKET="${{ github.event.inputs.jira_ticket_number }}"
+
+          # Normalize input: lowercase, replace '-' with '_'
+          NORMALIZED_TICKET=$(echo "$INPUT_TICKET" | tr '[:upper:]' '[:lower:]' | sed 's/-/_/g')
+
+          # If only a number is provided, prepend 'cura_'
+          if [[ "$NORMALIZED_TICKET" =~ ^[0-9]+$ ]]; then
+            NORMALIZED_TICKET="cura_${NORMALIZED_TICKET}"
+          fi
+
+          # Extract keyword and number
+          KEYWORD=$(echo "$NORMALIZED_TICKET" | cut -d'_' -f1)
+          NUMBER=$(echo "$NORMALIZED_TICKET" | grep -oE '[0-9]+')
+
+          # Validate keyword and number
+          if [[ ! "$KEYWORD" =~ ^(cura|np|pp)$ ]]; then
+            echo "::error::Invalid Jira ticket keyword. Expected one of: cura, np, pp."
             exit 1
           fi
-          echo "Jira ticket number '$JIRA_TICKET' is valid."
+          if [[ -z "$NUMBER" ]]; then
+            echo "::error::No number found in Jira ticket input."
+            exit 1
+          fi
+
+          # Compose the fixed ticket string
+          FIXED_TICKET="${KEYWORD}_${NUMBER}"
+          echo "Jira ticket number normalized to '$FIXED_TICKET'."
+          echo "jira_ticket_number=$FIXED_TICKET" >> "$GITHUB_OUTPUT"
 
       - name: Setup the build environment
         uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@main
@@ -40,7 +60,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          JIRA_TICKET="${{ github.event.inputs.jira_ticket_number }}"
+          JIRA_TICKET="${{ steps.validate_input.outputs.jira_ticket_number }}"
           CONAN_PACKAGE_REFERENCE="*/*@ultimaker/${JIRA_TICKET}"
           DISCOVERED_PACKAGES=()
 
