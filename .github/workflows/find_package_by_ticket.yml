@@ -43,45 +43,23 @@ jobs:
         run: |
           set -euo pipefail
 
-          echo "::group::Conan Remote Configuration"
-          conan remote list
-          echo "::endgroup::"
-
           JIRA_TICKET="${{ github.event.inputs.jira_ticket_number }}"
-          # Construct the Conan package reference pattern to search for.
-          # The pattern '*/*@ultimaker/${JIRA_TICKET}' will find all packages with any name and version
-          # in the 'ultimaker' user and a channel matching the Jira ticket number.
           CONAN_PACKAGE_REFERENCE="*/*@ultimaker/${JIRA_TICKET}"
-          echo "Searching for Conan packages matching pattern: $CONAN_PACKAGE_REFERENCE"
-
-          # Initialize an empty array to store discovered packages.
-          # This array will hold Markdown-formatted strings for the summary.
           DISCOVERED_PACKAGES=()
 
-          # Search all remotes at once using '-r=*'. Conan 2.x will automatically use the
-          # CONAN_LOGIN_USERNAME and CONAN_PASSWORD environment variables for authentication.
+          echo "Searching for Conan packages matching pattern: $CONAN_PACKAGE_REFERENCE"
           SEARCH_RESULT=$(conan list "$CONAN_PACKAGE_REFERENCE" -r=* --format=json || true)
-
-          echo "::group::Raw output from 'conan list' command"
-          echo "$SEARCH_RESULT"
-          echo "::endgroup::"
-
-          # The output of 'conan list' may contain informational lines before the JSON object.
-          # This 'sed' command extracts the JSON object, which starts with '{'.
           JSON_ONLY=$(echo "$SEARCH_RESULT" | sed -n '/^{/,$p')
 
           # Filter lines without a '+' character
           FOUND_ITEMS=$(jq -r '.["cura-conan2"] | keys[] | select(index("+") | not)' <<< "$JSON_ONLY")
 
           if [ -n "$FOUND_ITEMS" ]; then
-            # Read the formatted lines into the DISCOVERED_PACKAGES array.
             mapfile -t DISCOVERED_PACKAGES <<< "$FOUND_ITEMS"
           else
             echo "No packages found in any remote matching $CONAN_PACKAGE_REFERENCE"
           fi
 
-          # Prepare the summary content for the GitHub Actions run summary.
-          # This content will be written to the GITHUB_STEP_SUMMARY file.
           echo "### Conan Packages Found for Jira Ticket: ${JIRA_TICKET}" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY" # Add a blank line for spacing
           echo "The workflow searched for Conan packages matching the pattern \`${CONAN_PACKAGE_REFERENCE}\` across all configured remotes." >> "$GITHUB_STEP_SUMMARY"
@@ -92,7 +70,6 @@ jobs:
           if [ ${#DISCOVERED_PACKAGES[@]} -eq 0 ]; then
             echo "*No packages found matching the specified tag.*" >> "$GITHUB_STEP_SUMMARY"
           else
-            # Iterate through the array of discovered packages and append each to the summary file.
             printf '%s\n' "${DISCOVERED_PACKAGES[@]}" >> "$GITHUB_STEP_SUMMARY"
           fi
           echo "" >> "$GITHUB_STEP_SUMMARY" # Add a blank line for spacing
