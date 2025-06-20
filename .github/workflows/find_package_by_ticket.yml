@@ -54,11 +54,11 @@ jobs:
 
           # Search all remotes at once using '-r=*'. Conan 2.x will automatically use the
           # CONAN_LOGIN_USERNAME and CONAN_PASSWORD environment variables for authentication.
-          SEARCH_RESULT=$(conan list "$CONAN_PACKAGE_REFERENCE" -r=* --format=json 2>/dev/null || true)
+          SEARCH_RESULT=$(conan list "$CONAN_PACKAGE_REFERENCE" -r=* --format=json || true)
 
-          # The jq query extracts the recipe reference, package ID, and remote name for each found package,
-          # formatting it for the summary.
-          FOUND_ITEMS=$(echo "$SEARCH_RESULT" | jq -r '.results.remotes[] | .name as $remote_name | .items[] | .recipe.id as $rid | .packages[]? | .id | "- \`\($rid)#\(.)\` (Remote: \`\($remote_name)\`)"' 2>/dev/null || true)
+          # The jq query extracts the recipe reference, package ID, and remote name for each found package.
+          # It iterates over the keys of the 'packages' object, as these keys are the package IDs.
+          FOUND_ITEMS=$(echo "$SEARCH_RESULT" | jq -r '.results.remotes[] | .name as $remote_name | .items[] | .recipe.id as $rid | .packages | keys_unsorted[]? | "- \`\($rid)#\(.)\` (Remote: \`\($remote_name)\`)"' 2>/dev/null || true)
 
           if [ -n "$FOUND_ITEMS" ]; then
             # Read the formatted lines into the DISCOVERED_PACKAGES array.
