@@ -1,0 +1,86 @@
+name: Conan Package Discovery by Jira Ticket
+
+on:
+  workflow_dispatch:
+    inputs:
+      jira_ticket_number:
+        description: 'Jira ticket number for Conan package discovery (e.g., cura_12345)'
+        required: true
+        type: string
+
+jobs:
+  discover_conan_packages:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v4
+
+      - name: Validate Jira Ticket Number Format
+        id: validate_input
+        run: |
+          set -euo pipefail
+          JIRA_TICKET="${{ github.event.inputs.jira_ticket_number }}"
+          # Regex to validate the format: "cura_" followed by one or more digits.
+          # The '^' and '$' anchors ensure the entire string matches the pattern.
+          if [[ ! "$JIRA_TICKET" =~ ^cura_[0-9]+$ ]]; then
+            # Output an error message that will appear as an annotation in the GitHub Actions UI.
+            # This provides immediate and clear feedback to the user about the expected format.
+            echo "::error::Invalid Jira ticket number format. Expected format: cura_<digits> (e.g., cura_12345)."
+            # Exit with a non-zero status code to fail the workflow immediately.
+            exit 1
+          fi
+          echo "Jira ticket number '$JIRA_TICKET' is valid."
+
+      - name: Setup Conan Client
+        uses: conan-io/setup-conan@v1
+
+      - name: Discover Conan Packages
+        id: conan_search
+        env:
+          CONAN_LOGIN_USERNAME: ${{ secrets.CONAN_USERNAME }}
+          CONAN_PASSWORD: ${{ secrets.CONAN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          JIRA_TICKET="${{ github.event.inputs.jira_ticket_number }}"
+          # Construct the Conan package reference pattern to search for.
+          # The pattern '*@ultimaker/${JIRA_TICKET}' will find all packages
+          # in the 'ultimaker' user and a channel matching the Jira ticket number.
+          CONAN_PACKAGE_REFERENCE="*@ultimaker/${JIRA_TICKET}"
+          echo "Searching for Conan packages matching pattern: $CONAN_PACKAGE_REFERENCE"
+
+          # Initialize an empty array to store discovered packages.
+          # This array will hold Markdown-formatted strings for the summary.
+          DISCOVERED_PACKAGES=()
+
+          # Search all remotes at once using '-r=*'. Conan 2.x will automatically use the
+          # CONAN_LOGIN_USERNAME and CONAN_PASSWORD environment variables for authentication.
+          SEARCH_RESULT=$(conan list "$CONAN_PACKAGE_REFERENCE" -r=* --format=json 2>/dev/null || true)
+
+          # The jq query extracts the recipe reference, package ID, and remote name for each found package,
+          # formatting it for the summary.
+          FOUND_ITEMS=$(echo "$SEARCH_RESULT" | jq -r '.results.remotes[] | .name as $remote_name | .items[] | .recipe.id as $rid | .packages[]? | .id | "- \`\($rid)#\(.)\` (Remote: \`\($remote_name)\`)"' 2>/dev/null || true)
+
+          if [ -n "$FOUND_ITEMS" ]; then
+            # Read the formatted lines into the DISCOVERED_PACKAGES array.
+            mapfile -t DISCOVERED_PACKAGES <<< "$FOUND_ITEMS"
+          else
+            echo "No packages found in any remote matching $CONAN_PACKAGE_REFERENCE"
+          fi
+
+          # Prepare the summary content for the GitHub Actions run summary.
+          # This content will be written to the GITHUB_STEP_SUMMARY file.
+          echo "### Conan Packages Found for Jira Ticket: ${JIRA_TICKET}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY" # Add a blank line for spacing
+          echo "The workflow searched for Conan packages matching the pattern \`${CONAN_PACKAGE_REFERENCE}\` across all configured remotes." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY" # Add a blank line for spacing
+          echo "**Discovered Packages:**" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY" # Add a blank line for spacing
+
+          if [ ${#DISCOVERED_PACKAGES[@]} -eq 0 ]; then
+            echo "*No packages found matching the specified tag.*" >> "$GITHUB_STEP_SUMMARY"
+          else
+            # Iterate through the array of discovered packages and append each to the summary file.
+            printf '%s\n' "${DISCOVERED_PACKAGES[@]}" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "" >> "$GITHUB_STEP_SUMMARY" # Add a blank line for spacing
+          echo "---" >> "$GITHUB_STEP_SUMMARY" # Add a separator for cleanliness
