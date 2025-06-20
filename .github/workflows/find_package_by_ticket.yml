@@ -66,7 +66,7 @@ jobs:
 
           echo "Searching for Conan packages matching pattern: $CONAN_PACKAGE_REFERENCE"
           SEARCH_RESULT=$(conan list "$CONAN_PACKAGE_REFERENCE" -r=* --format=json || true)
-          JSON_ONLY=$(echo "$SEARCH_RESULT" | sed -n '/^{/,$p')
+          JSON_DATA=$(echo "$SEARCH_RESULT" | sed -n '/^{/,$p')
 
           # Filter lines without a '+' character
           FOUND_ITEMS=$(jq -r 'to_entries[] | .value | keys[] | select(index("+") | not)' <<< "$JSON_DATA")
