@@ -41,6 +41,11 @@ jobs:
           CONAN_PASSWORD: ${{ secrets.CONAN_PASS }}
         run: |
           set -euo pipefail
+
+          echo "::group::Conan Remote Configuration"
+          conan remote list
+          echo "::endgroup::"
+
           JIRA_TICKET="${{ github.event.inputs.jira_ticket_number }}"
           # Construct the Conan package reference pattern to search for.
           # The pattern '*/*@ultimaker/${JIRA_TICKET}' will find all packages with any name and version
@@ -55,6 +60,10 @@ jobs:
           # Search all remotes at once using '-r=*'. Conan 2.x will automatically use the
           # CONAN_LOGIN_USERNAME and CONAN_PASSWORD environment variables for authentication.
           SEARCH_RESULT=$(conan list "$CONAN_PACKAGE_REFERENCE" -r=* --format=json || true)
+
+          echo "::group::Raw output from 'conan list' command"
+          echo "$SEARCH_RESULT"
+          echo "::endgroup::"
 
           # The jq query extracts the recipe reference, package ID, and remote name for each found package.
           # It iterates over the keys of the 'packages' object, as these keys are the package IDs.
