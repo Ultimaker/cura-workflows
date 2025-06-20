@@ -37,8 +37,8 @@ jobs:
       - name: Discover Conan Packages
         id: conan_search
         env:
-          CONAN_LOGIN_USERNAME: ${{ secrets.CONAN_USERNAME }}
-          CONAN_PASSWORD: ${{ secrets.CONAN_PASSWORD }}
+          CONAN_LOGIN_USERNAME: ${{ secrets.CONAN_USER }}
+          CONAN_PASSWORD: ${{ secrets.CONAN_PASS }}
         run: |
           set -euo pipefail
           JIRA_TICKET="${{ github.event.inputs.jira_ticket_number }}"
