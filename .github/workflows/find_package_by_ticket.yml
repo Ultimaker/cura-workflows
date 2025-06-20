@@ -43,9 +43,9 @@ jobs:
           set -euo pipefail
           JIRA_TICKET="${{ github.event.inputs.jira_ticket_number }}"
           # Construct the Conan package reference pattern to search for.
-          # The pattern '*@ultimaker/${JIRA_TICKET}' will find all packages
+          # The pattern '*/*@ultimaker/${JIRA_TICKET}' will find all packages with any name and version
           # in the 'ultimaker' user and a channel matching the Jira ticket number.
-          CONAN_PACKAGE_REFERENCE="*@ultimaker/${JIRA_TICKET}"
+          CONAN_PACKAGE_REFERENCE="*/*@ultimaker/${JIRA_TICKET}"
           echo "Searching for Conan packages matching pattern: $CONAN_PACKAGE_REFERENCE"
 
           # Initialize an empty array to store discovered packages.
