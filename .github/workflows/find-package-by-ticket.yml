@@ -12,6 +12,9 @@ on:
         required: false
         type: boolean
 
+permissions:
+  contents: read
+
 jobs:
   discover_conan_packages:
     runs-on: ubuntu-latest
