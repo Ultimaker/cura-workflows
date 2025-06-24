@@ -146,7 +146,7 @@ jobs:
 
       - name: Start Builds for Discovered Packages
         if: ${{ github.event.inputs.start_builds == 'true' && steps.conan_search.outputs.discovered_packages != '' }}
-        uses: ./.github/workflows/cura-installers.yml
+        uses: ultimaker/cura-workflows/.github/workflows/cura-installers.yml@main
         with:
           cura_conan_version: ${{ steps.conan_search.outputs.cura_package }}
           package_overrides: ${{ steps.conan_search.outputs.package_overrides }}
