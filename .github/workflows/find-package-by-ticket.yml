@@ -151,10 +151,10 @@ jobs:
             core.setOutput('cura_package', curaPackage);
             core.setOutput('package_overrides', overridePackages.join(' '));
 
-  start_builds:
-    needs: discover_conan_packages
-    if: ${{ github.event.inputs.start_builds == true }} && ${{ needs.discover_conan_packages.outputs.discovered_packages != '' }}
-    uses: ultimaker/cura-workflows/.github/workflows/cura-installers.yml@main
-    with:
-      cura_conan_version: ${{ needs.discover_conan_packages.outputs.cura_package }}
-      package_overrides: ${{ needs.discover_conan_packages.outputs.package_overrides }}
+  # start_builds:
+  #   needs: discover_conan_packages
+  #   if: ${{ github.event.inputs.start_builds == true }} && ${{ needs.discover_conan_packages.outputs.discovered_packages != '' }}
+  #   uses: ultimaker/cura-workflows/.github/workflows/cura-installers.yml@main
+  #   with:
+  #     cura_conan_version: ${{ needs.discover_conan_packages.outputs.cura_package }}
+  #     package_overrides: ${{ needs.discover_conan_packages.outputs.package_overrides }}
