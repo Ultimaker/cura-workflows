@@ -15,6 +15,10 @@ on:
 jobs:
   discover_conan_packages:
     runs-on: ubuntu-latest
+    outputs:
+      discovered_packages: ${{ steps.conan_search.outputs.discovered_packages }}
+      cura_package: ${{ steps.conan_search.outputs.cura_package }}
+      package_overrides: ${{ steps.conan_search.outputs.package_overrides }}
     steps:
       - name: Checkout repository code
         uses: actions/checkout@v4
@@ -144,9 +148,10 @@ jobs:
             core.setOutput('cura_package', curaPackage);
             core.setOutput('package_overrides', overridePackages.join(' '));
 
-      - name: Start Builds for Discovered Packages
-        if: ${{ github.event.inputs.start_builds == 'true' && steps.conan_search.outputs.discovered_packages != '' }}
-        uses: ultimaker/cura-workflows/.github/workflows/cura-installers.yml@main
-        with:
-          cura_conan_version: ${{ steps.conan_search.outputs.cura_package }}
-          package_overrides: ${{ steps.conan_search.outputs.package_overrides }}
+  start_builds:
+    needs: discover_conan_packages
+    if: ${{ github.event.inputs.start_builds && needs.discover_conan_packages.outputs.discovered_packages != '' }}
+    uses: ultimaker/cura-workflows/.github/workflows/cura-installers.yml@main
+    with:
+      cura_conan_version: ${{ needs.discover_conan_packages.outputs.cura_package }}
+      package_overrides: ${{ needs.discover_conan_packages.outputs.package_overrides }}
