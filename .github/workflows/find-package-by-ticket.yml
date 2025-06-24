@@ -31,7 +31,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const inputTicket = '${{ github.event.inputs.jira_ticket_number }}';
+            const inputTicket = '${{ inputs.jira_ticket_number }}';
             let normalizedTicket = inputTicket.toLowerCase().replace(/-/g, '_');
 
             if (/^[0-9]+$/.test(normalizedTicket)) {
@@ -151,10 +151,11 @@ jobs:
             core.setOutput('cura_package', curaPackage);
             core.setOutput('package_overrides', overridePackages.join(' '));
 
-  # start_builds:
-  #   needs: discover_conan_packages
-  #   if: ${{ github.event.inputs.start_builds == true }} && ${{ needs.discover_conan_packages.outputs.discovered_packages != '' }}
-  #   uses: ultimaker/cura-workflows/.github/workflows/cura-installers.yml@main
-  #   with:
-  #     cura_conan_version: ${{ needs.discover_conan_packages.outputs.cura_package }}
-  #     package_overrides: ${{ needs.discover_conan_packages.outputs.package_overrides }}
+  start_builds:
+    needs: discover_conan_packages
+    if: ${{ inputs.start_builds == true && needs.discover_conan_packages.outputs.discovered_packages != '' }}
+    uses: ultimaker/cura-workflows/.github/workflows/cura-installers.yml@main
+    with:
+      cura_conan_version: ${{ needs.discover_conan_packages.outputs.cura_package }}
+      package_overrides: ${{ needs.discover_conan_packages.outputs.package_overrides }}
+    secrets: inherit
