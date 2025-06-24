@@ -153,7 +153,7 @@ jobs:
 
   start_builds:
     needs: discover_conan_packages
-    if: ${{ github.event.inputs.start_builds && needs.discover_conan_packages.outputs.discovered_packages != '' }}
+    if: ${{ github.event.inputs.start_builds }} && ${{ needs.discover_conan_packages.outputs.discovered_packages != '' }}
     uses: ultimaker/cura-workflows/.github/workflows/cura-installers.yml@main
     with:
       cura_conan_version: ${{ needs.discover_conan_packages.outputs.cura_package }}
