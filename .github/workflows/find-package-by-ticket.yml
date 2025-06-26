@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 jobs:
-  discover_conan_packages:
+  find-packages:
     runs-on: ubuntu-latest
     outputs:
       discovered_packages: ${{ steps.conan_search.outputs.discovered_packages }}
