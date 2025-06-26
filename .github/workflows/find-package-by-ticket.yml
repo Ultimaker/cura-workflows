@@ -7,6 +7,16 @@ on:
         default: ''
         required: true
         type: string
+    outputs:
+      discovered_packages:
+        description: "All discovered packages"
+        value: ${{ jobs.find-packages.outputs.discovered_packages }}
+      cura_package:
+        description: "Cura package"
+        value: ${{ jobs.find-packages.outputs.cura_package }}
+      package_overrides:
+        description: "Overrides"
+        value: ${{ jobs.find-packages.outputs.package_overrides }}
 
 permissions:
   contents: read
