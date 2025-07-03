@@ -7,6 +7,10 @@ on:
         default: ''
         required: true
         type: string
+      channel:
+        default: 'ultimaker'
+        required: false
+        type: string
     outputs:
       discovered_packages:
         description: "All discovered packages"
@@ -72,7 +76,7 @@ jobs:
         with:
           script: |
             const jiraTicket = '${{ steps.validate_input.outputs.jira_ticket_number }}';
-            const conanPkgRef = `*/*@ultimaker/${jiraTicket}`;
+            const conanPkgRef = `*/*@${input.channel}/${jiraTicket}`;
             console.log(`Searching for Conan packages matching pattern: ${conanPkgRef}`);
 
             let searchResult = '';
