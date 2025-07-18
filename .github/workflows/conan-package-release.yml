@@ -41,6 +41,7 @@ on:
           - libArcus
           - libnest2d
           - libSavitar
+          - libUvula
           - pyarcus
           - pynest2d
           - pySavitar
