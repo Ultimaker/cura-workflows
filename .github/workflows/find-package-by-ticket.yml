@@ -1,0 +1,163 @@
+name: Conan Package Discovery by Jira Ticket
+
+on:
+  workflow_call:
+    inputs:
+      jira_ticket_number:
+        default: ''
+        required: true
+        type: string
+      channel:
+        default: 'ultimaker'
+        required: false
+        type: string
+    outputs:
+      discovered_packages:
+        description: "All discovered packages"
+        value: ${{ jobs.find-packages.outputs.discovered_packages }}
+      cura_package:
+        description: "Cura package"
+        value: ${{ jobs.find-packages.outputs.cura_package }}
+      package_overrides:
+        description: "Overrides"
+        value: ${{ jobs.find-packages.outputs.package_overrides }}
+
+permissions:
+  contents: read
+
+jobs:
+  find-packages:
+    runs-on: ubuntu-latest
+    outputs:
+      discovered_packages: ${{ steps.conan_search.outputs.discovered_packages }}
+      cura_package: ${{ steps.conan_search.outputs.cura_package }}
+      package_overrides: ${{ steps.conan_search.outputs.package_overrides }}
+    steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v4
+
+      - name: Validate Jira Ticket Number Format
+        id: validate_input
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const inputTicket = '${{ inputs.jira_ticket_number }}';
+            let normalizedTicket = inputTicket.toLowerCase().replace(/-/g, '_');
+
+            if (/^[0-9]+$/.test(normalizedTicket)) {
+              normalizedTicket = `cura_${normalizedTicket}`;
+            }
+
+            const keyword = normalizedTicket.split('_')[0];
+            const numberMatch = normalizedTicket.match(/[0-9]+/);
+            const number = numberMatch ? numberMatch[0] : null;
+
+            if (!['cura', 'np', 'pp'].includes(keyword)) {
+              return core.setFailed("Invalid Jira ticket keyword. Expected one of: cura, np, pp.");
+            }
+            if (number === null) {
+              return core.setFailed("No number found in Jira ticket input.");
+            }
+
+            const fixedTicket = `${keyword}_${number}`;
+            console.log(`Jira ticket number normalized to '${fixedTicket}'.`);
+            core.setOutput('jira_ticket_number', fixedTicket);
+
+      - name: Setup the build environment
+        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@main
+        with:
+          conan_user: ${{ secrets.CONAN_USER }}
+          conan_password: ${{ secrets.CONAN_PASS }}
+          private_data: true
+
+      - name: Discover Conan Packages
+        id: conan_search
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const jiraTicket = '${{ steps.validate_input.outputs.jira_ticket_number }}';
+            const buildChannel = '${{ inputs.channel }}'
+            const conanPkgRef = `*/*@${buildChannel}/${jiraTicket}`;
+            console.log(`Searching for Conan packages matching pattern: ${conanPkgRef}`);
+
+            let searchResult = '';
+            const options = {
+              ignoreReturnCode: true,
+              listeners: {
+                stdout: (data) => {
+                  searchResult += data.toString();
+                },
+                stderr: (data) => {
+                  searchResult += data.toString();
+                }
+              }
+            };
+
+            await exec.exec('conan', ['list', conanPkgRef, '-r=*', '--format=json'], options);
+
+            const jsonStart = searchResult.indexOf('{');
+            if (jsonStart === -1) {
+              console.log(`No packages found in any remote matching ${conanPkgRef}`);
+              core.setOutput('discovered_packages', '');
+              core.setOutput('cura_package', '');
+              core.setOutput('package_overrides', '');
+              
+              await core.summary
+                .addHeading(`Conan Packages Found for Jira Ticket: ${jiraTicket}`)
+                .addRaw(`The workflow searched for Conan packages matching the pattern \`${conanPkgRef}\` across all configured remotes.`)
+                .addHeading('Discovered Packages:', 2)
+                .addRaw('*No packages found matching the specified tag.*')
+                .addSeparator()
+                .write();
+              return;
+            }
+            
+            const jsonEnd = searchResult.lastIndexOf('}');
+            const jsonDataStr = searchResult.substring(jsonStart, jsonEnd + 1);
+            let jsonData;
+            try {
+              jsonData = JSON.parse(jsonDataStr);
+            } catch (e) {
+              console.log(`Failed to parse conan list output as JSON: ${e.message}`);
+              console.log(`Raw output: ${searchResult}`);
+              core.setFailed('Failed to parse conan list output.');
+              return;
+            }
+
+            const discoveredPackages = [];
+            for (const remote in jsonData) {
+              if (jsonData[remote]) {
+                const packages = Object.keys(jsonData[remote]);
+                for (const pkg of packages) {
+                  if (!pkg.includes('+')) {
+                    discoveredPackages.push(pkg);
+                  }
+                }
+              }
+            }
+
+            const summary = core.summary
+              .addHeading(`Conan Packages Found for Jira Ticket: ${jiraTicket}`)
+              .addRaw(`The workflow searched for Conan packages matching the pattern \`${conanPkgRef}\` across all configured remotes.`)
+              .addHeading('Discovered Packages:', 2);
+            
+            if (discoveredPackages.length === 0) {
+                summary.addRaw('*No packages found matching the specified tag.*');
+            } else {
+                summary.addList(discoveredPackages);
+            }
+            await summary.addSeparator().write();
+
+            let curaPackage = '';
+            const overridePackages = [];
+            for (const pkg of discoveredPackages) {
+              if (pkg.startsWith('cura/')) {
+                curaPackage = pkg;
+              } else {
+                overridePackages.push(pkg);
+              }
+            }
+
+            core.setOutput('discovered_packages', discoveredPackages.join(' '));
+            core.setOutput('cura_package', curaPackage);
+            core.setOutput('package_overrides', overridePackages.join(' '));
