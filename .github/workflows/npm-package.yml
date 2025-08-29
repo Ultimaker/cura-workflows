@@ -33,7 +33,13 @@ jobs:
           conan_password: ${{ secrets.CONAN_PASS }}
           install_system_dependencies: true
           repository_path: _sources
-
+          
+      - name: Clean node_modules and npm cache
+        shell: bash
+        run: |
+          rm -rf node_modules
+          npm cache clean --force
+  
       - name: Ensure compatible TypeScript and @types/node
         shell: bash
         run: |
