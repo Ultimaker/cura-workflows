@@ -33,17 +33,9 @@ jobs:
           conan_password: ${{ secrets.CONAN_PASS }}
           install_system_dependencies: true
           repository_path: _sources
-          
-      - name: Clean node_modules and npm cache
-        shell: bash
-        run: |
-          rm -rf node_modules
-          npm cache clean --force
-  
-      - name: Ensure compatible TypeScript and @types/node
-        shell: bash
-        run: |
-          npm install typescript@5.2.2 @types/node@20.6.0
+
+      - name: Check TypeScript version
+        run: npx tsc --version
 
       - name: Gather/build the packages
         run: conan install --requires "${{ inputs.package_version_full }}" -pr:h cura_wasm.jinja -g npm --build=missing --update ${{ inputs.conan_extra_args }} -of .
