@@ -1,4 +1,4 @@
-name: NPM package
+name: Publish NPM package
 
 on:
   workflow_call:
@@ -34,17 +34,17 @@ jobs:
           install_system_dependencies: true
           repository_path: _sources
 
-      - name: Check TypeScript version
-        run: npx tsc --version
-
       - name: Gather/build the packages
-        run: conan install --requires "${{ inputs.package_version_full }}" -pr:h cura_wasm.jinja -g npm --build=missing --update ${{ inputs.conan_extra_args }} -of .
+        run: conan install --requires "${{ inputs.package_version_full }}" -pr:h cura_wasm.jinja -g npm --build=missing --update ${{ inputs.conan_extra_args }} -of.
 
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
           registry-url: 'https://npm.pkg.github.com'
           scope: '@ultimaker'
+
+      - name: Install NPM dependencies
+        run: npm install
 
       - name: Publish to GitHub Packages
         run: |
