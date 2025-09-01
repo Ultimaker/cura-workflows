@@ -40,13 +40,20 @@ jobs:
           install_system_dependencies: true
           repository_path: _sources
 
+      - name: Upgrade TypeScript and Node types
+        run: |
+          npm install --save-dev typescript@latest @types/node@latest
+          rm -rf node_modules package-lock.json
+          npm install
+
       - name: Create tsconfig.json
         run: |
-            echo '{
-              "compilerOptions": {
-                "skipLibCheck": true
-              }
-            }' > tsconfig.json
+          echo '{
+            "compilerOptions": {
+              "skipLibCheck": true,
+              "target": "ES2020"
+            }
+          }' > tsconfig.json
 
       - name: Gather/build the packages
         # This step will now succeed because tsc will find and use your local tsconfig.json
