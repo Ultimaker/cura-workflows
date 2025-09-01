@@ -25,6 +25,12 @@ jobs:
       packages: write
 
     steps:
+      # STEP 1: Add this checkout step.
+      # This is crucial to make your repository files, including the new tsconfig.json,
+      # available to the runner.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Setup the build environment
         uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@main
         with:
@@ -35,6 +41,7 @@ jobs:
           repository_path: _sources
 
       - name: Gather/build the packages
+        # This step will now succeed because tsc will find and use your local tsconfig.json
         run: conan install --requires "${{ inputs.package_version_full }}" -pr:h cura_wasm.jinja -g npm --build=missing --update ${{ inputs.conan_extra_args }} -of .
 
       - name: Use Node.js
@@ -50,7 +57,8 @@ jobs:
         run: |
           npm publish
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Use the default GITHUB_TOKEN for publishing to GitHub Packages
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload all packages on a push to main
         if: ${{ github.ref_name == 'main' && github.event_name == 'push' }}
