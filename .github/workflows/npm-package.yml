@@ -1,6 +1,21 @@
 name: NPM package
 
 on:
+  workflow_dispatch:
+    inputs:
+      package_version_full:
+        required: true
+        type: string
+
+      private_data:
+        required: false
+        default: false
+        type: boolean
+
+      conan_extra_args:
+        required: false
+        default: ""
+        type: string
   workflow_call:
     inputs:
       package_version_full:
@@ -19,7 +34,7 @@ on:
 
 jobs:
   publish-npm:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted-Ubuntu22-X64
     permissions:
       contents: read
       packages: write
