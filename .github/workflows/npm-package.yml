@@ -40,6 +40,14 @@ jobs:
           install_system_dependencies: true
           repository_path: _sources
 
+      - name: Create tsconfig.json
+        run: |
+            echo '{
+              "compilerOptions": {
+                "skipLibCheck": true
+              }
+            }' > tsconfig.json
+
       - name: Gather/build the packages
         # This step will now succeed because tsc will find and use your local tsconfig.json
         run: conan install --requires "${{ inputs.package_version_full }}" -pr:h cura_wasm.jinja -g npm --build=missing --update ${{ inputs.conan_extra_args }} -of .
