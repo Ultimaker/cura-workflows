@@ -40,7 +40,7 @@ def upload_changed_recipes(args):
         for version, data in versions.items():
             conanfile = config_file.parent.joinpath(data["folder"], "conanfile.py")
 
-            conan_export = ["conan", "export", conanfile, "--name", name, "--version", version, "-f", "json"]
+            conan_export = ["conan", "export", str(conanfile), "--name", name, "--version", version, "-f", "json"]
 
             if actual_user != "":
                 conan_export += ["--user", actual_user]
