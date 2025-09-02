@@ -47,7 +47,12 @@ def upload_changed_recipes(args):
             if actual_channel != "":
                 conan_export += ["--channel", actual_channel]
 
-            export_output = subprocess.run(conan_export, capture_output=True, check = True).stdout
+            try:
+                export_output = subprocess.run(conan_export, capture_output=True, check = True).stdout
+            except subprocess.CalledProcessError as ex:
+                print(ex.stdout)
+                print(ex.stderr)
+                raise ex
             package_reference = json.loads(export_output)["reference"]
             subprocess.run(["conan", "upload", package_reference, "-r", args.remote, "-c"], check = True)
             packages.append(package_reference.split("#")[0])
