@@ -1,4 +1,4 @@
-conan==2.7.1
+conan==2.19.1
 sip>=6.8.1
 sentry-cli==2.21.2
 pyyaml
