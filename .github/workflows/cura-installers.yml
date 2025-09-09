@@ -74,6 +74,7 @@ jobs:
       architecture: X64
       operating_system: self-hosted-X64
       private_data: ${{ inputs.private_data }}
+      lockfile_repository_branch: ${{ inputs.lockfile_repository_branch }}
     secrets: inherit
 
   macos-arm-installer:
@@ -88,4 +89,5 @@ jobs:
       architecture: ARM64
       operating_system: self-hosted-ARM64
       private_data: ${{ inputs.private_data }}
+      lockfile_repository_branch: ${{ inputs.lockfile_repository_branch }}
     secrets: inherit

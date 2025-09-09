@@ -40,6 +40,12 @@ on:
         default: 'windows-2022'
         type: string
 
+      lockfile_repository_branch:
+        description: 'Branch where to get the conan lockfile from'
+        required: false
+        default: ''
+        type: string
+
       private_data:
         required: false
         default: false
@@ -67,7 +73,7 @@ jobs:
     steps:
       - name: Setup the build environment
         id: setup-environment
-        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@main
+        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@5.10
         with:
           conan_user: ${{ secrets.CONAN_USER }}
           conan_password: ${{ secrets.CONAN_PASS }}
@@ -75,6 +81,7 @@ jobs:
           install_system_dependencies: true
           repository_path: _cura_sources # we don't want the actual sources to interfere with the built conan package
           python_set_env_vars: false
+          branch: ${{ inputs.lockfile_repository_branch }}
 
       - name: Set packages overrides
         id: set-overrides
@@ -87,6 +94,10 @@ jobs:
         run: |
             $pydir = type pydir.txt
             $env:PATH += ";$pydir;$pydir/Scripts"
+            if (Test-Path -Path "_cura_sources/conan.lock") {
+                Write-Host "Getting conan lockfile"
+                Copy-Item -Path "_cura_sources/conan.lock" -Destination . -Force
+            }
             conan install --requires "${{ inputs.cura_conan_version != '' && inputs.cura_conan_version || format('cura/{0}@ultimaker/testing', steps.setup-environment.outputs.package_version) }}" ${{ inputs.conan_args }} --build=missing --update -of cura_inst --deployer-package="*" --profile ${{ steps.set-overrides.outputs.profile }} -c user.sentry:token="${{ secrets.CURAENGINE_SENTRY_TOKEN }}" ${{ inputs.enterprise && '-o "cura/*:enterprise=True"' || '' }} ${{ inputs.staging && '-o "cura/*:staging=True"' || '' }} ${{ inputs.private_data && '-o "cura/*:internal=True"' || '' }}
 
       - name: Create the Cura distribution with pyinstaller
