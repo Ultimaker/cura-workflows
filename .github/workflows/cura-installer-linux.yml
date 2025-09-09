@@ -62,7 +62,7 @@ jobs:
     steps:
       - name: Setup the build environment
         id: setup-environment
-        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@main
+        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@5.10
         with:
           conan_user: ${{ secrets.CONAN_USER }}
           conan_password: ${{ secrets.CONAN_PASS }}
