@@ -28,6 +28,10 @@ on:
         required: false
         default: false
         type: boolean
+      lockfile_repository_branch:
+        required: false
+        default: ''
+        type: string
 
 
 jobs:
@@ -55,6 +59,7 @@ jobs:
       staging: ${{ inputs.staging }}
       operating_system: self-hosted-Ubuntu22-X64
       private_data: ${{ inputs.private_data }}
+      lockfile_repository_branch: ${{ inputs.lockfile_repository_branch }}
     secrets: inherit
 
   macos-installer:
