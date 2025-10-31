@@ -78,170 +78,54 @@ jobs:
             const jiraTicket = '${{ steps.validate_input.outputs.jira_ticket_number }}';
             const buildChannel = '${{ inputs.channel }}'
             const conanPkgRef = `*/*@${buildChannel}/${jiraTicket}`;
-            console.log(`Searching for Conan packages matching pattern: ${conanPkgRef}`);
 
-            // Function to compare semantic versions
-            function compareVersions(a, b) {
-              // Helper function to parse version string
-              function parseVersion(version) {
-                // Split into core version and pre-release parts
-                // Look for pattern: numbers.numbers.numbers-prerelease
-                const versionMatch = version.match(/^(\d+(?:\.\d+)*)(?:-(.+))?$/);
-                
-                if (!versionMatch) {
-                  // Fallback for malformed versions
-                  return { numericParts: [0], preRelease: null };
-                }
-                
-                const [, coreVersion, preRelease] = versionMatch;
-                const numericParts = coreVersion.split('.').map(part => parseInt(part, 10));
-                
-                return { numericParts, preRelease: preRelease || null };
-              }
-              
-              const aParsed = parseVersion(a);
-              const bParsed = parseVersion(b);
-              
-              const maxLength = Math.max(aParsed.numericParts.length, bParsed.numericParts.length);
-              
-              // Compare numeric parts first
-              for (let i = 0; i < maxLength; i++) {
-                const aPart = aParsed.numericParts[i] || 0;
-                const bPart = bParsed.numericParts[i] || 0;
-                if (aPart > bPart) return 1;
-                if (aPart < bPart) return -1;
-              }
-              
-              // If numeric parts are equal, compare pre-release suffixes
-              // No pre-release vs has pre-release: no pre-release wins
-              if (!aParsed.preRelease && bParsed.preRelease) return 1;  // 1.0.0 > 1.0.0-alpha
-              if (aParsed.preRelease && !bParsed.preRelease) return -1; // 1.0.0-alpha < 1.0.0
-              
-              // Both have pre-release: compare lexicographically
-              if (aParsed.preRelease && bParsed.preRelease) {
-                if (aParsed.preRelease < bParsed.preRelease) return -1; // alpha.0 < alpha.1
-                if (aParsed.preRelease > bParsed.preRelease) return 1;  // alpha.1 > alpha.0
-              }
-              
-              return 0;
-            }
-
-            // Function to deduplicate packages by selecting highest version for each repository
-            function deduplicatePackages(packages) {
-              const packageMap = new Map();
-              
-              for (const pkg of packages) {
-                // Extract package name and version from format "packagename/version@channel/reference"
-                const match = pkg.match(/^([^/]+)\/([^@]+)/);
-                if (!match) continue;
-                
-                const [, packageName, version] = match;
-                
-                if (!packageMap.has(packageName)) {
-                  packageMap.set(packageName, { packageRef: pkg, version: version });
-                } else {
-                  const existing = packageMap.get(packageName);
-                  if (compareVersions(version, existing.version) > 0) {
-                    packageMap.set(packageName, { packageRef: pkg, version: version });
-                    console.log(`Found higher version for ${packageName}: ${version} > ${existing.version}, selecting ${pkg}`);
-                  } else {
-                    console.log(`Keeping existing version for ${packageName}: ${existing.version} >= ${version}`);
-                  }
-                }
-              }
-              
-              return Array.from(packageMap.values()).map(item => item.packageRef);
-            }
-
-            let searchResult = '';
-            const options = {
+            // Python script handles everything including writing to GITHUB_STEP_SUMMARY
+            let pythonOutput = '';
+            const pythonOptions = {
               ignoreReturnCode: true,
               listeners: {
-                stdout: (data) => {
-                  searchResult += data.toString();
-                },
-                stderr: (data) => {
-                  searchResult += data.toString();
-                }
+                stdout: (data) => { pythonOutput += data.toString(); },
+                stderr: (data) => { console.log('Python:', data.toString()); }
               }
             };
 
-            await exec.exec('conan', ['list', conanPkgRef, '-r=*', '--format=json'], options);
+            try {
+              const exitCode = await exec.exec('python3', [
+                'runner_scripts/conan_package_finder.py',
+                '--search-pattern', conanPkgRef,
+                '--jira-ticket', jiraTicket,
+                '--output-format', 'github-summary'
+              ], pythonOptions);
 
-            const jsonStart = searchResult.indexOf('{');
-            if (jsonStart === -1) {
-              console.log(`No packages found in any remote matching ${conanPkgRef}`);
+              if (exitCode === 0 && pythonOutput.trim()) {
+                // Parse the JSON response containing workflow outputs
+                const outputs = JSON.parse(pythonOutput.trim());
+                
+                console.log(`Setting workflow outputs: discovered_packages="${outputs.discovered_packages}", cura_package="${outputs.cura_package}", package_overrides="${outputs.package_overrides}"`);
+
+                // Set workflow outputs
+                core.setOutput('discovered_packages', outputs.discovered_packages);
+                core.setOutput('cura_package', outputs.cura_package);
+                core.setOutput('package_overrides', outputs.package_overrides);
+
+                // Summary was already written by Python to GITHUB_STEP_SUMMARY
+              } else {
+                throw new Error('Python script failed or returned no output');
+              }
+              
+            } catch (error) {
+              console.log(`Package search failed: ${error.message}`);
+              
+              // Set empty outputs
               core.setOutput('discovered_packages', '');
               core.setOutput('cura_package', '');
               core.setOutput('package_overrides', '');
               
+              // Write failure summary directly since Python couldn't
               await core.summary
                 .addHeading(`Conan Packages Found for Jira Ticket: ${jiraTicket}`)
                 .addRaw(`The workflow searched for Conan packages matching the pattern \`${conanPkgRef}\` across all configured remotes.`)
                 .addHeading('Discovered Packages:', 2)
                 .addRaw('*No packages found matching the specified tag.*')
-                .addSeparator()
                 .write();
-              return;
             }
-            
-            const jsonEnd = searchResult.lastIndexOf('}');
-            const jsonDataStr = searchResult.substring(jsonStart, jsonEnd + 1);
-            let jsonData;
-            try {
-              jsonData = JSON.parse(jsonDataStr);
-            } catch (e) {
-              console.log(`Failed to parse conan list output as JSON: ${e.message}`);
-              console.log(`Raw output: ${searchResult}`);
-              core.setFailed('Failed to parse conan list output.');
-              return;
-            }
-
-            const allPackages = [];
-            for (const remote in jsonData) {
-              if (jsonData[remote]) {
-                const packages = Object.keys(jsonData[remote]);
-                for (const pkg of packages) {
-                  allPackages.push(pkg);
-                }
-              }
-            }
-
-            // Filter out packages with '+' in the name
-            const discoveredPackages = allPackages.filter(pkg => !pkg.includes('+'));
-
-            // Apply deduplication to select highest versions for each repository
-            const deduplicatedPackages = deduplicatePackages(discoveredPackages);
-            console.log(`Original packages found: ${discoveredPackages.length}, after deduplication: ${deduplicatedPackages.length}`);
-
-            const summary = core.summary
-              .addHeading(`Conan Packages Found for Jira Ticket: ${jiraTicket}`)
-              .addRaw(`The workflow searched for Conan packages matching the pattern \`${conanPkgRef}\` across all configured remotes.`)
-              .addHeading('Discovered Packages:', 2);
-            
-            if (deduplicatedPackages.length === 0) {
-                summary.addRaw('*No packages found matching the specified tag.*');
-            } else {
-                summary.addList(deduplicatedPackages);
-                if (discoveredPackages.length > deduplicatedPackages.length) {
-                  summary.addHeading('Package Version Selection:', 3)
-                    .addRaw(`Found ${discoveredPackages.length} total packages, selected ${deduplicatedPackages.length} packages after choosing the highest semantic version for each repository.`)
-                    .addHeading('All Discovered Packages (before deduplication):', 4)
-                    .addList(discoveredPackages);
-                }
-            }
-            await summary.addSeparator().write();
-
-            let curaPackage = '';
-            const overridePackages = [];
-            for (const pkg of deduplicatedPackages) {
-              if (pkg.startsWith('cura/')) {
-                curaPackage = pkg;
-              } else {
-                overridePackages.push(pkg);
-              }
-            }
-
-            core.setOutput('discovered_packages', deduplicatedPackages.join(' '));
-            core.setOutput('cura_package', curaPackage);
-            core.setOutput('package_overrides', overridePackages.join(' '));
