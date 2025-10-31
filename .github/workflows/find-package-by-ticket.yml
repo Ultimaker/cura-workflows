@@ -40,49 +40,11 @@ jobs:
           conan_password: ${{ secrets.CONAN_PASS }}
           private_data: true
 
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          repository: Ultimaker/cura-workflows
-          path: Cura-workflows
-          ref: main
-
-      - name: Validate Jira Ticket Number Format
-        id: validate_input
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const inputTicket = '${{ inputs.jira_ticket_number }}';
-            let normalizedTicket = inputTicket.toLowerCase().replace(/-/g, '_');
-
-            if (/^[0-9]+$/.test(normalizedTicket)) {
-              normalizedTicket = `cura_${normalizedTicket}`;
-            }
-
-            const keyword = normalizedTicket.split('_')[0];
-            const numberMatch = normalizedTicket.match(/[0-9]+/);
-            const number = numberMatch ? numberMatch[0] : null;
-
-            if (!['cura', 'np', 'pp'].includes(keyword)) {
-              return core.setFailed("Invalid Jira ticket keyword. Expected one of: cura, np, pp.");
-            }
-            if (number === null) {
-              return core.setFailed("No number found in Jira ticket input.");
-            }
-
-            const fixedTicket = `${keyword}_${number}`;
-            console.log(`Jira ticket number normalized to '${fixedTicket}'.`);
-            core.setOutput('jira_ticket_number', fixedTicket);
-
       - name: Discover Conan Packages
         id: conan_search
         uses: actions/github-script@v7
         with:
           script: |
-            const jiraTicket = '${{ steps.validate_input.outputs.jira_ticket_number }}';
-            const buildChannel = '${{ inputs.channel }}'
-            const conanPkgRef = `*/*@${buildChannel}/${jiraTicket}`;
-
             let pythonOutput = '';
             const pythonOptions = {
               ignoreReturnCode: true,
@@ -95,9 +57,10 @@ jobs:
             try {
               const exitCode = await exec.exec('python3', [
                 'Cura-workflows/runner_scripts/conan_package_finder.py',
-                '--search-pattern', conanPkgRef,
-                '--jira-ticket', jiraTicket,
-                '--output-format', 'github-summary'
+                '--jira-ticket', '${{ inputs.jira_ticket_number }}',
+                '--channel', '${{ inputs.channel }}',
+                '--output-format', 'github-summary',
+                '--summary-output', process.env.GITHUB_STEP_SUMMARY
               ], pythonOptions);
 
               if (exitCode === 0 && pythonOutput.trim()) {
@@ -121,10 +84,12 @@ jobs:
               core.setOutput('package_overrides', '');
               
               // Write failure summary directly since Python couldn't
+              const jiraTicket = '${{ inputs.jira_ticket_number }}';
+              const buildChannel = '${{ inputs.channel }}';
               await core.summary
                 .addHeading(`Conan Packages Found for Jira Ticket: ${jiraTicket}`)
-                .addRaw(`The workflow searched for Conan packages matching the pattern \`${conanPkgRef}\` across all configured remotes.`)
+                .addRaw(`The workflow searched for Conan packages in channel \`${buildChannel}\`.`)
                 .addHeading('Discovered Packages:', 2)
-                .addRaw('*No packages found matching the specified tag.*')
+                .addRaw('*No packages found or script failed.*')
                 .write();
             }

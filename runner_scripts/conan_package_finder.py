@@ -7,7 +7,7 @@ import json
 import sys
 import argparse
 import subprocess
-from os import environ
+import re
 from typing import Dict, List, Tuple, Optional, Any
 
 try:
@@ -30,7 +30,7 @@ def search_conan_packages(pattern: str) -> str:
         pattern: Conan package pattern (e.g., "*/*@ultimaker/cura_12824")
         
     Returns:
-        Raw output from conan list command
+        Raw JSON output from conan list command (stdout only)
     """
     try:
         result = subprocess.run(
@@ -41,16 +41,17 @@ def search_conan_packages(pattern: str) -> str:
             check=True   # Raise CalledProcessError on non-zero exit
         )
         
-        # Return both stdout and stderr as conan sometimes mixes output
-        return result.stdout + result.stderr
+        # Only return stdout for JSON parsing - stderr contains logs/warnings
+        # If there are important errors, they'll be in the exception handling
+        return result.stdout
         
     except subprocess.TimeoutExpired:
         print("Error: Conan list command timed out", file=sys.stderr)
         return ""
     except subprocess.CalledProcessError as e:
         print(f"Error: Conan list command failed with return code {e.returncode}", file=sys.stderr)
-        print(f"Output: {e.stdout}", file=sys.stderr)
-        print(f"Error: {e.stderr}", file=sys.stderr)
+        print(f"Stdout: {e.stdout}", file=sys.stderr)
+        print(f"Stderr: {e.stderr}", file=sys.stderr)
         return ""
     except FileNotFoundError:
         print("Error: 'conan' command not found. Make sure Conan is installed and in PATH", file=sys.stderr)
@@ -62,29 +63,19 @@ def parse_conan_list_output(raw_output: str) -> List[str]:
     Parse conan list JSON output and extract package references.
     
     Args:
-        raw_output: Raw output from 'conan list' command
+        raw_output: Raw JSON output from 'conan list' command
         
     Returns:
         List of package references, filtered to exclude packages with '+'
     """
     if not raw_output.strip():
         return []
-        
-    # Find JSON content in the output
-    json_start = raw_output.find('{')
-    if json_start == -1:
-        return []
-        
-    json_end = raw_output.rfind('}')
-    if json_end == -1:
-        return []
-    
-    json_str = raw_output[json_start:json_end + 1]
     
     try:
-        json_data = json.loads(json_str)
+        json_data = json.loads(raw_output.strip())
     except json.JSONDecodeError as e:
         print(f"Failed to parse conan list JSON output: {e}", file=sys.stderr)
+        print(f"Raw output: {raw_output[:500]}{'...' if len(raw_output) > 500 else ''}", file=sys.stderr)
         return []
     
     # Extract all packages from all remotes
@@ -100,6 +91,45 @@ def parse_conan_list_output(raw_output: str) -> List[str]:
     return filtered_packages
 
 
+def validate_and_normalize_jira_ticket(ticket: str) -> str:
+    """
+    Validate and normalize a Jira ticket number.
+    
+    Args:
+        ticket: Input ticket number in various formats
+        
+    Returns:
+        Normalized ticket in format "keyword_number"
+        
+    Raises:
+        ValueError: If the ticket format is invalid
+    """
+    if not ticket or not ticket.strip():
+        raise ValueError("Jira ticket number cannot be empty")
+    
+    # Normalize: lowercase and replace hyphens with underscores
+    normalized_ticket = ticket.lower().replace('-', '_')
+    
+    # If it's just a number, prepend "cura_"
+    if re.match(r'^[0-9]+$', normalized_ticket):
+        normalized_ticket = f"cura_{normalized_ticket}"
+    
+    # Extract keyword and number
+    keyword = normalized_ticket.split('_')[0]
+    number_match = re.search(r'[0-9]+', normalized_ticket)
+    number = number_match.group(0) if number_match else None
+    
+    # Validate keyword
+    if keyword not in ['cura', 'np', 'pp']:
+        raise ValueError(f"Invalid Jira ticket keyword '{keyword}'. Expected one of: cura, np, pp")
+    
+    # Validate number
+    if number is None:
+        raise ValueError(f"No number found in Jira ticket input: '{ticket}'")
+    
+    return f"{keyword}_{number}"
+
+
 def parse_package_reference(package_ref: str) -> Optional[Tuple[str, str]]:
     """
     Parse a Conan package reference to extract package name and version.
@@ -110,20 +140,19 @@ def parse_package_reference(package_ref: str) -> Optional[Tuple[str, str]]:
     Returns:
         Tuple of (package_name, version) or None if parsing fails
     """
-    try:
-        # Split by '/' to get package name and rest
-        parts = package_ref.split('/')
-        if len(parts) < 2:
-            return None
-            
-        package_name = parts[0]
-        
-        # Split by '@' to separate version from channel/reference
-        version_part = parts[1].split('@')[0]
-        
-        return package_name, version_part
-    except Exception:
-        return None
+    # Regex pattern to match Conan package reference format: name/version@user/channel
+    # This handles various version formats including semantic versions, alphanumeric, etc.
+    pattern = r'^([^/]+)/([^@]+)@.*$'
+    
+    match = re.match(pattern, package_ref)
+    if match:
+        package_name = match.group(1)
+        version = match.group(2)
+        return package_name, version
+    
+    # If regex doesn't match, log the problematic reference for debugging
+    print(f"Warning: Could not parse package reference format: '{package_ref}'", file=sys.stderr)
+    return None
 
 
 def deduplicate_packages(packages: List[str]) -> Tuple[List[str], Dict[str, List[str]]]:
@@ -214,13 +243,29 @@ def categorize_packages(packages: List[str]) -> Tuple[str, List[str]]:
 def main():
     parser = argparse.ArgumentParser(description="Search and process Conan packages")
     parser.add_argument("--search-pattern", help="Conan package search pattern (e.g., '*/*@ultimaker/cura_12824')")
-    parser.add_argument("--jira-ticket", help="Jira ticket number for summary generation")
+    parser.add_argument("--jira-ticket", help="Jira ticket number for search pattern generation and summary")
+    parser.add_argument("--channel", default="ultimaker", help="Conan channel to search in (default: ultimaker)")
     parser.add_argument("--raw-output", help="Raw output from conan list command (alternative to --search-pattern)")
     parser.add_argument("--packages", help="JSON array of package references (alternative to above)")
     parser.add_argument("--output-format", choices=["json", "github-actions", "github-summary"], default="json",
                        help="Output format")
+    parser.add_argument("--summary-output", type=str, help="Path of output file to write summary, otherwise print to stdout")
+    parser.add_argument("--actions-output", type=str, help="Path of output file to write GitHub Actions outputs, otherwise print to stdout")
     
     args = parser.parse_args()
+    
+    # Handle Jira ticket validation and pattern generation if needed
+    if args.jira_ticket and args.search_pattern:
+        print("Warning: Both --jira-ticket and --search-pattern provided. Using --search-pattern.", file=sys.stderr)
+    elif args.jira_ticket and not args.search_pattern:
+        try:
+            normalized_ticket = validate_and_normalize_jira_ticket(args.jira_ticket)
+            args.search_pattern = f"*/*@{args.channel}/{normalized_ticket}"
+            args.jira_ticket = normalized_ticket  # Use normalized version
+            print(f"Generated search pattern from Jira ticket: {args.search_pattern}", file=sys.stderr)
+        except ValueError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
     
     if args.search_pattern:
         # Execute conan search and process results
@@ -263,14 +308,21 @@ def main():
         
     elif args.output_format == "github-actions":
         # Output in GitHub Actions format for direct consumption
-        print(f"discovered_packages={' '.join(deduplicated)}")
-        print(f"cura_package={cura_package}")
-        print(f"package_overrides={' '.join(override_packages)}")
-        print(f"original_count={len(discovered_packages)}")
-        print(f"deduplicated_count={len(deduplicated)}")
+        actions_output = sys.stdout
+        if args.actions_output is not None:
+            actions_output = open(args.actions_output, "w")
+        
+        actions_output.write(f"discovered_packages={' '.join(deduplicated)}\n")
+        actions_output.write(f"cura_package={cura_package}\n")
+        actions_output.write(f"package_overrides={' '.join(override_packages)}\n")
+        actions_output.write(f"original_count={len(discovered_packages)}\n")
+        actions_output.write(f"deduplicated_count={len(deduplicated)}\n")
+        
+        if args.actions_output is not None:
+            actions_output.close()
         
     elif args.output_format == "github-summary":
-        # Generate complete GitHub summary and write directly to GITHUB_STEP_SUMMARY
+        # Generate complete GitHub summary
         jira_ticket = args.jira_ticket or "Unknown"
         pattern = args.search_pattern or "N/A"
         
@@ -306,10 +358,15 @@ def main():
         
         summary_lines.extend(["\n", "---\n"])
         
-        # Write directly to GitHub Step Summary if available
-        if "GITHUB_STEP_SUMMARY" in environ:
-            with open(environ["GITHUB_STEP_SUMMARY"], "a") as f:
-                f.writelines(summary_lines)
+        # Write summary to file or stdout
+        summary_output = sys.stdout
+        if args.summary_output is not None:
+            summary_output = open(args.summary_output, "w")
+        
+        summary_output.writelines(summary_lines)
+        
+        if args.summary_output is not None:
+            summary_output.close()
         
         # Output workflow data as JSON for JavaScript consumption
         outputs = {
