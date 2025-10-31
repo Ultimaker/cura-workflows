@@ -82,16 +82,42 @@ jobs:
 
             // Function to compare semantic versions
             function compareVersions(a, b) {
-              const aParts = a.split('.').map(x => parseInt(x) || 0);
-              const bParts = b.split('.').map(x => parseInt(x) || 0);
+              // Split version strings and extract numeric parts only
+              const aParts = a.split('.').map(part => {
+                const numericPart = part.match(/^\d+/);
+                return numericPart ? parseInt(numericPart[0]) : 0;
+              });
+              const bParts = b.split('.').map(part => {
+                const numericPart = part.match(/^\d+/);
+                return numericPart ? parseInt(numericPart[0]) : 0;
+              });
+              
               const maxLength = Math.max(aParts.length, bParts.length);
               
+              // Compare numeric parts first
               for (let i = 0; i < maxLength; i++) {
                 const aPart = aParts[i] || 0;
                 const bPart = bParts[i] || 0;
                 if (aPart > bPart) return 1;
                 if (aPart < bPart) return -1;
               }
+              
+              // If numeric parts are equal, compare pre-release suffixes
+              const aPreRelease = a.match(/\d+([^\d.].*)$/);
+              const bPreRelease = b.match(/\d+([^\d.].*)$/);
+              
+              // No pre-release vs has pre-release: no pre-release wins
+              if (!aPreRelease && bPreRelease) return 1;  // 1.0.0 > 1.0.0-alpha
+              if (aPreRelease && !bPreRelease) return -1; // 1.0.0-alpha < 1.0.0
+              
+              // Both have pre-release: compare lexicographically
+              if (aPreRelease && bPreRelease) {
+                const aSuffix = aPreRelease[1];
+                const bSuffix = bPreRelease[1];
+                if (aSuffix < bSuffix) return -1; // -alpha < -beta
+                if (aSuffix > bSuffix) return 1;  // -beta > -alpha
+              }
+              
               return 0;
             }
 
