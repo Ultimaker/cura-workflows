@@ -49,6 +49,11 @@ inputs:
     default: 'master'
     type: string
 
+  cura_workflows_branch:
+    required: false
+    default: 'main'
+    type: string
+
 outputs:
   package_name:
     value: ${{ steps.setup-environment.outputs.package_name }}
@@ -76,7 +81,7 @@ runs:
       with:
         repository: Ultimaker/Cura-workflows
         path: Cura-workflows
-        ref: main
+        ref: ${{ inputs.cura_workflows_branch }}
 
     - name: Setup Python and pip
       uses: actions/setup-python@v5
