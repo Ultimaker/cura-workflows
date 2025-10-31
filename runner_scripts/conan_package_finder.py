@@ -7,12 +7,11 @@ import json
 import sys
 import argparse
 import subprocess
-import re
 from os import environ
 from typing import Dict, List, Tuple, Optional, Any
 
 try:
-    from conan.tools.version import Version
+    from conan.tools.scm import Version
 except ImportError:
     # Fallback for older Conan versions
     try:
@@ -24,7 +23,8 @@ except ImportError:
 
 def search_conan_packages(pattern: str) -> str:
     """
-    Execute conan list command to search for packages.
+    Execute conan list command to search for packages. Since conan API can change between versions,
+    we use subprocess to call the conan CLI directly for compatibility.
     
     Args:
         pattern: Conan package pattern (e.g., "*/*@ultimaker/cura_12824")
