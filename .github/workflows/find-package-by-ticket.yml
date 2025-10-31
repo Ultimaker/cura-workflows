@@ -33,7 +33,14 @@ jobs:
       cura_package: ${{ steps.conan_search.outputs.cura_package }}
       package_overrides: ${{ steps.conan_search.outputs.package_overrides }}
     steps:
-      - name: Checkout Cura-workflows repo
+      - name: Setup the build environment
+        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@update_package_find_workflow_deduplicate
+        with:
+          conan_user: ${{ secrets.CONAN_USER }}
+          conan_password: ${{ secrets.CONAN_PASS }}
+          private_data: true
+
+      - name: Checkout our feature branch for the script
         uses: actions/checkout@v4
         with:
           repository: Ultimaker/cura-workflows
@@ -66,13 +73,6 @@ jobs:
             const fixedTicket = `${keyword}_${number}`;
             console.log(`Jira ticket number normalized to '${fixedTicket}'.`);
             core.setOutput('jira_ticket_number', fixedTicket);
-
-      - name: Setup the build environment
-        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@main
-        with:
-          conan_user: ${{ secrets.CONAN_USER }}
-          conan_password: ${{ secrets.CONAN_PASS }}
-          private_data: true
 
       - name: Discover Conan Packages
         id: conan_search
