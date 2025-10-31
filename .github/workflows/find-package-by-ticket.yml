@@ -45,7 +45,7 @@ jobs:
         with:
           repository: Ultimaker/cura-workflows
           path: Cura-workflows
-          ref: update_package_find_workflow_deduplicate
+          ref: find_conan_package_python_version
 
       - name: Validate Jira Ticket Number Format
         id: validate_input
