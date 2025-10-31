@@ -80,6 +80,48 @@ jobs:
             const conanPkgRef = `*/*@${buildChannel}/${jiraTicket}`;
             console.log(`Searching for Conan packages matching pattern: ${conanPkgRef}`);
 
+            // Function to compare semantic versions
+            function compareVersions(a, b) {
+              const aParts = a.split('.').map(x => parseInt(x) || 0);
+              const bParts = b.split('.').map(x => parseInt(x) || 0);
+              const maxLength = Math.max(aParts.length, bParts.length);
+              
+              for (let i = 0; i < maxLength; i++) {
+                const aPart = aParts[i] || 0;
+                const bPart = bParts[i] || 0;
+                if (aPart > bPart) return 1;
+                if (aPart < bPart) return -1;
+              }
+              return 0;
+            }
+
+            // Function to deduplicate packages by selecting highest version for each repository
+            function deduplicatePackages(packages) {
+              const packageMap = new Map();
+              
+              for (const pkg of packages) {
+                // Extract package name and version from format "packagename/version"
+                const match = pkg.match(/^([^\/]+)\/(.+)$/);
+                if (!match) continue;
+                
+                const [, packageName, version] = match;
+                
+                if (!packageMap.has(packageName)) {
+                  packageMap.set(packageName, { package: pkg, version: version });
+                } else {
+                  const existing = packageMap.get(packageName);
+                  if (compareVersions(version, existing.version) > 0) {
+                    packageMap.set(packageName, { package: pkg, version: version });
+                    console.log(`Found higher version for ${packageName}: ${version} > ${existing.version}, selecting ${pkg}`);
+                  } else {
+                    console.log(`Keeping existing version for ${packageName}: ${existing.version} >= ${version}`);
+                  }
+                }
+              }
+              
+              return Array.from(packageMap.values()).map(item => item.package);
+            }
+
             let searchResult = '';
             const options = {
               ignoreReturnCode: true,
@@ -124,33 +166,42 @@ jobs:
               return;
             }
 
-            const discoveredPackages = [];
+            const allPackages = [];
             for (const remote in jsonData) {
               if (jsonData[remote]) {
                 const packages = Object.keys(jsonData[remote]);
                 for (const pkg of packages) {
-                  if (!pkg.includes('+')) {
-                    discoveredPackages.push(pkg);
-                  }
+                  allPackages.push(pkg);
                 }
               }
             }
+
+            // Filter out packages with '+' in the name
+            const discoveredPackages = allPackages.filter(pkg => !pkg.includes('+'));
+
+            // Apply deduplication to select highest versions for each repository
+            const deduplicatedPackages = deduplicatePackages(discoveredPackages);
+            console.log(`Original packages found: ${discoveredPackages.length}, after deduplication: ${deduplicatedPackages.length}`);
 
             const summary = core.summary
               .addHeading(`Conan Packages Found for Jira Ticket: ${jiraTicket}`)
               .addRaw(`The workflow searched for Conan packages matching the pattern \`${conanPkgRef}\` across all configured remotes.`)
               .addHeading('Discovered Packages:', 2);
             
-            if (discoveredPackages.length === 0) {
+            if (deduplicatedPackages.length === 0) {
                 summary.addRaw('*No packages found matching the specified tag.*');
             } else {
-                summary.addList(discoveredPackages);
+                summary.addList(deduplicatedPackages);
+                if (discoveredPackages.length > deduplicatedPackages.length) {
+                  summary.addHeading('Package Version Selection:', 3)
+                    .addRaw(`Found ${discoveredPackages.length} total packages, selected ${deduplicatedPackages.length} packages after choosing the highest semantic version for each repository.`);
+                }
             }
             await summary.addSeparator().write();
 
             let curaPackage = '';
             const overridePackages = [];
-            for (const pkg of discoveredPackages) {
+            for (const pkg of deduplicatedPackages) {
               if (pkg.startsWith('cura/')) {
                 curaPackage = pkg;
               } else {
@@ -158,6 +209,6 @@ jobs:
               }
             }
 
-            core.setOutput('discovered_packages', discoveredPackages.join(' '));
+            core.setOutput('discovered_packages', deduplicatedPackages.join(' '));
             core.setOutput('cura_package', curaPackage);
             core.setOutput('package_overrides', overridePackages.join(' '));
