@@ -76,7 +76,7 @@ jobs:
         with:
           script: |
             const jiraTicket = '${{ steps.validate_input.outputs.jira_ticket_number }}';
-            const buildChannel = '${{ inputs.channel }}'
+            const buildChannel = '${{ inputs.channel }}';
             const conanPkgRef = `*/*@${buildChannel}/${jiraTicket}`;
             console.log(`Searching for Conan packages matching pattern: ${conanPkgRef}`);
 
