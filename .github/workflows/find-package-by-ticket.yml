@@ -34,7 +34,7 @@ jobs:
       package_overrides: ${{ steps.conan_search.outputs.package_overrides }}
     steps:
       - name: Setup the build environment
-        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@find_conan_package_python_version
+        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@main
         with:
           conan_user: ${{ secrets.CONAN_USER }}
           conan_password: ${{ secrets.CONAN_PASS }}
