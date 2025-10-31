@@ -40,12 +40,6 @@ jobs:
           conan_password: ${{ secrets.CONAN_PASS }}
           private_data: true
 
-      - name: Checkout Cura-workflows
-        uses: actions/checkout@v4
-        with:
-          path: Cura-workflows
-          ref: find_conan_package_python_version
-
       - name: Discover Conan Packages
         id: conan_search
         uses: actions/github-script@v7
