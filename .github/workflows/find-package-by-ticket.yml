@@ -80,79 +80,6 @@ jobs:
             const conanPkgRef = `*/*@${buildChannel}/${jiraTicket}`;
             console.log(`Searching for Conan packages matching pattern: ${conanPkgRef}`);
 
-            // Function to compare semantic versions
-            function compareVersions(a, b) {
-              // Helper function to parse version string
-              function parseVersion(version) {
-                // Split into core version and pre-release parts
-                // Look for pattern: numbers.numbers.numbers-prerelease
-                const versionMatch = version.match(/^(\d+(?:\.\d+)*)(?:-(.+))?$/);
-                
-                if (!versionMatch) {
-                  // Fallback for malformed versions
-                  return { numericParts: [0], preRelease: null };
-                }
-                
-                const [, coreVersion, preRelease] = versionMatch;
-                const numericParts = coreVersion.split('.').map(part => parseInt(part, 10));
-                
-                return { numericParts, preRelease: preRelease || null };
-              }
-              
-              const aParsed = parseVersion(a);
-              const bParsed = parseVersion(b);
-              
-              const maxLength = Math.max(aParsed.numericParts.length, bParsed.numericParts.length);
-              
-              // Compare numeric parts first
-              for (let i = 0; i < maxLength; i++) {
-                const aPart = aParsed.numericParts[i] || 0;
-                const bPart = bParsed.numericParts[i] || 0;
-                if (aPart > bPart) return 1;
-                if (aPart < bPart) return -1;
-              }
-              
-              // If numeric parts are equal, compare pre-release suffixes
-              // No pre-release vs has pre-release: no pre-release wins
-              if (!aParsed.preRelease && bParsed.preRelease) return 1;  // 1.0.0 > 1.0.0-alpha
-              if (aParsed.preRelease && !bParsed.preRelease) return -1; // 1.0.0-alpha < 1.0.0
-              
-              // Both have pre-release: compare lexicographically
-              if (aParsed.preRelease && bParsed.preRelease) {
-                if (aParsed.preRelease < bParsed.preRelease) return -1; // alpha.0 < alpha.1
-                if (aParsed.preRelease > bParsed.preRelease) return 1;  // alpha.1 > alpha.0
-              }
-              
-              return 0;
-            }
-
-            // Function to deduplicate packages by selecting highest version for each repository
-            function deduplicatePackages(packages) {
-              const packageMap = new Map();
-              
-              for (const pkg of packages) {
-                // Extract package name and version from format "packagename/version@channel/reference"
-                const match = pkg.match(/^([^/]+)\/([^@]+)/);
-                if (!match) continue;
-                
-                const [, packageName, version] = match;
-                
-                if (!packageMap.has(packageName)) {
-                  packageMap.set(packageName, { packageRef: pkg, version: version });
-                } else {
-                  const existing = packageMap.get(packageName);
-                  if (compareVersions(version, existing.version) > 0) {
-                    packageMap.set(packageName, { packageRef: pkg, version: version });
-                    console.log(`Found higher version for ${packageName}: ${version} > ${existing.version}, selecting ${pkg}`);
-                  } else {
-                    console.log(`Keeping existing version for ${packageName}: ${existing.version} >= ${version}`);
-                  }
-                }
-              }
-              
-              return Array.from(packageMap.values()).map(item => item.packageRef);
-            }
-
             let searchResult = '';
             const options = {
               ignoreReturnCode: true,
@@ -210,8 +137,78 @@ jobs:
             // Filter out packages with '+' in the name
             const discoveredPackages = allPackages.filter(pkg => !pkg.includes('+'));
 
-            // Apply deduplication to select highest versions for each repository
-            const deduplicatedPackages = deduplicatePackages(discoveredPackages);
+            // Use Conan CLI for deduplication - get latest versions only
+            const deduplicatedPackages = [];
+            const packageGroups = new Map();
+            
+            // Group packages by name
+            for (const pkg of discoveredPackages) {
+              const match = pkg.match(/^([^/]+)\//);
+              if (match) {
+                const packageName = match[1];
+                if (!packageGroups.has(packageName)) {
+                  packageGroups.set(packageName, []);
+                }
+                packageGroups.get(packageName).push(pkg);
+              }
+            }
+            
+            // For each package group, use conan list to get the latest version
+            for (const [packageName, packages] of packageGroups.entries()) {
+              if (packages.length === 1) {
+                deduplicatedPackages.push(packages[0]);
+                continue;
+              }
+              
+              // Use conan list with pattern to find latest version
+              const packagePattern = `${packageName}/*@${buildChannel}/${jiraTicket}`;
+              let latestSearchResult = '';
+              const latestOptions = {
+                ignoreReturnCode: true,
+                listeners: {
+                  stdout: (data) => {
+                    latestSearchResult += data.toString();
+                  },
+                  stderr: (data) => {
+                    latestSearchResult += data.toString();
+                  }
+                }
+              };
+              
+              try {
+                await exec.exec('conan', ['list', packagePattern, '-r=*', '--format=json'], latestOptions);
+                
+                const latestJsonStart = latestSearchResult.indexOf('{');
+                if (latestJsonStart !== -1) {
+                  const latestJsonEnd = latestSearchResult.lastIndexOf('}');
+                  const latestJsonDataStr = latestSearchResult.substring(latestJsonStart, latestJsonEnd + 1);
+                  const latestJsonData = JSON.parse(latestJsonDataStr);
+                  
+                  // Get all versions and let Conan's natural ordering determine the latest
+                  const allVersions = [];
+                  for (const remote in latestJsonData) {
+                    if (latestJsonData[remote]) {
+                      const remotePackages = Object.keys(latestJsonData[remote]);
+                      for (const pkg of remotePackages) {
+                        if (!pkg.includes('+')) {
+                          allVersions.push(pkg);
+                        }
+                      }
+                    }
+                  }
+                  
+                  // Conan list returns packages in a consistent order, take the last one as latest
+                  if (allVersions.length > 0) {
+                    const latestPackage = allVersions[allVersions.length - 1];
+                    deduplicatedPackages.push(latestPackage);
+                    console.log(`Selected latest version for ${packageName}: ${latestPackage}`);
+                  }
+                }
+              } catch (e) {
+                console.log(`Failed to determine latest version for ${packageName}, using first found: ${packages[0]}`);
+                deduplicatedPackages.push(packages[0]);
+              }
+            }
             console.log(`Original packages found: ${discoveredPackages.length}, after deduplication: ${deduplicatedPackages.length}`);
 
             const summary = core.summary
