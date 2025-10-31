@@ -40,7 +40,7 @@ jobs:
           conan_password: ${{ secrets.CONAN_PASS }}
           private_data: true
 
-      - name: Checkout our feature branch for the script
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           repository: Ultimaker/cura-workflows
@@ -83,7 +83,6 @@ jobs:
             const buildChannel = '${{ inputs.channel }}'
             const conanPkgRef = `*/*@${buildChannel}/${jiraTicket}`;
 
-            // Python script handles everything including writing to GITHUB_STEP_SUMMARY
             let pythonOutput = '';
             const pythonOptions = {
               ignoreReturnCode: true,
@@ -102,7 +101,6 @@ jobs:
               ], pythonOptions);
 
               if (exitCode === 0 && pythonOutput.trim()) {
-                // Parse the JSON response containing workflow outputs
                 const outputs = JSON.parse(pythonOutput.trim());
                 
                 console.log(`Setting workflow outputs: discovered_packages="${outputs.discovered_packages}", cura_package="${outputs.cura_package}", package_overrides="${outputs.package_overrides}"`);
@@ -111,12 +109,9 @@ jobs:
                 core.setOutput('discovered_packages', outputs.discovered_packages);
                 core.setOutput('cura_package', outputs.cura_package);
                 core.setOutput('package_overrides', outputs.package_overrides);
-
-                // Summary was already written by Python to GITHUB_STEP_SUMMARY
               } else {
                 throw new Error('Python script failed or returned no output');
               }
-              
             } catch (error) {
               console.log(`Package search failed: ${error.message}`);
               
