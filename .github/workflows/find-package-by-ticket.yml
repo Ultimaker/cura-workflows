@@ -33,8 +33,14 @@ jobs:
       cura_package: ${{ steps.conan_search.outputs.cura_package }}
       package_overrides: ${{ steps.conan_search.outputs.package_overrides }}
     steps:
-      - name: Checkout repository code
+      - name: Checkout calling repository
         uses: actions/checkout@v4
+
+      - name: Checkout cura-workflows for scripts
+        uses: actions/checkout@v4
+        with:
+          repository: Ultimaker/cura-workflows
+          path: cura-workflows
 
       - name: Validate Jira Ticket Number Format
         id: validate_input
@@ -91,7 +97,7 @@ jobs:
 
             try {
               const exitCode = await exec.exec('python3', [
-                'runner_scripts/conan_package_finder.py',
+                'cura-workflows/runner_scripts/conan_package_finder.py',
                 '--search-pattern', conanPkgRef,
                 '--jira-ticket', jiraTicket,
                 '--output-format', 'github-summary'
