@@ -33,29 +33,12 @@ jobs:
       cura_package: ${{ steps.conan_search.outputs.cura_package }}
       package_overrides: ${{ steps.conan_search.outputs.package_overrides }}
     steps:
-      - name: Checkout calling repository
-        uses: actions/checkout@v4
-
-      - name: Checkout cura-workflows for scripts
+      - name: Checkout Cura-workflows repo
         uses: actions/checkout@v4
         with:
           repository: Ultimaker/cura-workflows
-          path: cura-workflows
+          path: Cura-workflows
           ref: update_package_find_workflow_deduplicate
-
-      - name: Make script executable
-        run: chmod +x cura-workflows/runner_scripts/conan_package_finder.py
-
-      - name: Debug - Check if script exists
-        run: |
-          echo "Current directory contents:"
-          ls -la
-          echo "Cura-workflows directory contents:"
-          ls -la cura-workflows/ || echo "cura-workflows directory not found"
-          echo "Runner scripts directory contents:"
-          ls -la cura-workflows/runner_scripts/ || echo "runner_scripts directory not found"
-          echo "Looking for the specific script:"
-          ls -la cura-workflows/runner_scripts/conan_package_finder.py || echo "conan_package_finder.py not found"
 
       - name: Validate Jira Ticket Number Format
         id: validate_input
@@ -112,7 +95,7 @@ jobs:
 
             try {
               const exitCode = await exec.exec('python3', [
-                'cura-workflows/runner_scripts/conan_package_finder.py',
+                'Cura-workflows/runner_scripts/conan_package_finder.py',
                 '--search-pattern', conanPkgRef,
                 '--jira-ticket', jiraTicket,
                 '--output-format', 'github-summary'
