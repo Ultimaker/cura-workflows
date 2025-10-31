@@ -33,19 +33,8 @@ jobs:
       cura_package: ${{ steps.conan_search.outputs.cura_package }}
       package_overrides: ${{ steps.conan_search.outputs.package_overrides }}
     steps:
-      - name: Setup the build environment
-        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@update_package_find_workflow_deduplicate
-        with:
-          conan_user: ${{ secrets.CONAN_USER }}
-          conan_password: ${{ secrets.CONAN_PASS }}
-          private_data: true
-
-      - name: Checkout our feature branch for the script
+      - name: Checkout repository code
         uses: actions/checkout@v4
-        with:
-          repository: Ultimaker/cura-workflows
-          path: Cura-workflows
-          ref: update_package_find_workflow_deduplicate
 
       - name: Validate Jira Ticket Number Format
         id: validate_input
@@ -74,6 +63,13 @@ jobs:
             console.log(`Jira ticket number normalized to '${fixedTicket}'.`);
             core.setOutput('jira_ticket_number', fixedTicket);
 
+      - name: Setup the build environment
+        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@main
+        with:
+          conan_user: ${{ secrets.CONAN_USER }}
+          conan_password: ${{ secrets.CONAN_PASS }}
+          private_data: true
+
       - name: Discover Conan Packages
         id: conan_search
         uses: actions/github-script@v7
@@ -82,55 +78,38 @@ jobs:
             const jiraTicket = '${{ steps.validate_input.outputs.jira_ticket_number }}';
             const buildChannel = '${{ inputs.channel }}'
             const conanPkgRef = `*/*@${buildChannel}/${jiraTicket}`;
+            console.log(`Searching for Conan packages matching pattern: ${conanPkgRef}`);
 
             let searchResult = '';
             const options = {
               ignoreReturnCode: true,
               listeners: {
-                stdout: (data) => { pythonOutput += data.toString(); },
-                stderr: (data) => { console.log('Python:', data.toString()); }
+                stdout: (data) => {
+                  searchResult += data.toString();
+                },
+                stderr: (data) => {
+                  searchResult += data.toString();
+                }
               }
             };
 
-            try {
-              const exitCode = await exec.exec('python3', [
-                'Cura-workflows/runner_scripts/conan_package_finder.py',
-                '--search-pattern', conanPkgRef,
-                '--jira-ticket', jiraTicket,
-                '--output-format', 'github-summary'
-              ], pythonOptions);
+            await exec.exec('conan', ['list', conanPkgRef, '-r=*', '--format=json'], options);
 
-              if (exitCode === 0 && pythonOutput.trim()) {
-                // Parse the JSON response containing workflow outputs
-                const outputs = JSON.parse(pythonOutput.trim());
-                
-                console.log(`Setting workflow outputs: discovered_packages="${outputs.discovered_packages}", cura_package="${outputs.cura_package}", package_overrides="${outputs.package_overrides}"`);
-
-                // Set workflow outputs
-                core.setOutput('discovered_packages', outputs.discovered_packages);
-                core.setOutput('cura_package', outputs.cura_package);
-                core.setOutput('package_overrides', outputs.package_overrides);
-
-                // Summary was already written by Python to GITHUB_STEP_SUMMARY
-              } else {
-                throw new Error('Python script failed or returned no output');
-              }
-              
-            } catch (error) {
-              console.log(`Package search failed: ${error.message}`);
-              
-              // Set empty outputs
+            const jsonStart = searchResult.indexOf('{');
+            if (jsonStart === -1) {
+              console.log(`No packages found in any remote matching ${conanPkgRef}`);
               core.setOutput('discovered_packages', '');
               core.setOutput('cura_package', '');
               core.setOutput('package_overrides', '');
               
-              // Write failure summary directly since Python couldn't
               await core.summary
                 .addHeading(`Conan Packages Found for Jira Ticket: ${jiraTicket}`)
                 .addRaw(`The workflow searched for Conan packages matching the pattern \`${conanPkgRef}\` across all configured remotes.`)
                 .addHeading('Discovered Packages:', 2)
                 .addRaw('*No packages found matching the specified tag.*')
+                .addSeparator()
                 .write();
+              return;
             }
             
             const jsonEnd = searchResult.lastIndexOf('}');
