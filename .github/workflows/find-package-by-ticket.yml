@@ -82,40 +82,43 @@ jobs:
 
             // Function to compare semantic versions
             function compareVersions(a, b) {
-              // Split version strings and extract numeric parts only
-              const aParts = a.split('.').map(part => {
-                const numericPart = part.match(/^\d+/);
-                return numericPart ? parseInt(numericPart[0]) : 0;
-              });
-              const bParts = b.split('.').map(part => {
-                const numericPart = part.match(/^\d+/);
-                return numericPart ? parseInt(numericPart[0]) : 0;
-              });
+              const PRE_RELEASE_PATTERN = /\d+([^\d.].*)$/;
               
-              const maxLength = Math.max(aParts.length, bParts.length);
+              // Helper function to parse version string
+              function parseVersion(version) {
+                const numericParts = version.split('.').map(part => {
+                  const numericPart = part.match(/^\d+/);
+                  return numericPart ? parseInt(numericPart[0], 10) : 0;
+                });
+                
+                const preReleaseMatch = version.match(PRE_RELEASE_PATTERN);
+                const preRelease = preReleaseMatch ? preReleaseMatch[1] : null;
+                
+                return { numericParts, preRelease };
+              }
+              
+              const aParsed = parseVersion(a);
+              const bParsed = parseVersion(b);
+              
+              const maxLength = Math.max(aParsed.numericParts.length, bParsed.numericParts.length);
               
               // Compare numeric parts first
               for (let i = 0; i < maxLength; i++) {
-                const aPart = aParts[i] || 0;
-                const bPart = bParts[i] || 0;
+                const aPart = aParsed.numericParts[i] || 0;
+                const bPart = bParsed.numericParts[i] || 0;
                 if (aPart > bPart) return 1;
                 if (aPart < bPart) return -1;
               }
               
               // If numeric parts are equal, compare pre-release suffixes
-              const aPreRelease = a.match(/\d+([^\d.].*)$/);
-              const bPreRelease = b.match(/\d+([^\d.].*)$/);
-              
               // No pre-release vs has pre-release: no pre-release wins
-              if (!aPreRelease && bPreRelease) return 1;  // 1.0.0 > 1.0.0-alpha
-              if (aPreRelease && !bPreRelease) return -1; // 1.0.0-alpha < 1.0.0
+              if (!aParsed.preRelease && bParsed.preRelease) return 1;  // 1.0.0 > 1.0.0-alpha
+              if (aParsed.preRelease && !bParsed.preRelease) return -1; // 1.0.0-alpha < 1.0.0
               
               // Both have pre-release: compare lexicographically
-              if (aPreRelease && bPreRelease) {
-                const aSuffix = aPreRelease[1];
-                const bSuffix = bPreRelease[1];
-                if (aSuffix < bSuffix) return -1; // -alpha < -beta
-                if (aSuffix > bSuffix) return 1;  // -beta > -alpha
+              if (aParsed.preRelease && bParsed.preRelease) {
+                if (aParsed.preRelease < bParsed.preRelease) return -1; // -alpha < -beta
+                if (aParsed.preRelease > bParsed.preRelease) return 1;  // -beta > -alpha
               }
               
               return 0;
