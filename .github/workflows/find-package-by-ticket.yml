@@ -82,19 +82,21 @@ jobs:
 
             // Function to compare semantic versions
             function compareVersions(a, b) {
-              const PRE_RELEASE_PATTERN = /\d+([^\d.].*)$/;
-              
               // Helper function to parse version string
               function parseVersion(version) {
-                const numericParts = version.split('.').map(part => {
-                  const numericPart = part.match(/^\d+/);
-                  return numericPart ? parseInt(numericPart[0], 10) : 0;
-                });
+                // Split into core version and pre-release parts
+                // Look for pattern: numbers.numbers.numbers-prerelease
+                const versionMatch = version.match(/^(\d+(?:\.\d+)*)(?:-(.+))?$/);
                 
-                const preReleaseMatch = version.match(PRE_RELEASE_PATTERN);
-                const preRelease = preReleaseMatch ? preReleaseMatch[1] : null;
+                if (!versionMatch) {
+                  // Fallback for malformed versions
+                  return { numericParts: [0], preRelease: null };
+                }
                 
-                return { numericParts, preRelease };
+                const [, coreVersion, preRelease] = versionMatch;
+                const numericParts = coreVersion.split('.').map(part => parseInt(part, 10));
+                
+                return { numericParts, preRelease: preRelease || null };
               }
               
               const aParsed = parseVersion(a);
@@ -117,8 +119,8 @@ jobs:
               
               // Both have pre-release: compare lexicographically
               if (aParsed.preRelease && bParsed.preRelease) {
-                if (aParsed.preRelease < bParsed.preRelease) return -1; // -alpha < -beta
-                if (aParsed.preRelease > bParsed.preRelease) return 1;  // -beta > -alpha
+                if (aParsed.preRelease < bParsed.preRelease) return -1; // alpha.0 < alpha.1
+                if (aParsed.preRelease > bParsed.preRelease) return 1;  // alpha.1 > alpha.0
               }
               
               return 0;
@@ -129,18 +131,18 @@ jobs:
               const packageMap = new Map();
               
               for (const pkg of packages) {
-                // Extract package name and version from format "packagename/version"
-                const match = pkg.match(/^([^\/]+)\/(.+)$/);
+                // Extract package name and version from format "packagename/version@channel/reference"
+                const match = pkg.match(/^([^/]+)\/([^@]+)/);
                 if (!match) continue;
                 
                 const [, packageName, version] = match;
                 
                 if (!packageMap.has(packageName)) {
-                  packageMap.set(packageName, { package: pkg, version: version });
+                  packageMap.set(packageName, { packageRef: pkg, version: version });
                 } else {
                   const existing = packageMap.get(packageName);
                   if (compareVersions(version, existing.version) > 0) {
-                    packageMap.set(packageName, { package: pkg, version: version });
+                    packageMap.set(packageName, { packageRef: pkg, version: version });
                     console.log(`Found higher version for ${packageName}: ${version} > ${existing.version}, selecting ${pkg}`);
                   } else {
                     console.log(`Keeping existing version for ${packageName}: ${existing.version} >= ${version}`);
@@ -148,7 +150,7 @@ jobs:
                 }
               }
               
-              return Array.from(packageMap.values()).map(item => item.package);
+              return Array.from(packageMap.values()).map(item => item.packageRef);
             }
 
             let searchResult = '';
