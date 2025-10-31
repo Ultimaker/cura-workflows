@@ -225,7 +225,9 @@ jobs:
                 summary.addList(deduplicatedPackages);
                 if (discoveredPackages.length > deduplicatedPackages.length) {
                   summary.addHeading('Package Version Selection:', 3)
-                    .addRaw(`Found ${discoveredPackages.length} total packages, selected ${deduplicatedPackages.length} packages after choosing the highest semantic version for each repository.`);
+                    .addRaw(`Found ${discoveredPackages.length} total packages, selected ${deduplicatedPackages.length} packages after choosing the highest semantic version for each repository.`)
+                    .addHeading('All Discovered Packages (before deduplication):', 4)
+                    .addList(discoveredPackages);
                 }
             }
             await summary.addSeparator().write();
