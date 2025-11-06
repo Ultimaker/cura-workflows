@@ -44,7 +44,6 @@ jobs:
           conan_user: ${{ secrets.CONAN_USER }}
           conan_password: ${{ secrets.CONAN_PASS }}
           private_data: true
-          cura_workflows_branch: 'CURA-12834'
 
       - name: Discover Conan Packages
         id: conan_search
