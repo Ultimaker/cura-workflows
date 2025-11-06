@@ -11,6 +11,11 @@ on:
         default: 'ultimaker'
         required: false
         type: string
+      validate_input:
+        description: 'Whether to validate the input Jira ticket number format'
+        default: true
+        required: false
+        type: boolean
     outputs:
       discovered_packages:
         description: "All discovered packages"
@@ -59,6 +64,7 @@ jobs:
                 'Cura-workflows/runner_scripts/conan_package_finder.py',
                 '--jira-ticket', '${{ inputs.jira_ticket_number }}',
                 '--channel', '${{ inputs.channel }}',
+                '--validate-input', '${{ inputs.validate_input }}',
                 '--output-format', 'github-summary',
                 '--summary-output', process.env.GITHUB_STEP_SUMMARY
               ], pythonOptions);
