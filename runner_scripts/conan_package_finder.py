@@ -245,7 +245,8 @@ def main():
     parser.add_argument("--search-pattern", help="Conan package search pattern (e.g., '*/*@ultimaker/cura_12824')")
     parser.add_argument("--jira-ticket", help="Jira ticket number for search pattern generation and summary")
     parser.add_argument("--channel", default="ultimaker", help="Conan channel to search in (default: ultimaker)")
-    parser.add_argument("--validate-input", default=True, help="Whether to validate the input Jira ticket number format")
+    parser.add_argument("--validate-input", type=lambda x: x.lower() in ['true', '1', 'yes'], default=True, 
+                       help="Whether to validate the input Jira ticket number format")
     parser.add_argument("--raw-output", help="Raw output from conan list command (alternative to --search-pattern)")
     parser.add_argument("--packages", help="JSON array of package references (alternative to above)")
     parser.add_argument("--output-format", choices=["json", "github-actions", "github-summary"], default="json",
