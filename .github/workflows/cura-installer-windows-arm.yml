@@ -1,0 +1,198 @@
+name: Windows Installer ARM
+run-name: ${{ inputs.cura_conan_version }} for Windows-ARM by @${{ github.actor }}
+
+on:
+  workflow_call:
+    inputs:
+      cura_conan_version:
+        description: 'Cura Conan Version'
+        default: ''
+        required: false
+        type: string
+
+      package_overrides:
+        description: 'List of specific packages to be used (space-separated)'
+        default: ''
+        required: false
+        type: string
+
+      conan_args:
+        description: 'Conan args'
+        default: ''
+        required: false
+        type: string
+
+      enterprise:
+        description: 'Build Cura as an Enterprise edition'
+        default: false
+        required: true
+        type: boolean
+
+      staging:
+        description: 'Use staging API'
+        default: false
+        required: true
+        type: boolean
+
+      operating_system:
+        description: 'OS'
+        required: true
+        default: 'self-hosted-Windows-ARM'
+        type: string
+
+      private_data:
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+env:
+  WIN_CERT_INSTALLER_CER: ${{ secrets.WIN_CERT_INSTALLER_CER }}
+  WIN_CERT_INSTALLER_CER_PASS: ${{ secrets.WIN_CERT_INSTALLER_CER_PASS }}
+  SENTRY_TOKEN: ${{ secrets.CURAENGINE_SENTRY_TOKEN }}
+  # win-cert-installer is probably not nescesary at all: went out the moment we started using signkey again on our own runner
+  # sentry debug symbols seem to only be uploaded for linux?
+
+
+# NOTE: Windows needs bash on Path, so we can use it in the (build env setup) scripts -- you should be able to use the bash that comes in the git/../bin folder.
+
+
+jobs:
+  cura-installer-create:
+    name: Build Windows installers
+    runs-on: ${{ inputs.operating_system }}
+
+    steps:
+      - name: Setup the build environment
+        id: setup-environment
+        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@main
+        with:
+          conan_user: ${{ secrets.CONAN_USER }}
+          conan_password: ${{ secrets.CONAN_PASS }}
+          private_data: ${{ inputs.private_data }}
+          install_system_dependencies: true
+          repository_path: _cura_sources # we don't want the actual sources to interfere with the built conan package
+          python_set_env_vars: false
+
+      - name: Set packages overrides
+        id: set-overrides
+        uses: ultimaker/cura-workflows/.github/actions/set-package-overrides@main
+        with:
+          package_overrides: ${{ inputs.package_overrides }}
+          profile: installer.jinja
+
+      - name: Gather/build the packages
+        run: |
+            $pydir = type pydir.txt
+            $env:PATH += ";$pydir;$pydir/Scripts"
+            conan install --requires "${{ inputs.cura_conan_version != '' && inputs.cura_conan_version || format('cura/{0}@ultimaker/testing', steps.setup-environment.outputs.package_version) }}" ${{ inputs.conan_args }} --build=missing --update -of cura_inst --deployer-package="*" --profile ${{ steps.set-overrides.outputs.profile }} -c user.sentry:token="${{ secrets.CURAENGINE_SENTRY_TOKEN }}" ${{ inputs.enterprise && '-o "cura/*:enterprise=True"' || '' }} ${{ inputs.staging && '-o "cura/*:staging=True"' || '' }} ${{ inputs.private_data && '-o "cura/*:internal=True"' || '' }}
+
+      - name: Create the Cura distribution with pyinstaller
+        id: prepare-distribution
+        shell: cmd
+        run: |
+            call cura_inst\conanrun.bat
+
+            python -m venv cura_installer_venv
+            call cura_installer_venv\Scripts\Activate.bat
+
+            python -m pip install -r cura_inst\packaging\pip_requirements_core_basic.txt --no-warn-script-location
+            python -m pip install -r cura_inst\packaging\pip_requirements_core_hashes.txt --no-warn-script-location
+            python -m pip install -r cura_inst\packaging\pip_requirements_installer_basic.txt --no-warn-script-location
+
+            python Cura-workflows\runner_scripts\prepare_installer.py --os ${{ runner.os }} --architecture X64 ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }} --summary-output %GITHUB_STEP_SUMMARY% --variables-output %GITHUB_OUTPUT%
+
+            pyinstaller cura_inst\UltiMaker-Cura.spec
+
+      - name: Workaround (need exact version of msvc redistributables)
+        run: |
+          $MSDIR="C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Redist/MSVC"
+          if ( (dir -Exclude "v*" $MSDIR).Count -ne 1 ) { throw "(!!!) MULTIPLE MSVC VERSIONS IN '$MSDIR' -- NEED EXACTLY 1 TO SELECT A REDISTRIBUTABLE (!!!)" }
+          $MSDIR_R=(dir -Exclude "v*" $MSDIR)[0].FullName
+          $MSDIR_DLLS=(dir $MSDIR_R/x64/Microsoft.VC*.CRT)[0].FullName
+          copy $MSDIR_DLLS/concrt140.dll dist/UltiMaker-Cura/.
+          copy $MSDIR_DLLS/msvcp140.dll dist/UltiMaker-Cura/.
+          copy $MSDIR_DLLS/msvcp140_1.dll dist/UltiMaker-Cura/.
+          copy $MSDIR_DLLS/msvcp140_2.dll dist/UltiMaker-Cura/.
+          copy $MSDIR_DLLS/vcruntime140.dll dist/UltiMaker-Cura/.
+          copy $MSDIR_DLLS/vcruntime140_1.dll dist/UltiMaker-Cura/.
+
+      - name: Workaround (some libs linking against python3 instead of python312)
+        run: |
+          copy Cura-workflows/python_dll_workaround/* dist/UltiMaker-Cura/.
+
+      - name: Yet another step deleting unwanted additional Qt files and folders
+        working-directory: dist/UltiMaker-Cura
+        run: |
+         Remove-Item .\* -Include "*assimp*" -Recurse -Force
+         Remove-Item .\* -Include "*qt6charts*" -Recurse -Force
+         Remove-Item .\* -Include "*qt6coap*" -Recurse -Force
+         Remove-Item .\* -Include "*qt6datavis*" -Recurse -Force
+         Remove-Item .\* -Include "*qt6labsani*" -Recurse -Force
+         Remove-Item .\* -Include "*qt6mqtt*" -Recurse -Force
+         Remove-Item .\* -Include "*qt6networkauth*" -Recurse -Force
+         Remove-Item .\* -Include "*quick3d*" -Recurse -Force
+         Remove-Item .\* -Include "*qt6timeline*" -Recurse -Force
+         Remove-Item .\* -Include "*qt6virtualkey*" -Recurse -Force
+         Remove-Item .\* -Include "*waylandcomp*" -Recurse -Force
+         Remove-Item .\* -Include "*qt5compat*" -Recurse -Force
+
+      - name: Create the Windows exe installer (Powershell)
+        run: |
+          $pydir = type ../pydir.txt
+          $env:PATH += ";$pydir;$pydir/Scripts"
+          python ..\cura_inst\packaging\NSIS\create_windows_installer.py --source_path ../cura_inst --dist_path . --filename "${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.exe" --version "${{ steps.prepare-distribution.outputs.CURA_VERSION_FULL }}"
+        working-directory: dist
+
+      - name: Upload the installer exe
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}-exe
+          path: dist/${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.exe
+          retention-days: 5
+
+      - name: Create the Windows msi installer (Powershell)
+        run: |
+          $pydir = type ../pydir.txt
+          $env:PATH += ";$pydir;$pydir/Scripts"
+          python ..\cura_inst\packaging\msi\create_windows_msi.py --source_path ..\cura_inst --dist_path .\UltiMaker-Cura --filename "${{ steps.prepare-distribution.outputs.INSTALLER_FILENAME }}.msi" --name "${{ steps.prepare-distribution.outputs.CURA_APP_NAME }}" --version "${{ steps.prepare-distribution.outputs.CURA_VERSION_FULL }}"
+        working-directory: dist
+
+      - name: Upload the installer msi
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}-msi
+          path: dist/${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.msi
+          retention-days: 5
+
+      - name: Upload the application exe
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: UltiMaker-Cura.exe
+          path: dist/UltiMaker-Cura/UltiMaker-Cura.exe
+          retention-days: 5
+
+      - name: Upload the engine exe
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: CuraEngine.exe
+          path: dist/UltiMaker-Cura/CuraEngine.exe
+          retention-days: 5
+
+      - name: Upload the built Package(s)
+        if: ${{ always() }}
+        uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@main
+        continue-on-error: true
+
+      - name: Clean local cache
+        if: ${{ always() && startsWith(inputs.operating_system, 'self-hosted') }}
+        run: |
+            $pydir = type pydir.txt
+            $env:PATH += ";$pydir;$pydir/Scripts"
+            conan remove '*' --lru=1w -c
