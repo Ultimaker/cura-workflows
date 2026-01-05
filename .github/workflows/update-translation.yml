@@ -23,7 +23,7 @@ jobs:
       - name: Update translation files using Conan install
         run: conan install . --build=missing --update -o "&:enable_i18n=True" --lockfile-out=conan.lock
 
-      - uses: stefanzweifel/git-auto-commit-action@v4
+      - uses: stefanzweifel/git-auto-commit-action@v5
         with:
           file_pattern: resources/i18n/*.po resources/i18n/*.pot conan.lock
           status_options: --untracked-files=no
