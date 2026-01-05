@@ -25,6 +25,6 @@ jobs:
 
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
-          file_pattern: resources/i18n/*.po resources/i18n/*.pot
+          file_pattern: resources/i18n/*.po resources/i18n/*.pot conan.lock
           status_options: --untracked-files=no
           commit_message: Update translations
