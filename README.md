@@ -19,7 +19,8 @@ All CI/CD workflows use Conan lockfiles to ensure reproducible builds across tim
 - **Consistency**: Developers, CI, and releases all use identical dependency graphs
 
 ### How it Works:
-- Workflows use `--lockfile=conan.lock` to read the lockfile and `--lockfile-out=conan.lock` to update it
+- Workflows use `--lockfile-out=conan.lock` to generate/update the lockfile
+- Conan 2 automatically loads `conan.lock` if it exists in the working directory
 - Default strict mode ensures all dependencies must be in the lockfile
 - Lockfiles are generated/updated automatically during CI builds
 - Each repository should maintain its own `conan.lock` file in version control
