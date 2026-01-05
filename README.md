@@ -34,6 +34,7 @@ All CI/CD workflows use Conan lockfiles to ensure reproducible builds across tim
 - **Lockfiles are automatically committed based on workflow type:**
   - Test/build workflows commit on push to main/master
   - Package creation commits on release branches/tags
+- **Note**: Calling workflows must have `contents: write` permission for auto-commit to work
 - To manually add a new dependency: `conan lock add --requires=package/version --lockfile=conan.lock --lockfile-out=conan.lock` then run `conan install` to resolve it
 - For development branches with frequently changing dependencies, use `--lockfile-partial` flag (add to `conan_extra_args` workflow input)
 - If merge conflicts occur in lockfiles, regenerate by deleting the lockfile and running the CI workflow
