@@ -114,11 +114,6 @@ jobs:
           path: dist/${{ steps.prepare-distribution.outputs.INSTALLER_FILENAME }}.AppImage.asc
           retention-days: 5
 
-      - name: Upload the built Package(s)
-        if: ${{ always() }}
-        uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@main
-        continue-on-error: true
-
       - name: Clean local cache
         if: ${{ always() && startsWith(inputs.operating_system, 'self-hosted') }}
         run: conan remove '*' --lru=1w -c
