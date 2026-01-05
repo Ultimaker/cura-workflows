@@ -58,7 +58,7 @@ jobs:
           install_system_dependencies: true
 
       - name: Install dependencies and build
-        run: conan build . -s build_type=Release --build=missing --update -g VirtualRunEnv ${{ inputs.conan_extra_args }}
+        run: conan build . -s build_type=Release --build=missing --update -g VirtualRunEnv ${{ inputs.conan_extra_args }} --lockfile-out=conan.lock
 
       - name: Run benchmark
         id: run-test

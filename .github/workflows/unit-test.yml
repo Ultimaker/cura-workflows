@@ -39,7 +39,7 @@ jobs:
           install_system_dependencies: true
 
       - name: Install dependencies and build unit test
-        run: conan build . -s build_type=Release --build=missing --update -c tools.build:skip_test=False ${{ inputs.test_use_pytest && '-g VirtualPythonEnv -c user.generator.virtual_python_env:dev_tools=True' || '' }} ${{ inputs.conan_extra_args }}
+        run: conan build . -s build_type=Release --build=missing --update -c tools.build:skip_test=False ${{ inputs.test_use_pytest && '-g VirtualPythonEnv -c user.generator.virtual_python_env:dev_tools=True' || '' }} ${{ inputs.conan_extra_args }} --lockfile-out=conan.lock
 
       - name: Run ctest-based unit test
         if: ${{ inputs.test_use_ctest }}

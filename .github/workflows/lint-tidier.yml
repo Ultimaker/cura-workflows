@@ -21,7 +21,7 @@ jobs:
             src/**/*.c*
 
       - name: Install dependencies
-        run: conan install . -c tools.build:skip_test=False -s *:build_type=Release --build=missing --update
+        run: conan install . -c tools.build:skip_test=False -s *:build_type=Release --build=missing --update --lockfile-out=conan.lock
 
       - name: Build application and tests
         run: |
