@@ -26,9 +26,12 @@ All CI/CD workflows use Conan lockfiles to ensure reproducible builds across tim
 - Each repository should maintain its own `conan.lock` file in version control
 
 ### Maintenance:
+- Lockfiles are automatically created on first CI run if they don't exist
 - Lockfiles are automatically updated when new dependencies are resolved
+- Commit the generated `conan.lock` file to version control for full reproducibility
 - To update a specific dependency, use: `conan lock add --requires=package/version --lockfile=conan.lock --lockfile-out=conan.lock`
-- For development branches with frequently changing dependencies, consider using `--lockfile-partial` mode
+- For development branches with frequently changing dependencies, consider using `--lockfile-partial` mode (add to `conan_extra_args`)
+- If merge conflicts occur in lockfiles, regenerate by deleting the lockfile and running the CI workflow
 
 ## Pipeline caching over workflows
 
