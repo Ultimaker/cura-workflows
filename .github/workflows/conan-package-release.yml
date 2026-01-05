@@ -24,6 +24,11 @@ on:
         default: "."
         type: string
 
+      force_upload:
+        required: false
+        default: false
+        type: boolean
+
   workflow_dispatch:
     inputs:
       repository:
@@ -66,6 +71,12 @@ on:
         default: false
         type: boolean
 
+      force_upload:
+        description: 'Force upload recipe (e.g. to update timestamp)'
+        required: false
+        default: false
+        type: boolean
+
 permissions:
   contents: read
 
@@ -91,4 +102,5 @@ jobs:
       channel: ${{ needs.conan-recipe-version.outputs.channel }}
       private_data: ${{ inputs.private_data }}
       conan_recipe_root: ${{ inputs.conan_recipe_root }}
+      force_upload: ${{ inputs.force_upload }}
     secrets: inherit

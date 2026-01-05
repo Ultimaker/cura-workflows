@@ -42,6 +42,11 @@ on:
         default: "."
         type: string
 
+      force_upload:
+        required: false
+        default: false
+        type: boolean
+
 permissions:
   contents: read
 
@@ -71,3 +76,4 @@ jobs:
         uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@main
         with:
           package_name: ${{ steps.export-local-cache.outputs.package_reference }}
+          force_upload: ${{ inputs.force_upload }}
