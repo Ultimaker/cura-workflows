@@ -42,11 +42,6 @@ on:
         default: "."
         type: string
 
-      force_upload:
-        required: false
-        default: false
-        type: boolean
-
 permissions:
   contents: read
 
@@ -73,7 +68,6 @@ jobs:
           echo "package_reference=$PACKAGE_REFERENCE" >> $GITHUB_OUTPUT
 
       - name: Upload the Recipe
-        uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@build-helpers
+        uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@main
         with:
           package_name: ${{ steps.export-local-cache.outputs.package_reference }}
-          force_upload: ${{ inputs.force_upload }}

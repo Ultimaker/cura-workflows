@@ -9,11 +9,6 @@ inputs:
     default: "*"
     type: string
 
-  force_upload:
-    required: false
-    default: false
-    type: boolean
-
 
 runs:
   using: "composite"
@@ -26,4 +21,4 @@ runs:
             PATH+=":$pydir:$pydir/Scripts"
           fi
 
-          python Cura-workflows/runner_scripts/upload_conan_package.py "${{ inputs.package_name }}" ${{ inputs.force_upload && '--force' || '' }}
+          python Cura-workflows/runner_scripts/upload_conan_package.py "${{ inputs.package_name }}"
