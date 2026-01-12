@@ -46,10 +46,18 @@ on:
         default: 'self-hosted-ARM64'
         type: string
 
+      lockfile_repository_branch:
+        description: 'Branch where to get the conan lockfile from'
+        required: false
+        default: ''
+        type: string
+
       private_data:
         required: false
         default: false
         type: boolean
+
+
 
 permissions:
   contents: read
@@ -78,6 +86,8 @@ jobs:
           private_data: ${{ inputs.private_data }}
           install_system_dependencies: true
           repository_path: _cura_sources # we don't want the actual sources to interfere with the built conan package
+          branch: ${{ inputs.lockfile_repository_branch }}
+          cura_workflows_branch: '5.11'
 
       - name: Set packages overrides
         id: set-overrides
@@ -110,7 +120,13 @@ jobs:
         run: security unlock -p "${{  steps.macos-keychain-developer-cert.outputs.keychain-password }}" signing_temp.keychain
 
       - name: Gather/build the packages
-        run: conan install --requires "${{ inputs.cura_conan_version != '' && inputs.cura_conan_version || format('cura/{0}@ultimaker/testing', steps.setup-environment.outputs.package_version) }}" ${{ inputs.conan_args }} --build=missing --update -of cura_inst --deployer-package="*" --profile ${{ steps.set-overrides.outputs.profile }} -c user.sentry:token="${{ secrets.CURAENGINE_SENTRY_TOKEN }}" ${{ inputs.enterprise && '-o "cura/*:enterprise=True"' || '' }} ${{ inputs.staging && '-o "cura/*:staging=True"' || '' }} ${{ inputs.private_data && '-o "cura/*:internal=True"' || '' }}
+        run: |
+          if [ -f "_cura_sources/conan.lock" ]; then
+            echo "Getting conan lockfile"
+            cp "_cura_sources/conan.lock" .
+          fi
+
+          conan install --requires "${{ inputs.cura_conan_version != '' && inputs.cura_conan_version || format('cura/{0}@ultimaker/testing', steps.setup-environment.outputs.package_version) }}" ${{ inputs.conan_args }} --build=missing --update -of cura_inst --deployer-package="*" --profile ${{ steps.set-overrides.outputs.profile }} -c user.sentry:token="${{ secrets.CURAENGINE_SENTRY_TOKEN }}" ${{ inputs.enterprise && '-o "cura/*:enterprise=True"' || '' }} ${{ inputs.staging && '-o "cura/*:staging=True"' || '' }} ${{ inputs.private_data && '-o "cura/*:internal=True"' || '' }}
 
       - name: Create the Cura distribution with pyinstaller
         id: prepare-distribution

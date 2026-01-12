@@ -70,6 +70,7 @@ jobs:
           install_system_dependencies: true
           repository_path: _cura_sources # we don't want the actual sources to interfere with the built conan package
           branch: ${{ inputs.lockfile_repository_branch }}
+          cura_workflows_branch: '5.11'
 
       - name: Set packages overrides
         id: set-overrides
