@@ -32,6 +32,10 @@ on:
         required: false
         default: ''
         type: string
+      conan_private_data:
+        required: false
+        default: false
+        type: boolean
 
 
 jobs:
@@ -46,6 +50,7 @@ jobs:
       staging: ${{ inputs.staging }}
       operating_system: self-hosted-Windows-X64
       private_data: ${{ inputs.private_data }}
+      conan_private_data: ${{ inputs.conan_private_data }}
       lockfile_repository_branch: ${{ inputs.lockfile_repository_branch }}
     secrets: inherit
 
@@ -60,6 +65,7 @@ jobs:
       staging: ${{ inputs.staging }}
       operating_system: self-hosted-Ubuntu22-X64
       private_data: ${{ inputs.private_data }}
+      conan_private_data: ${{ inputs.conan_private_data }}
       lockfile_repository_branch: ${{ inputs.lockfile_repository_branch }}
     secrets: inherit
 
@@ -75,6 +81,7 @@ jobs:
       architecture: X64
       operating_system: self-hosted-X64
       private_data: ${{ inputs.private_data }}
+      conan_private_data: ${{ inputs.conan_private_data }}
       lockfile_repository_branch: ${{ inputs.lockfile_repository_branch }}
     secrets: inherit
 
@@ -90,5 +97,6 @@ jobs:
       architecture: ARM64
       operating_system: self-hosted-ARM64
       private_data: ${{ inputs.private_data }}
+      conan_private_data: ${{ inputs.conan_private_data }}
       lockfile_repository_branch: ${{ inputs.lockfile_repository_branch }}
     secrets: inherit

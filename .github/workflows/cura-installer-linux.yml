@@ -51,6 +51,11 @@ on:
         default: false
         type: boolean
 
+      conan_private_data:
+        required: false
+        default: false
+        type: boolean
+
 permissions:
   contents: read
 
@@ -66,7 +71,7 @@ jobs:
         with:
           conan_user: ${{ secrets.CONAN_USER }}
           conan_password: ${{ secrets.CONAN_PASS }}
-          private_data: ${{ inputs.private_data }}
+          private_data: ${{ inputs.conan_private_data || inputs.private_data }}
           install_system_dependencies: true
           repository_path: _cura_sources # we don't want the actual sources to interfere with the built conan package
           branch: ${{ inputs.lockfile_repository_branch }}
