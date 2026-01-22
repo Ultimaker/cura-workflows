@@ -72,7 +72,7 @@ runs:
 
     - name: Cleanup workspace (Windows ARM64)
       if: ${{ runner.os == 'Windows' && runner.arch == 'ARM64' }}
-      shell: pwsh
+      shell: powershell
       run: |
         Get-ChildItem -Force | Remove-Item -Recurse -Force
 
