@@ -84,3 +84,16 @@ jobs:
       operating_system: self-hosted-ARM64
       private_data: ${{ inputs.private_data }}
     secrets: inherit
+
+  windows-arm-installer:
+    name: Create Windows ARM64 installer
+    uses: ./.github/workflows/cura-installer-windows-arm.yml
+    with:
+      cura_conan_version: ${{ inputs.cura_conan_version }}
+      package_overrides: ${{ inputs.package_overrides }}
+      conan_args: ${{ inputs.conan_args }}
+      enterprise: ${{ inputs.enterprise }}
+      staging: ${{ inputs.staging }}
+      operating_system: self-hosted-Windows-ARM64
+      private_data: ${{ inputs.private_data }}
+    secrets: inherit

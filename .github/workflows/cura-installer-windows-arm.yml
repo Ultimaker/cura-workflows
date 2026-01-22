@@ -37,7 +37,7 @@ on:
       operating_system:
         description: 'OS'
         required: true
-        default: 'self-hosted-Windows-ARM'
+        default: 'self-hosted-Windows-ARM64'
         type: string
 
       private_data:
@@ -52,16 +52,11 @@ env:
   WIN_CERT_INSTALLER_CER: ${{ secrets.WIN_CERT_INSTALLER_CER }}
   WIN_CERT_INSTALLER_CER_PASS: ${{ secrets.WIN_CERT_INSTALLER_CER_PASS }}
   SENTRY_TOKEN: ${{ secrets.CURAENGINE_SENTRY_TOKEN }}
-  # win-cert-installer is probably not nescesary at all: went out the moment we started using signkey again on our own runner
-  # sentry debug symbols seem to only be uploaded for linux?
-
-
-# NOTE: Windows needs bash on Path, so we can use it in the (build env setup) scripts -- you should be able to use the bash that comes in the git/../bin folder.
 
 
 jobs:
   cura-installer-create:
-    name: Build Windows installers
+    name: Build Windows ARM64 installers
     runs-on: ${{ inputs.operating_system }}
 
     steps:
@@ -81,7 +76,7 @@ jobs:
         uses: ultimaker/cura-workflows/.github/actions/set-package-overrides@main
         with:
           package_overrides: ${{ inputs.package_overrides }}
-          profile: installer.jinja
+          profile: installer_arm.jinja
 
       - name: Gather/build the packages
         run: |
@@ -143,7 +138,7 @@ jobs:
         run: |
           $pydir = type ../pydir.txt
           $env:PATH += ";$pydir;$pydir/Scripts"
-          python ..\cura_inst\packaging\NSIS\create_windows_installer.py --source_path ../cura_inst --dist_path . --filename "${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.exe" --version "${{ steps.prepare-distribution.outputs.CURA_VERSION_FULL }}"
+          python ..\cura_inst_arm\packaging\NSIS\create_windows_installer.py --source_path ../cura_inst_arm --dist_path . --filename "${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.exe" --version "${{ steps.prepare-distribution.outputs.CURA_VERSION_FULL }}"
         working-directory: dist
 
       - name: Upload the installer exe
@@ -158,7 +153,7 @@ jobs:
         run: |
           $pydir = type ../pydir.txt
           $env:PATH += ";$pydir;$pydir/Scripts"
-          python ..\cura_inst\packaging\msi\create_windows_msi.py --source_path ..\cura_inst --dist_path .\UltiMaker-Cura --filename "${{ steps.prepare-distribution.outputs.INSTALLER_FILENAME }}.msi" --name "${{ steps.prepare-distribution.outputs.CURA_APP_NAME }}" --version "${{ steps.prepare-distribution.outputs.CURA_VERSION_FULL }}"
+          python ..\cura_inst_arm\packaging\msi\create_windows_msi.py --source_path ..\cura_inst_arm --dist_path .\UltiMaker-Cura --filename "${{ steps.prepare-distribution.outputs.INSTALLER_FILENAME }}.msi" --name "${{ steps.prepare-distribution.outputs.CURA_APP_NAME }}" --version "${{ steps.prepare-distribution.outputs.CURA_VERSION_FULL }}"
         working-directory: dist
 
       - name: Upload the installer msi
@@ -184,11 +179,6 @@ jobs:
           name: CuraEngine.exe
           path: dist/UltiMaker-Cura/CuraEngine.exe
           retention-days: 5
-
-      - name: Upload the built Package(s)
-        if: ${{ always() }}
-        uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@main
-        continue-on-error: true
 
       - name: Clean local cache
         if: ${{ always() && startsWith(inputs.operating_system, 'self-hosted') }}
