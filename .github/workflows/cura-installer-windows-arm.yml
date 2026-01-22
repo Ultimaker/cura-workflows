@@ -83,7 +83,7 @@ jobs:
             $pydir = type pydir.txt
             $env:PATH += ";$pydir;$pydir/Scripts"
             # Note: Sentry integration temporarily disabled for ARM64 due to winapi dependency issues in sentry-cli
-            conan install --requires "${{ inputs.cura_conan_version != '' && inputs.cura_conan_version || format('cura/{0}@ultimaker/testing', steps.setup-environment.outputs.package_version) }}" ${{ inputs.conan_args }} --build=missing --update -of cura_inst --deployer-package="*" --profile ${{ steps.set-overrides.outputs.profile }} ${{ inputs.enterprise && '-o "cura/*:enterprise=True"' || '' }} ${{ inputs.staging && '-o "cura/*:staging=True"' || '' }} ${{ inputs.private_data && '-o "cura/*:internal=True"' || '' }}
+            conan install --requires "${{ inputs.cura_conan_version != '' && inputs.cura_conan_version || format('cura/{0}@ultimaker/testing', steps.setup-environment.outputs.package_version) }}" ${{ inputs.conan_args }} --build=missing --update -of cura_inst --deployer-package="*" --profile ${{ steps.set-overrides.outputs.profile }} -o "arcus/*:enable_sentry=False" -o "clipper/*:enable_sentry=False" -o "curaengine/*:enable_sentry=False" ${{ inputs.enterprise && '-o "cura/*:enterprise=True"' || '' }} ${{ inputs.staging && '-o "cura/*:staging=True"' || '' }} ${{ inputs.private_data && '-o "cura/*:internal=True"' || '' }}
 
       - name: Create the Cura distribution with pyinstaller
         id: prepare-distribution
