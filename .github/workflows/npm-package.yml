@@ -34,6 +34,9 @@ jobs:
           install_system_dependencies: true
           repository_path: _sources
 
+      - name: Install TypeScript 5.6.2
+        run: npm install -g typescript@5.6.2
+
       - name: Gather/build the packages
         run: conan install --requires "${{ inputs.package_version_full }}" -pr:h cura_wasm.jinja -g npm --build=missing --update ${{ inputs.conan_extra_args }} -of .
 
@@ -42,6 +45,7 @@ jobs:
         with:
           registry-url: 'https://npm.pkg.github.com'
           scope: '@ultimaker'
+
 
       - name: Publish to GitHub Packages
         run: |
