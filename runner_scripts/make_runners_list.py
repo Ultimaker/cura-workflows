@@ -12,7 +12,7 @@ def make_runners_list(args):
     if args.platform_mac:
         runners_list.append({"runner": "macos-13", "conan_extra_args": ""})
     if args.platform_windows_arm64:
-        runners_list.append({"runner": "windows-latest-arm64", "conan_extra_args": "-pr:h windows_arm64_msvc194"})
+        runners_list.append({"runner": "windows-latest-arm64", "conan_extra_args": ""})
     if args.platform_wasm:
         runners_list.append({"runner": "ubuntu-latest", "conan_extra_args": "-pr:h cura_wasm.jinja"})
 

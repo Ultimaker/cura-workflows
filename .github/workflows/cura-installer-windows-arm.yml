@@ -76,7 +76,7 @@ jobs:
         uses: ultimaker/cura-workflows/.github/actions/set-package-overrides@main
         with:
           package_overrides: ${{ inputs.package_overrides }}
-          profile: installer_arm.jinja
+          profile: installer.jinja
 
       - name: Gather/build the packages
         run: |
