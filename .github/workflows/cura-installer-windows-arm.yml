@@ -62,7 +62,7 @@ jobs:
     steps:
       - name: Setup the build environment
         id: setup-environment
-        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@main
+        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@CURA-12814
         with:
           conan_user: ${{ secrets.CONAN_USER }}
           conan_password: ${{ secrets.CONAN_PASS }}
@@ -73,7 +73,7 @@ jobs:
 
       - name: Set packages overrides
         id: set-overrides
-        uses: ultimaker/cura-workflows/.github/actions/set-package-overrides@main
+        uses: ultimaker/cura-workflows/.github/actions/set-package-overrides@CURA-12814
         with:
           package_overrides: ${{ inputs.package_overrides }}
           profile: installer.jinja
