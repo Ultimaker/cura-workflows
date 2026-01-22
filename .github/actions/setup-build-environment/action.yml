@@ -111,7 +111,12 @@ runs:
           echo "Installed Python for GitHub in: $pydir"
         fi
 
-        python -m pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
+        # Install runner requirements, but skip sentry-cli on Windows ARM64 due to winapi compatibility issues
+        if [[ "$RUNNER_ARCH" == "ARM64" && "$RUNNER_OS" == "Windows" ]]; then
+          python -m pip install conan==2.24.0 sip>=6.8.1 pyyaml semver gitpython pytest
+        else
+          python -m pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
+        fi
 
         if [ "${{ inputs.install_system_dependencies }}" == "true" ]; then
           if [[ "$OSTYPE" == "linux-gnu"* ]]; then
