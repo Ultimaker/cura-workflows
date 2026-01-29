@@ -113,4 +113,12 @@ jobs:
           install_system_dependencies: ${{ inputs.install_system_dependencies }}
 
       - name: Create the Package (binaries)
-        run: conan create ${{ inputs.conan_recipe_root }} --version ${{ needs.conan-recipe-version.outputs.version_base }} --user ${{ needs.conan-recipe-version.outputs.user }} --channel ${{ needs.conan-recipe-version.outputs.channel }} ${{ inputs.conan_extra_args }} --build=missing ${{ matrix.conan_extra_args }}
+        run: conan create ${{ inputs.conan_recipe_root }} --version ${{ needs.conan-recipe-version.outputs.version_base }} --user ${{ needs.conan-recipe-version.outputs.user }} --channel ${{ needs.conan-recipe-version.outputs.channel }} ${{ inputs.conan_extra_args }} --build=missing ${{ matrix.conan_extra_args }} --lockfile-out=conan.lock
+
+      - name: Commit lockfile
+        if: github.event_name == 'push' && (github.ref_type == 'tag' || (github.ref_type == 'branch' && github.ref_name != 'main' && github.ref_name != 'master'))
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          file_pattern: conan.lock
+          commit_message: "Update Conan lockfile"
+          status_options: --untracked-files=no

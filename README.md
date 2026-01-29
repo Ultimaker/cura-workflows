@@ -8,6 +8,37 @@ UltiMaker developers working on Cura need to install the conan-config from the `
 conan config install https://github.com/Ultimaker/conan-config.git -a "-b dev"
 ```
 
+## Conan Lockfiles for Reproducible Builds
+
+All CI/CD workflows use Conan lockfiles to ensure reproducible builds across time and environments. Lockfiles pin exact package versions and revisions, preventing dependency drift between developer machines, CI servers, and release builds.
+
+### Key Benefits:
+- **Reproducibility**: Same dependencies for every build, regardless of when or where it runs
+- **Traceability**: Full audit trail of exact dependency versions used in each build
+- **Safety**: Builds fail if dependencies can't be resolved from the lockfile (strict mode)
+- **Consistency**: Developers, CI, and releases all use identical dependency graphs
+
+### How it Works:
+- Workflows use `--lockfile-out=conan.lock` to generate/update the lockfile
+- Conan 2 automatically loads `conan.lock` if it exists in the working directory
+- Default strict mode ensures all dependencies must be in the lockfile
+- Lockfiles are generated/updated automatically during CI builds
+- **Auto-commit behavior varies by workflow:**
+  - **Most workflows**: Lockfiles committed on push to main/master branches
+  - **Package creation workflow**: Lockfiles committed on push to release branches/tags (not main/master)
+- Each repository should maintain its own `conan.lock` file in version control
+
+### Maintenance:
+- Lockfiles are automatically created on first CI run if they don't exist
+- Lockfiles are automatically updated when new dependencies are resolved
+- **Lockfiles are automatically committed based on workflow type:**
+  - Test/build workflows commit on push to main/master
+  - Package creation commits on release branches/tags
+- **Note**: Calling workflows must have `contents: write` permission for auto-commit to work
+- To manually add a new dependency: `conan lock add --requires=package/version --lockfile=conan.lock --lockfile-out=conan.lock` then run `conan install` to resolve it
+- For development branches with frequently changing dependencies, use `--lockfile-partial` flag (add to `conan_extra_args` workflow input)
+- If merge conflicts occur in lockfiles, regenerate by deleting the lockfile and running the CI workflow
+
 ## Pipeline caching over workflows
 
 Ported a lot of workflows to this repo. All of the reusable workflows have pipeline chacing enabled for Conan downloads and Conan data folders. The caching key have a default fallback key. This ensures that the cache is updated with the latest changes on the Artifactory remote server but reuses the previous stored downloads and data, greatly reducing our download bandwidth and flexible costs.

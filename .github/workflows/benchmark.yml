@@ -58,7 +58,15 @@ jobs:
           install_system_dependencies: true
 
       - name: Install dependencies and build
-        run: conan build . -s build_type=Release --build=missing --update -g VirtualRunEnv ${{ inputs.conan_extra_args }}
+        run: conan build . -s build_type=Release --build=missing --update -g VirtualRunEnv ${{ inputs.conan_extra_args }} --lockfile-out=conan.lock
+
+      - name: Commit lockfile
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          file_pattern: conan.lock
+          commit_message: "Update Conan lockfile"
+          status_options: --untracked-files=no
 
       - name: Run benchmark
         id: run-test
