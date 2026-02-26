@@ -4,4 +4,4 @@ sentry-cli==2.21.2
 pyyaml
 semver
 gitpython
-pytest
+pytest<9
