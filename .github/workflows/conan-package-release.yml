@@ -38,6 +38,7 @@ on:
           - CuraEngine
           - CuraEngine_grpc_definitions
           - CuraEngine_plugin_gradual_flow
+          - CuraFormulaeEngine
           - synsepalum-dulcificum
           - libArcus
           - libnest2d
