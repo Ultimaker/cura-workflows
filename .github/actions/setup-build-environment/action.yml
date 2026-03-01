@@ -89,6 +89,7 @@ runs:
       with:
         update-environment: ${{ inputs.python_set_env_vars }}
         python-version: '3.13'
+        architecture: ${{ runner.arch == 'ARM64' && 'arm64' || 'x64' }}
 
     - name: Install Python requirements and setup Conan environment (Bash)
       id: setup-environment
