@@ -86,10 +86,25 @@ runs:
     - name: Setup Python and pip
       uses: actions/setup-python@v5
       id: setup-python
+      if: ${{ !(runner.arch == 'ARM64' && runner.os == 'Windows') }}
       with:
         update-environment: ${{ inputs.python_set_env_vars }}
         python-version: '3.13'
-        architecture: ${{ runner.arch == 'ARM64' && 'arm64' || 'x64' }}
+
+    - name: Setup Python (Windows ARM64 self-hosted)
+      id: setup-python-win-arm
+      if: ${{ runner.arch == 'ARM64' && runner.os == 'Windows' }}
+      shell: powershell
+      run: |
+        # Python must already be installed on this self-hosted runner.
+        # Run runner_scripts/windows_arm_setup.ps1 once to set it up.
+        $pyExe = (Get-Command python.exe -ErrorAction Stop).Source
+        $arch = & $pyExe -c "import platform; print(platform.machine())"
+        if ($arch -notmatch "ARM64") {
+            throw "python.exe in PATH is $arch, not ARM64. Check runner setup."
+        }
+        Write-Host "Using ARM64 Python at: $pyExe"
+        echo "python-path=$pyExe" >> $env:GITHUB_OUTPUT
 
     - name: Install Python requirements and setup Conan environment (Bash)
       id: setup-environment
@@ -106,7 +121,11 @@ runs:
         fi
         
         if [[ "${{ inputs.python_set_env_vars }}" == "false" ]]; then
-          pydir="$(dirname "${{ steps.setup-python.outputs.python-path }}")"
+          if [[ "$RUNNER_ARCH" == "ARM64" && "$RUNNER_OS" == "Windows" ]]; then
+            pydir="$(dirname "${{ steps.setup-python-win-arm.outputs.python-path }}")"
+          else
+            pydir="$(dirname "${{ steps.setup-python.outputs.python-path }}")"
+          fi
           PATH+=":$pydir:$pydir/Scripts"
           echo $pydir >> pydir.txt
           echo "Installed Python for GitHub in: $pydir"
