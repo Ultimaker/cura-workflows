@@ -84,24 +84,24 @@ jobs:
             $env:PATH += ";$pydir;$pydir/Scripts"
             # Note: Sentry integration temporarily disabled for ARM64 due to winapi dependency issues in sentry-cli
             # Note: Using mpdecimal 4.0.1 which has ARM64 support (2.5.1 does not)
-            conan install --requires "${{ inputs.cura_conan_version != '' && inputs.cura_conan_version || format('cura/{0}@ultimaker/testing', steps.setup-environment.outputs.package_version) }}" --requires "mpdecimal/4.0.1" ${{ inputs.conan_args }} --build=missing --update -of cura_inst_arm --deployer-package="*" --profile ${{ steps.set-overrides.outputs.profile }} ${{ inputs.enterprise && '-o "cura/*:enterprise=True"' || '' }} ${{ inputs.staging && '-o "cura/*:staging=True"' || '' }} ${{ inputs.private_data && '-o "cura/*:internal=True"' || '' }} -o "arcus/*:enable_sentry=False" -o "clipper/*:enable_sentry=False" -o "curaengine/*:enable_sentry=False"
+            conan install --requires "${{ inputs.cura_conan_version != '' && inputs.cura_conan_version || format('cura/{0}@ultimaker/testing', steps.setup-environment.outputs.package_version) }}" --requires "mpdecimal/4.0.1" ${{ inputs.conan_args }} --build=missing --update -of cura_inst --deployer-package="*" --profile ${{ steps.set-overrides.outputs.profile }} ${{ inputs.enterprise && '-o "cura/*:enterprise=True"' || '' }} ${{ inputs.staging && '-o "cura/*:staging=True"' || '' }} ${{ inputs.private_data && '-o "cura/*:internal=True"' || '' }} -o "arcus/*:enable_sentry=False" -o "clipper/*:enable_sentry=False" -o "curaengine/*:enable_sentry=False"
 
       - name: Create the Cura distribution with pyinstaller
         id: prepare-distribution
         shell: cmd
         run: |
-            call cura_inst_arm\conanrun.bat
+            call cura_inst\conanrun.bat
 
             python -m venv cura_installer_venv
             call cura_installer_venv\Scripts\Activate.bat
 
-            python -m pip install -r cura_inst_arm\packaging\pip_requirements_core_basic.txt --no-warn-script-location
-            python -m pip install -r cura_inst_arm\packaging\pip_requirements_core_hashes.txt --no-warn-script-location
-            python -m pip install -r cura_inst_arm\packaging\pip_requirements_installer_basic.txt --no-warn-script-location
+            python -m pip install -r cura_inst\packaging\pip_requirements_core_basic.txt --no-warn-script-location
+            python -m pip install -r cura_inst\packaging\pip_requirements_core_hashes.txt --no-warn-script-location
+            python -m pip install -r cura_inst\packaging\pip_requirements_installer_basic.txt --no-warn-script-location
 
             python Cura-workflows\runner_scripts\prepare_installer.py --os ${{ runner.os }} --architecture ARM64 ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }} --summary-output %GITHUB_STEP_SUMMARY% --variables-output %GITHUB_OUTPUT%
 
-            pyinstaller cura_inst_arm\UltiMaker-Cura.spec
+            pyinstaller cura_inst\UltiMaker-Cura.spec
 
       - name: Workaround (need exact version of msvc redistributables)
         run: |
@@ -140,7 +140,7 @@ jobs:
         run: |
           $pydir = type ../pydir.txt
           $env:PATH += ";$pydir;$pydir/Scripts"
-          python ..\cura_inst_arm\packaging\NSIS\create_windows_installer.py --source_path ../cura_inst_arm --dist_path . --filename "${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.exe" --version "${{ steps.prepare-distribution.outputs.CURA_VERSION_FULL }}"
+          python ..\cura_inst\packaging\NSIS\create_windows_installer.py --source_path ../cura_inst --dist_path . --filename "${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.exe" --version "${{ steps.prepare-distribution.outputs.CURA_VERSION_FULL }}"
         working-directory: dist
 
       - name: Upload the installer exe
@@ -155,7 +155,7 @@ jobs:
         run: |
           $pydir = type ../pydir.txt
           $env:PATH += ";$pydir;$pydir/Scripts"
-          python ..\cura_inst_arm\packaging\msi\create_windows_msi.py --source_path ..\cura_inst_arm --dist_path .\UltiMaker-Cura --filename "${{ steps.prepare-distribution.outputs.INSTALLER_FILENAME }}.msi" --name "${{ steps.prepare-distribution.outputs.CURA_APP_NAME }}" --version "${{ steps.prepare-distribution.outputs.CURA_VERSION_FULL }}"
+          python ..\cura_inst\packaging\msi\create_windows_msi.py --source_path ..\cura_inst --dist_path .\UltiMaker-Cura --filename "${{ steps.prepare-distribution.outputs.INSTALLER_FILENAME }}.msi" --name "${{ steps.prepare-distribution.outputs.CURA_APP_NAME }}" --version "${{ steps.prepare-distribution.outputs.CURA_VERSION_FULL }}"
         working-directory: dist
 
       - name: Upload the installer msi
