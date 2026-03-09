@@ -182,9 +182,3 @@ jobs:
           path: dist/UltiMaker-Cura/CuraEngine.exe
           retention-days: 5
 
-      - name: Clean local cache
-        if: ${{ always() && startsWith(inputs.operating_system, 'self-hosted') }}
-        run: |
-            $pydir = type pydir.txt
-            $env:PATH += ";$pydir;$pydir/Scripts"
-            conan remove '*' --lru=1w -c
