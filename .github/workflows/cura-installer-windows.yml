@@ -118,7 +118,7 @@ jobs:
           $PRE_MSDIR="C:/Program Files/Microsoft Visual Studio"
           if ( (dir $PRE_MSDIR).Count -ne 1 ) { throw "(!!!) MULTIPLE VISUAL STUDIO VERSIONS IN '$PRE_MSDIR' -- NEED EXACTLY ONE (cant even sort since 18 > 2022 in this context) (!!!)" }
           $SELECT_MSDIR=(dir $PRE_MSDIR)[0].FullName
-          $MSDIR=$SELECT_MSDIR/Community/VC/Redist/MSVC
+          $MSDIR=$SELECT_MSDIR+"/Community/VC/Redist/MSVC"
           if ( (dir -Exclude "v*" $MSDIR).Count -ne 1 ) { Write-Warning "(!!!) MULTIPLE MSVC VERSIONS IN '$MSDIR' -- WILL TRY TO COPY _LATEST_ REDISTRIBUTABLE (!!!)" }
           $MSDIR_R=(dir -Exclude "v*" $MSDIR | Sort-Object Name -Descending)[0].FullName
           $MSDIR_DLLS=(dir $MSDIR_R/x64/Microsoft.VC*.CRT)[0].FullName
