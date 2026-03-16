@@ -9,7 +9,7 @@ snap install cmake --classic --channel=3.28/stable
 current_version_number=$(gcc -v 2>&1 | grep '^gcc version' | awk '{print $3}' | awk -F'.' '{print $1}')
 highest_version=$current_version_number
 
-if (( current_version_number < 13 )); then
+if (( current_version_number != 13 )); then
     echo "::notice::Upgrading GCC version to 13 and setting it as the default."
     add-apt-repository ppa:ubuntu-toolchain-r/test -y
     apt install -y g++-13 gcc-13
@@ -17,20 +17,4 @@ if (( current_version_number < 13 )); then
     update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 13
     update-alternatives --set gcc /usr/bin/gcc-13
     update-alternatives --set g++ /usr/bin/g++-13
-else
-    for v in {11..15}; do
-        version_number=$(/usr/bin/gcc-$v -v 2>&1 | grep '^gcc version' | awk '{print $3}' | awk -F'.' '{print $1}')
-        if [[ -n $version_number ]]; then
-            if (( version_number > current_version_number )); then
-                highest_version=$v
-            fi
-        else
-            echo "::debug::GCC $v not installed or unable to determine version."
-        fi
-    done
-    echo "::notice::Setting GCC $highest_version as the default."
-    update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-$highest_version $current_version_number
-    update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-$highest_version $current_version_number
-    update-alternatives --set gcc /usr/bin/gcc-$highest_version
-    update-alternatives --set g++ /usr/bin/g++-$highest_version
 fi
