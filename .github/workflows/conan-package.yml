@@ -100,6 +100,7 @@ jobs:
     name: Build package
     needs: [ conan-recipe-version, conan-recipe-export-latest, make-runners-list ]
     runs-on: ${{ matrix.runner }}
+    if: ${{ fromJson(needs.make-runners-list.outputs.matrix).include.length != 0 }}
     strategy:
       matrix: ${{ fromJson(needs.make-runners-list.outputs.matrix) }}
 
