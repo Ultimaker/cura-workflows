@@ -26,4 +26,4 @@ runs:
             PATH+=":$pydir:$pydir/Scripts"
           fi
 
-          python Cura-workflows/runner_scripts/upload_conan_package.py "${{ inputs.package_name }}" ${{ inputs.private_data && '--private' || '' }}
+          python Cura-workflows/runner_scripts/upload_conan_package.py "${{ inputs.package_name }}" ${{ inputs.private_data == 'true' && '--private' || '' }}
