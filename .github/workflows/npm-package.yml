@@ -46,7 +46,7 @@ jobs:
         if: ${{ inputs.extra_artifact != '' }}
         uses: actions/download-artifact@v8
         with:
-          name: ${{ extra_artifact }}
+          name: ${{ inputs.extra_artifact }}
 
       - name: Gather/build the packages
         run: conan install --requires "${{ inputs.package_version_full }}" -pr:h cura_wasm.jinja -g npm --build=missing --update ${{ inputs.conan_extra_args }} -of .
