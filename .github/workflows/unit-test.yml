@@ -18,6 +18,11 @@ on:
         default: ""
         type: string
 
+      package_overrides:
+        required: false
+        default: ""
+        type: string
+
       runs_on:
         required: false
         default: "ubuntu-latest"
@@ -38,8 +43,16 @@ jobs:
         with:
           install_system_dependencies: true
 
+      - name: Set package overrides
+        id: set_overrides
+        if: inputs.package_overrides != ''
+        uses: ultimaker/cura-workflows/.github/actions/set-package-overrides@main
+        with:
+          package_overrides: ${{ inputs.package_overrides }}
+          profile: cura.jinja
+
       - name: Install dependencies and build unit test
-        run: conan build . -s build_type=Release --build=missing --update -c tools.build:skip_test=False ${{ inputs.test_use_pytest && '-g VirtualPythonEnv -c user.generator.virtual_python_env:dev_tools=True' || '' }} ${{ inputs.conan_extra_args }}
+        run: conan build . --profile "${{ steps.set_overrides.outputs.profile || 'cura.jinja' }}" -s build_type=Release --build=missing --update -c tools.build:skip_test=False ${{ inputs.test_use_pytest && '-g VirtualPythonEnv -c user.generator.virtual_python_env:dev_tools=True' || '' }} ${{ inputs.conan_extra_args }}
 
       - name: Run ctest-based unit test
         if: ${{ inputs.test_use_ctest }}

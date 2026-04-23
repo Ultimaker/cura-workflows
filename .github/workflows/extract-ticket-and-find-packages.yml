@@ -1,0 +1,38 @@
+name: Extract Ticket and Find Packages
+
+on:
+  workflow_call:
+    outputs:
+      package_overrides:
+        description: "Conan package overrides discovered for the ticket"
+        value: ${{ jobs.find-packages.outputs.package_overrides }}
+      ticket:
+        description: "Extracted Jira ticket number"
+        value: ${{ jobs.extract-ticket.outputs.ticket }}
+
+permissions:
+  contents: read
+
+jobs:
+  extract-ticket:
+    name: Extract Jira ticket from branch
+    runs-on: ubuntu-latest
+    if: github.ref_name != 'main'
+    outputs:
+      ticket: ${{ steps.extract.outputs.ticket }}
+    steps:
+      - name: Extract ticket number
+        id: extract
+        run: |
+          branch="${{ github.head_ref || github.ref_name }}"
+          ticket=$(echo "$branch" | grep -oP '^(CURA|PP|NP)-\d+' || echo "")
+          echo "ticket=$ticket" >> $GITHUB_OUTPUT
+
+  find-packages:
+    name: Find ticket-specific packages
+    needs: [extract-ticket]
+    if: needs.extract-ticket.outputs.ticket != ''
+    uses: ultimaker/cura-workflows/.github/workflows/find-package-by-ticket.yml@main
+    with:
+      jira_ticket_number: ${{ needs.extract-ticket.outputs.ticket }}
+    secrets: inherit
