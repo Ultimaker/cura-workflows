@@ -17,6 +17,16 @@ on:
         default: ""
         type: string
 
+      extra_artifact:
+        required: false
+        default: ""
+        type: string
+
+      extra_artifact_destination:
+        required: false
+        default: "."
+        type: string
+
 jobs:
   publish-npm:
     runs-on: ubuntu-latest
@@ -37,6 +47,13 @@ jobs:
       - name: Install TypeScript 5.6.2
         run: npm install -g typescript@5.6.2
 
+      - name: Download extra artifact
+        if: ${{ inputs.extra_artifact != '' }}
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.extra_artifact }}
+          path: ${{ inputs.extra_artifact_destination }}
+
       - name: Gather/build the packages
         run: conan install --requires "${{ inputs.package_version_full }}" -pr:h cura_wasm.jinja -g npm --build=missing --update ${{ inputs.conan_extra_args }} -of .
 
@@ -45,7 +62,6 @@ jobs:
         with:
           registry-url: 'https://npm.pkg.github.com'
           scope: '@ultimaker'
-
 
       - name: Publish to GitHub Packages
         run: |
