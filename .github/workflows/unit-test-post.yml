@@ -3,7 +3,16 @@ name: unit-test-post
 on:
   workflow_call:
     inputs:
-      workflow_run_json:
+      workflow_run_conclusion:
+        required: true
+        type: string
+      workflow_run_id:
+        required: true
+        type: string
+      workflow_run_head_sha:
+        required: true
+        type: string
+      workflow_run_event:
         required: true
         type: string
 
@@ -15,7 +24,7 @@ permissions:
 
 jobs:
   publish-test-results:
-    if: ${{ fromJSON(inputs.workflow_run_json).conclusion != 'skipped' }}
+    if: ${{ inputs.workflow_run_conclusion != 'skipped' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -23,14 +32,14 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ secrets.CURA_UNIT_TESTS_POST_PAT }}
-          run-id: ${{ fromJSON(inputs.workflow_run_json).id }}
+          run-id: ${{ inputs.workflow_run_id }}
           path: artifacts
 
       - name: Publish Unit Test Results
         id: publish-test-results
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
-          commit: ${{ fromJSON(inputs.workflow_run_json).head_sha }}
+          commit: ${{ inputs.workflow_run_head_sha }}
           files: artifacts/test-results/**/unit_tests_results.xml
           event_file: artifacts/unit-test-metadata/event.json
-          event_name: ${{ fromJSON(inputs.workflow_run_json).event }}
+          event_name: ${{ inputs.workflow_run_event }}
