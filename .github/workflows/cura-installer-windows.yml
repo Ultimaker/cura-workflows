@@ -164,7 +164,7 @@ jobs:
 
       - name: Upload the installer exe
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}-exe
           path: dist/${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.exe
@@ -185,7 +185,7 @@ jobs:
 
       - name: Upload the installer msi
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}-msi
           path: dist/${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.msi
@@ -193,7 +193,7 @@ jobs:
 
       - name: Upload the application exe
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: UltiMaker-Cura.exe
           path: dist/UltiMaker-Cura/UltiMaker-Cura.exe
@@ -201,7 +201,7 @@ jobs:
 
       - name: Upload the engine exe
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: CuraEngine.exe
           path: dist/UltiMaker-Cura/CuraEngine.exe

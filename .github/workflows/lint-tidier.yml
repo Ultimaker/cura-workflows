@@ -44,13 +44,13 @@ jobs:
           echo ${{ github.event.pull_request.head.repo.full_name }} > linter-result/pr-head-repo.txt
           echo ${{ github.event.pull_request.head.sha }} > linter-result/pr-head-sha.txt
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: linter-result
           path: linter-result/
 
       - name: Run clang-tidy-pr-comments action
-        uses: platisd/clang-tidy-pr-comments@1.4.0
+        uses: platisd/clang-tidy-pr-comments@1.8.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           clang_tidy_fixes: linter-result/fixes.yml
