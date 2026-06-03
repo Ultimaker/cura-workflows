@@ -70,21 +70,21 @@ runs:
         find . -mindepth 1 -delete
 
     - name: Checkout repo
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         repository: ${{ inputs.repository }}
         ref: ${{ inputs.branch }}
         path: ${{ inputs.repository_path }}
 
     - name: Checkout Cura-workflows repo
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         repository: Ultimaker/Cura-workflows
         path: Cura-workflows
         ref: ${{ inputs.cura_workflows_branch }}
 
     - name: Setup Python and pip
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       id: setup-python
       with:
         update-environment: ${{ inputs.python_set_env_vars }}
