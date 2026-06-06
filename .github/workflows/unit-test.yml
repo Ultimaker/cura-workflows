@@ -57,7 +57,7 @@ jobs:
           profile: cura.jinja
 
       - name: Install dependencies and build unit test
-        run: conan build . -s build_type=Release --build=missing --update -c tools.build:skip_test=False ${{ inputs.test_use_pytest && '-g VirtualPythonEnv -c user.generator.virtual_python_env:dev_tools=True' || '' }} ${{ inputs.skip_licenses_download && '-o ${{ github.event.repository.name }}:skip_licenses_download=True' || '' }} ${{ inputs.conan_extra_args }}
+        run: conan build . -s build_type=Release --build=missing --update -c tools.build:skip_test=False ${{ inputs.test_use_pytest && '-g VirtualPythonEnv -c user.generator.virtual_python_env:dev_tools=True' || '' }} ${{ inputs.skip_licenses_download && format('-o {0}:skip_licenses_download=True', github.event.repository.name) || '' }} ${{ inputs.conan_extra_args }}
 
       - name: Run ctest-based unit test
         if: ${{ inputs.test_use_ctest }}
