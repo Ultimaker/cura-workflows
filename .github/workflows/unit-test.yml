@@ -18,6 +18,11 @@ on:
         default: ""
         type: string
 
+      skip_licenses_download:
+        required: false
+        default: true
+        type: boolean
+
       package_overrides:
         required: false
         default: ""
@@ -52,7 +57,7 @@ jobs:
           profile: cura.jinja
 
       - name: Install dependencies and build unit test
-        run: conan build . --profile "${{ steps.set_overrides.outputs.profile || 'cura.jinja' }}" -s build_type=Release --build=missing --update -c tools.build:skip_test=False ${{ inputs.test_use_pytest && '-g VirtualPythonEnv -c user.generator.virtual_python_env:dev_tools=True' || '' }} ${{ inputs.conan_extra_args }}
+        run: conan build . -s build_type=Release --build=missing --update -c tools.build:skip_test=False ${{ inputs.test_use_pytest && '-g VirtualPythonEnv -c user.generator.virtual_python_env:dev_tools=True' || '' }} ${{ inputs.skip_licenses_download && '-o ${{ github.event.repository.name }}:skip_licenses_download=True' || '' }} ${{ inputs.conan_extra_args }}
 
       - name: Run ctest-based unit test
         if: ${{ inputs.test_use_ctest }}
