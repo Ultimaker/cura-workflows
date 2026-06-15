@@ -14,9 +14,10 @@ jobs:
         with:
           install_system_dependencies: true
 
-      - uses: greguintow/get-diff-action@v7
+      - id: get-diff
+        uses: ultimaker/cura-workflows/.github/actions/get-diff@main
         with:
-          PATTERNS: |
+          files: |
             include/**/*.h*
             src/**/*.c*
 
@@ -33,10 +34,10 @@ jobs:
         run: mkdir linter-result
 
       - name: Diagnose file(s)
-        if: env.GIT_DIFF && !env.MATCHED_FILES
+        if: steps.get-diff.outputs.files != ''
         continue-on-error: true
         run: |
-          clang-tidy -p ./build/Release/ --config-file=.clang-tidy ${{ env.GIT_DIFF_FILTERED }} --export-fixes=linter-result/fixes.yml
+          clang-tidy -p ./build/Release/ --config-file=.clang-tidy ${{ steps.get-diff.outputs.files_quoted }} --export-fixes=linter-result/fixes.yml
 
       - name: Save PR metadata
         run: |
@@ -50,7 +51,7 @@ jobs:
           path: linter-result/
 
       - name: Run clang-tidy-pr-comments action
-        uses: platisd/clang-tidy-pr-comments@1.8.0
+        uses: platisd/clang-tidy-pr-comments@v1.8.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           clang_tidy_fixes: linter-result/fixes.yml
