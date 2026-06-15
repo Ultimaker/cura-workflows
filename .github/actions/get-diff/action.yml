@@ -41,6 +41,7 @@ runs:
           ALL_FILES="${CHANGED}"
         fi
         if [ -n "${ALL_FILES}" ]; then
+          FILES_QUOTED=$(echo "${ALL_FILES}" | sed "s/\([^ ]*\)/'\1'/g")
           echo "files=${ALL_FILES}" >> "$GITHUB_OUTPUT"
-          echo "files_quoted=$(echo "${ALL_FILES}" | sed "s/\([^ ]*\)/'\1'/g")" >> "$GITHUB_OUTPUT"
+          echo "files_quoted=${FILES_QUOTED}" >> "$GITHUB_OUTPUT"
         fi
