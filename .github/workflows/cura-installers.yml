@@ -67,7 +67,7 @@ jobs:
       enterprise: ${{ inputs.enterprise }}
       staging: ${{ inputs.staging }}
       architecture: X64
-      operating_system: self-hosted-X64
+      operating_system: self-hosted-macos-15
       private_data: ${{ inputs.private_data }}
     secrets: inherit
 
@@ -81,6 +81,6 @@ jobs:
       enterprise: ${{ inputs.enterprise }}
       staging: ${{ inputs.staging }}
       architecture: ARM64
-      operating_system: self-hosted-ARM64
+      operating_system: self-hosted-macos-15
       private_data: ${{ inputs.private_data }}
     secrets: inherit
