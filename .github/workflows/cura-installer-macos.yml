@@ -66,7 +66,9 @@ env:
 jobs:
   cura-installer-create:
     name: Build MacOS packages ${{ inputs.architecture }}
-    runs-on: ${{ inputs.operating_system }}
+    runs-on:
+      - ${{ inputs.operating_system }}
+      - ${{ inputs.architecture }}
 
     steps:
       - name: Setup the build environment
@@ -91,7 +93,7 @@ jobs:
 
       - name: Configure Macos keychain Developer Cert(Bash)
         id: macos-keychain-developer-cert
-        uses: apple-actions/import-codesign-certs@v3
+        uses: apple-actions/import-codesign-certs@v7
         with:
           keychain-password: ${{ secrets.MACOS_KEYCHAIN_PASSWORD }}
           p12-file-base64: ${{ secrets.MACOS_CERT_P12 }}
@@ -99,7 +101,7 @@ jobs:
 
       - name: Configure Macos keychain Installer Cert (Bash)
         id: macos-keychain-installer-cert
-        uses: apple-actions/import-codesign-certs@v3
+        uses: apple-actions/import-codesign-certs@v7
         with:
           keychain-password: ${{ secrets.MACOS_KEYCHAIN_PASSWORD }}
           create-keychain: false # keychain is created in previous use of action.
@@ -135,7 +137,7 @@ jobs:
         working-directory: dist
 
       - name: Upload the dmg
-        uses: actions/upload-artifact@v4.3.3
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.prepare-distribution.outputs.INSTALLER_FILENAME }}-dmg
           path: |
@@ -143,7 +145,7 @@ jobs:
           retention-days: 5
 
       - name: Upload the pkg
-        uses: actions/upload-artifact@v4.3.3
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.prepare-distribution.outputs.INSTALLER_FILENAME }}-pkg
           path: |

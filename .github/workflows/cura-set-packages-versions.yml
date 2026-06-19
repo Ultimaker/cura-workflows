@@ -29,7 +29,7 @@ jobs:
             main_branch: ${{ inputs.create_feature_branch && 'master' || inputs.branch }}
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: Ultimaker/${{ matrix.repository }}
           ref: ${{ matrix.main_branch }}
@@ -53,7 +53,7 @@ jobs:
           sed -i "s/^version:.*/version: \"$PACKAGE_VERSION\"/g" conandata.yml
 
       - name: Create branch and commit
-        uses: stefanzweifel/git-auto-commit-action@v5.0.1
+        uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: Set conan package version ${{ inputs.cura_version }}
           branch: ${{ inputs.branch }}

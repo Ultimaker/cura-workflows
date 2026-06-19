@@ -40,7 +40,7 @@ jobs:
 
     steps:
     - name: Checkout Cura-workflows repo
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         repository: Ultimaker/Cura-workflows
         path: Cura-workflows

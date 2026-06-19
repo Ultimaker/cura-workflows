@@ -23,7 +23,7 @@ jobs:
       - name: Update translation files using Conan install
         run: conan install . --build=missing --update -o "&:enable_i18n=True"
 
-      - uses: stefanzweifel/git-auto-commit-action@v4
+      - uses: stefanzweifel/git-auto-commit-action@v7
         with:
           file_pattern: resources/i18n/*.po resources/i18n/*.pot
           status_options: --untracked-files=no

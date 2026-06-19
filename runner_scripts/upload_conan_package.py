@@ -17,7 +17,7 @@ def upload_conan_package(args):
           package_recipes = [package]
 
         for package in package_recipes:
-            remote = "cura-private-conan2" if "@internal" in package else "cura-conan2"
+            remote = "cura-private-conan2" if (args.private or "@internal" in package) else "cura-conan2"
 
             print(f"Upload package {package} to {remote}")
             if not args.dry_run:
@@ -27,6 +27,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description = 'Upload the given local package(s) to the proper Cura conan repository')
     parser.add_argument('package', type = str, help = 'Package name, fully specific or containing wildards')
     parser.add_argument('--dry-run', action='store_true', help = 'Do not upload the package but just show what would happen')
+    parser.add_argument('--private', action='store_true', help = 'Always upload the package to the private repository')
 
     args = parser.parse_args()
     upload_conan_package(args)

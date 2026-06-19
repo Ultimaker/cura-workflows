@@ -18,6 +18,16 @@ on:
         default: ""
         type: string
 
+      skip_licenses_download:
+        required: false
+        default: true
+        type: boolean
+
+      package_overrides:
+        required: false
+        default: ""
+        type: string
+
       runs_on:
         required: false
         default: "ubuntu-latest"
@@ -38,8 +48,16 @@ jobs:
         with:
           install_system_dependencies: true
 
+      - name: Set package overrides
+        id: set_overrides
+        if: inputs.package_overrides != ''
+        uses: ultimaker/cura-workflows/.github/actions/set-package-overrides@main
+        with:
+          package_overrides: ${{ inputs.package_overrides }}
+          profile: cura.jinja
+
       - name: Install dependencies and build unit test
-        run: conan build . -s build_type=Release --build=missing --update -c tools.build:skip_test=False ${{ inputs.test_use_pytest && '-g VirtualPythonEnv -c user.generator.virtual_python_env:dev_tools=True' || '' }} ${{ inputs.conan_extra_args }}
+        run: conan build . -s build_type=Release --build=missing --update -c tools.build:skip_test=False ${{ inputs.test_use_pytest && '-g VirtualPythonEnv -c user.generator.virtual_python_env:dev_tools=True' || '' }} ${{ inputs.skip_licenses_download && '-o *:skip_licenses_download=True' || '' }} ${{ inputs.conan_extra_args }}
 
       - name: Run ctest-based unit test
         if: ${{ inputs.test_use_ctest }}
@@ -57,14 +75,14 @@ jobs:
 
       - name: Upload Test Results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results
           path: ./**/unit_tests_results.xml
 
       - name: Upload metadata
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: unit-test-metadata
           path: ${{ github.event_path }}
