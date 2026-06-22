@@ -83,8 +83,7 @@ jobs:
             $pydir = type pydir.txt
             $env:PATH += ";$pydir;$pydir/Scripts"
             # Note: Sentry integration temporarily disabled for ARM64 due to winapi dependency issues in sentry-cli
-            # Note: Using mpdecimal 4.0.1 which has ARM64 support (2.5.1 does not)
-            conan install --requires "${{ inputs.cura_conan_version != '' && inputs.cura_conan_version || format('cura/{0}@ultimaker/testing', steps.setup-environment.outputs.package_version) }}" --requires "mpdecimal/4.0.1" ${{ inputs.conan_args }} --build=missing --update -of cura_inst --deployer-package="*" --profile ${{ steps.set-overrides.outputs.profile }} ${{ inputs.enterprise && '-o "cura/*:enterprise=True"' || '' }} ${{ inputs.staging && '-o "cura/*:staging=True"' || '' }} ${{ inputs.private_data && '-o "cura/*:internal=True"' || '' }} -o "arcus/*:enable_sentry=False" -o "clipper/*:enable_sentry=False" -o "curaengine/*:enable_sentry=False"
+            conan install --requires "${{ inputs.cura_conan_version != '' && inputs.cura_conan_version || format('cura/{0}@ultimaker/testing', steps.setup-environment.outputs.package_version) }}" --requires ${{ inputs.conan_args }} --build=missing --update -of cura_inst --deployer-package="*" --profile ${{ steps.set-overrides.outputs.profile }} ${{ inputs.enterprise && '-o "cura/*:enterprise=True"' || '' }} ${{ inputs.staging && '-o "cura/*:staging=True"' || '' }} ${{ inputs.private_data && '-o "cura/*:internal=True"' || '' }} -o "arcus/*:enable_sentry=False" -o "clipper/*:enable_sentry=False" -o "curaengine/*:enable_sentry=False"
 
       - name: Create the Cura distribution with pyinstaller
         id: prepare-distribution
@@ -145,7 +144,7 @@ jobs:
 
       - name: Upload the installer exe
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}-exe
           path: dist/${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.exe
@@ -160,7 +159,7 @@ jobs:
 
       - name: Upload the installer msi
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}-msi
           path: dist/${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.msi
@@ -168,7 +167,7 @@ jobs:
 
       - name: Upload the application exe
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: UltiMaker-Cura.exe
           path: dist/UltiMaker-Cura/UltiMaker-Cura.exe
@@ -176,9 +175,15 @@ jobs:
 
       - name: Upload the engine exe
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: CuraEngine.exe
           path: dist/UltiMaker-Cura/CuraEngine.exe
           retention-days: 5
 
+      - name: Clean local cache
+        if: ${{ always() && startsWith(inputs.operating_system, 'self-hosted') }}
+        run: |
+            $pydir = type pydir.txt
+            $env:PATH += ";$pydir;$pydir/Scripts"
+            conan remove '*' --lru=1w -c
