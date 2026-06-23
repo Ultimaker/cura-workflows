@@ -99,7 +99,7 @@ jobs:
         run: |
           # Remove unused Qt module shared libraries (any naming convention)
           for pattern in \
-            "*Qt6Bluetooth*" "*Qt6DBus*" "*Qt6Designer*" "*Qt6Help*" "*Qt6Nfc*" \
+            "*Qt6Bluetooth*" "*Qt6Designer*" "*Qt6Help*" "*Qt6Nfc*" \
             "*Qt6PrintSupport*" "*Qt6SerialPort*" "*Qt6SpatialAudio*" "*Qt6Sql*" \
             "*Qt6Test*" "*Qt6QuickTest*" "*Qt6QuickTimeline*" \
             "*Qt6Multimedia*" "*Qt6Pdf*" "*Qt6Positioning*" "*Qt6RemoteObjects*" \
