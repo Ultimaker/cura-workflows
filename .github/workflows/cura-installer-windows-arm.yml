@@ -127,6 +127,9 @@ jobs:
           dist, current_os = Path(sys.argv[1]), sys.argv[2]
           with open("_cura_sources/conandata.yml") as f:
               blacklist = yaml.safe_load(f)["pyinstaller"]["blacklist"]
+          if not blacklist:
+            print("Blacklist is empty or null")
+            sys.exit(0)
           def matches(p, e):
               n = p.as_posix().lower()
               if isinstance(e, list):
