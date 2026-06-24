@@ -95,7 +95,7 @@ jobs:
           pyinstaller ./cura_inst/UltiMaker-Cura.spec
 
       - name: Remove unused packages in blacklist from "Cura/conandata.yml"
-        run: python Cura-workflows/runner_scripts/cleanup_distribution.py dist/UltiMaker-Cura --conandata _cura_sources/conandata.yml
+        run: python Cura-workflows/runner_scripts/cleanup_distribution.py dist/UltiMaker-Cura --conandata _cura_sources/conandata.yml --os Linux
 
       - name: Create the Linux AppImage (Bash)
         run: |
