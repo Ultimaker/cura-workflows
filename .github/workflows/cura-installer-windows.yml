@@ -135,6 +135,8 @@ jobs:
 
       - name: Remove unused Qt packages
         run: |
+          $pydir = type pydir.txt
+          $env:PATH += ";$pydir;$pydir/Scripts"
           $code = @'
           import yaml, os, shutil, sys
           from pathlib import Path
