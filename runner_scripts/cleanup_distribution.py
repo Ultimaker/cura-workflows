@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """Remove unused packages from a PyInstaller distribution directory.
 
-Reads the 'distribution_cleanup' section of conandata.yml (the Cura repo's source-of-truth
+Reads the 'pyinstaller.blacklist' section of conandata.yml (the Cura repo's source-of-truth
 for excluded packages) and removes every matching file or directory tree from the given
 distribution path.
 https://github.com/Ultimaker/Cura/blob/8d88d81c2db7bae574a1d55b81d8e0774fdb1486/conandata.yml#L133
 
-Each entry in 'distribution_cleanup' has:
+Each entry in 'pyinstaller.blacklist' has:
   patterns  — list of substrings that must ALL appear in the lowercased,
-               forward-slash-normalised file/directory path to trigger removal.
+              forward-slash-normalised file/directory path to trigger removal.
   oses      — (optional) list of OS names; if present, only remove on those platforms.
               Recognised values: Windows, Linux, Macos.
 
@@ -34,10 +34,8 @@ from pathlib import Path
 
 try:
     import yaml
-except ImportError:
-    import subprocess
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "pyyaml", "-q"])
-    import yaml
+except ImportError as exc:
+    raise SystemExit("PyYAML is required (pip install pyyaml).") from exc
 
 
 def path_matches(path: Path, entry) -> bool:
@@ -63,7 +61,7 @@ def cleanup(dist_dir: Path, entries: list, current_os: str) -> int:
                     continue
                 if path_matches(target, entry):
                     print(f"  Removing dir:  {target.relative_to(dist_dir)}")
-                    shutil.rmtree(target, ignore_errors=True)
+                    shutil.rmtree(target)
                     dirs.remove(d)
                     removed += 1
                     break
@@ -86,7 +84,7 @@ def cleanup(dist_dir: Path, entries: list, current_os: str) -> int:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Remove excluded Qt packages from a built distribution directory",
+        description="Remove blacklisted packages from a built distribution directory",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
