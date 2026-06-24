@@ -133,73 +133,34 @@ jobs:
         run: |
           copy Cura-workflows/python_dll_workaround/* dist/UltiMaker-Cura/.
 
-      - name: Yet another step deleting unwanted additional Qt files and folders
-        working-directory: dist/UltiMaker-Cura
+      - name: Remove unused Qt packages
         run: |
-         # Previously removed (redundant with conandata.yml blacklist but kept as safety net)
-         Remove-Item .\* -Include "*assimp*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6charts*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6coap*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6datavis*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6labsani*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6mqtt*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6networkauth*" -Recurse -Force
-         Remove-Item .\* -Include "*quick3d*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6timeline*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6virtualkey*" -Recurse -Force
-         Remove-Item .\* -Include "*waylandcomp*" -Recurse -Force
-         Remove-Item .\* -Include "*qt5compat*" -Recurse -Force
-         # Unused Qt module DLLs — not imported anywhere in Cura/Uranium Python or QML source
-         Remove-Item .\* -Include "*qt6bluetooth*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6dbus*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6designer*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6help*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6nfc*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6printsupport*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6serialport*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6spatialaudio*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6multimedia*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6pdf*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6positioning*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6remoteobjects*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6sensors*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6sql*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6statemachine*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6test*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6quicktest*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6quicktimeline*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6texttospeech*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6webchannel*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6websockets*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6labsfolderlistmodel*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6labsplatform*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6labssettings*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6labsqmlmodels*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6labssharedimage*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6labswavefrontmesh*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6quickparticles*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6quickvectorimage*" -Recurse -Force
-         # FFmpeg DLLs pulled in by Qt Multimedia
-         Remove-Item .\* -Include "avcodec*","avformat*","avutil*","swresample*","swscale*" -Recurse -Force
-         # Unused Qt plugin directories
-         @("multimedia","position","sensors","texttospeech","webview","help","sqldrivers","scxmldatamodel","geometryloaders","sceneparsers","qmllint","qmlls") | ForEach-Object {
-           Remove-Item ".\PyQt6\Qt6\plugins\$_" -Recurse -Force -ErrorAction SilentlyContinue
-         }
-         # Unused Qt QML module directories
-         @("QtMultimedia","QtNetwork","QtPositioning","QtRemoteObjects","QtSensors","QtTest","QtTextToSpeech","QtWebChannel","QtWebSockets") | ForEach-Object {
-           Remove-Item ".\PyQt6\Qt6\qml\$_" -Recurse -Force -ErrorAction SilentlyContinue
-         }
-         # Unused Qt translations
-         Remove-Item .\PyQt6\Qt6\translations\qtconnectivity_* -Force -ErrorAction SilentlyContinue
-         Remove-Item .\PyQt6\Qt6\translations\qtlocation_* -Force -ErrorAction SilentlyContinue
-         Remove-Item .\PyQt6\Qt6\translations\qtmultimedia_* -Force -ErrorAction SilentlyContinue
-         Remove-Item .\PyQt6\Qt6\translations\qtserialport_* -Force -ErrorAction SilentlyContinue
-         Remove-Item .\PyQt6\Qt6\translations\qtwebsockets_* -Force -ErrorAction SilentlyContinue
-         Remove-Item .\PyQt6\Qt6\translations\qt_help_* -Force -ErrorAction SilentlyContinue
-         # Unused image format plugins
-         @("qicns.dll","qgif.dll","qpdf.dll","qtga.dll","qwbmp.dll","qwebp.dll") | ForEach-Object {
-           Remove-Item ".\PyQt6\Qt6\plugins\imageformats\$_" -Force -ErrorAction SilentlyContinue
-         }
+          $code = @'
+          import yaml, os, shutil, sys
+          from pathlib import Path
+          dist, current_os = Path(sys.argv[1]), sys.argv[2]
+          with open("_cura_sources/conandata.yml") as f:
+              blacklist = yaml.safe_load(f)["pyinstaller"]["blacklist"]
+          def matches(p, e):
+              n = p.as_posix().lower()
+              if isinstance(e, list):
+                  pats, oses = e, None
+              else:
+                  pats, oses = e["patterns"], e.get("oses")
+              if oses and current_os not in oses:
+                  return False
+              return all(x in n for x in pats)
+          for root, dirs, files in os.walk(dist, topdown=True):
+              rp = Path(root)
+              for d in dirs[:]:
+                  if any(matches(rp / d, e) for e in blacklist):
+                      shutil.rmtree(rp / d, ignore_errors=True)
+                      dirs.remove(d)
+              for f in files:
+                  if any(matches(rp / f, e) for e in blacklist):
+                      (rp / f).unlink(missing_ok=True)
+          '@
+          $code | python - dist\UltiMaker-Cura Windows
 
       - name: Create the Windows exe installer (Powershell)
         run: |

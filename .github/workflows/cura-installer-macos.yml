@@ -132,38 +132,35 @@ jobs:
           install_name_tool -change @rpath/3DconnexionNavlib /Library/Frameworks/3DconnexionNavlib.framework/3DconnexionNavlib "dist/UltiMaker Cura.app/Contents/Frameworks/pynavlib/_pynavlib.cpython-312-darwin.so"
           codesign -f -s "$CODESIGN_IDENTITY" "dist/UltiMaker Cura.app/Contents/Frameworks/pynavlib/_pynavlib.cpython-312-darwin.so"
 
-      - name: Remove unused Qt libraries and modules
+      - name: Remove unused Qt packages
         run: |
           APP=$(find dist -maxdepth 1 -name "*.app" -type d | head -1)
           if [ -z "$APP" ]; then echo "No .app bundle found in dist/"; exit 1; fi
-          # Remove unused Qt module libraries and frameworks
-          for pattern in \
-            "*Qt6Bluetooth*" "*Qt6DBus*" "*Qt6Designer*" "*Qt6Help*" "*Qt6Nfc*" \
-            "*Qt6PrintSupport*" "*Qt6SerialPort*" "*Qt6SpatialAudio*" "*Qt6Sql*" \
-            "*Qt6Test*" "*Qt6QuickTest*" "*Qt6QuickTimeline*" \
-            "*Qt6Multimedia*" "*Qt6Pdf*" "*Qt6Positioning*" "*Qt6RemoteObjects*" \
-            "*Qt6Sensors*" "*Qt6StateMachine*" "*Qt6TextToSpeech*" \
-            "*Qt6WebChannel*" "*Qt6WebSockets*" \
-            "*Qt6LabsFolderListModel*" "*Qt6LabsPlatform*" "*Qt6LabsSettings*" "*Qt6LabsQmlModels*" \
-            "*Qt6LabsSharedImage*" "*Qt6LabsWavefrontMesh*" \
-            "*Qt6QuickParticles*" "*Qt6QuickVectorImage*" \
-            "*avcodec*" "*avformat*" "*avutil*" "*swresample*" "*swscale*"; do
-            find "$APP" -name "$pattern" -prune -exec rm -rf {} + 2>/dev/null || true
-          done
-          # Remove unused Qt plugin directories
-          for plugin in multimedia position sensors texttospeech webview help sqldrivers scxmldatamodel geometryloaders sceneparsers qmllint qmlls; do
-            find "$APP" -type d -name "$plugin" -prune -exec rm -rf {} + 2>/dev/null || true
-          done
-          # Remove unused Qt QML module directories
-          for qml_mod in QtMultimedia QtNetwork QtPositioning QtRemoteObjects QtSensors QtTest QtTextToSpeech QtWebChannel QtWebSockets; do
-            find "$APP" -type d -name "$qml_mod" -prune -exec rm -rf {} + 2>/dev/null || true
-          done
-          # Remove unused Qt translations
-          for prefix in qtconnectivity_ qtlocation_ qtmultimedia_ qtserialport_ qtwebsockets_ qt_help_; do
-            find "$APP" -name "${prefix}*.qm" -delete 2>/dev/null || true
-          done
-          # Remove unused image format plugins
-          find "$APP" -path "*/imageformats/*" \( -name "*icns*" -o -name "*gif*" -o -name "*pdf*" -o -name "*tga*" -o -name "*wbmp*" -o -name "*webp*" \) -delete 2>/dev/null || true
+          python - "$APP" Macos << 'PYEOF'
+          import yaml, os, shutil, sys
+          from pathlib import Path
+          dist, current_os = Path(sys.argv[1]), sys.argv[2]
+          with open("_cura_sources/conandata.yml") as f:
+              blacklist = yaml.safe_load(f)["pyinstaller"]["blacklist"]
+          def matches(p, e):
+              n = p.as_posix().lower()
+              if isinstance(e, list):
+                  pats, oses = e, None
+              else:
+                  pats, oses = e["patterns"], e.get("oses")
+              if oses and current_os not in oses:
+                  return False
+              return all(x in n for x in pats)
+          for root, dirs, files in os.walk(dist, topdown=True):
+              rp = Path(root)
+              for d in dirs[:]:
+                  if any(matches(rp / d, e) for e in blacklist):
+                      shutil.rmtree(rp / d, ignore_errors=True)
+                      dirs.remove(d)
+              for f in files:
+                  if any(matches(rp / f, e) for e in blacklist):
+                      (rp / f).unlink(missing_ok=True)
+          PYEOF
 
       - name: Create the Macos dmg (Bash)
         run: python ../cura_inst/packaging/MacOS/build_macos.py --source_path ../cura_inst --dist_path . --cura_conan_version "${{ steps.prepare-distribution.outputs.CURA_VERSION }}" --filename "${{ steps.prepare-distribution.outputs.INSTALLER_FILENAME }}" --build_dmg --build_pkg --app_name "${{ steps.prepare-distribution.outputs.CURA_APP_NAME }}"

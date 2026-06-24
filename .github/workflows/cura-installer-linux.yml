@@ -94,42 +94,33 @@ jobs:
 
           pyinstaller ./cura_inst/UltiMaker-Cura.spec
 
-      - name: Remove unused Qt libraries and modules
-        working-directory: dist/UltiMaker-Cura
+      - name: Remove unused Qt packages
         run: |
-          # Remove unused Qt module shared libraries (any naming convention)
-          for pattern in \
-            "*Qt6Bluetooth*" "*Qt6Designer*" "*Qt6Help*" "*Qt6Nfc*" \
-            "*Qt6PrintSupport*" "*Qt6SerialPort*" "*Qt6SpatialAudio*" "*Qt6Sql*" \
-            "*Qt6Test*" "*Qt6QuickTest*" "*Qt6QuickTimeline*" \
-            "*Qt6Multimedia*" "*Qt6Pdf*" "*Qt6Positioning*" "*Qt6RemoteObjects*" \
-            "*Qt6Sensors*" "*Qt6StateMachine*" "*Qt6TextToSpeech*" \
-            "*Qt6WebChannel*" "*Qt6WebSockets*" \
-            "*Qt6LabsFolderListModel*" "*Qt6LabsPlatform*" "*Qt6LabsSettings*" "*Qt6LabsQmlModels*" \
-            "*Qt6LabsSharedImage*" "*Qt6LabsWavefrontMesh*" \
-            "*Qt6QuickParticles*" "*Qt6QuickVectorImage*" \
-            "*Qt6Quick3DXr*" "*Qt6Quick3DPhysics*" "*Qt6Quick3DSpatialAudio*" \
-            "libavcodec*" "libavformat*" "libavutil*" "libswresample*" "libswscale*"; do
-            find . -name "$pattern" -prune -exec rm -rf {} + 2>/dev/null || true
-          done
-          # Remove unused Qt plugin directories
-          for plugin in multimedia position sensors texttospeech webview help sqldrivers scxmldatamodel geometryloaders sceneparsers qmllint qmlls; do
-            find . -type d -name "$plugin" -prune -exec rm -rf {} + 2>/dev/null || true
-          done
-          # Remove unused Qt QML module directories
-          for qml_mod in QtMultimedia QtNetwork QtPositioning QtRemoteObjects QtSensors QtTest QtTextToSpeech QtWebChannel QtWebSockets; do
-            find . -type d -name "$qml_mod" -prune -exec rm -rf {} + 2>/dev/null || true
-          done
-          # Remove unused nested Qt QML module directories
-          for qt_path in "*/QtQuick3D/Xr" "*/QtQuick3D/Physics" "*/QtQuick3D/SpatialAudio" "*/QtQuick/Timeline" "*/QtQuick/Particles" "*/QtQuick/VectorImage" "*/QtQuick/Pdf"; do
-            find . -path "$qt_path" -type d -prune -exec rm -rf {} + 2>/dev/null || true
-          done
-          # Remove unused Qt translations
-          for prefix in qtconnectivity_ qtlocation_ qtmultimedia_ qtserialport_ qtwebsockets_ qt_help_; do
-            find . -name "${prefix}*.qm" -delete 2>/dev/null || true
-          done
-          # Remove unused image format plugins
-          find . -path "*/imageformats/*" \( -name "*icns*" -o -name "*gif*" -o -name "*pdf*" -o -name "*tga*" -o -name "*wbmp*" -o -name "*webp*" \) -delete 2>/dev/null || true
+          python - dist/UltiMaker-Cura Linux << 'PYEOF'
+          import yaml, os, shutil, sys
+          from pathlib import Path
+          dist, current_os = Path(sys.argv[1]), sys.argv[2]
+          with open("_cura_sources/conandata.yml") as f:
+              blacklist = yaml.safe_load(f)["pyinstaller"]["blacklist"]
+          def matches(p, e):
+              n = p.as_posix().lower()
+              if isinstance(e, list):
+                  pats, oses = e, None
+              else:
+                  pats, oses = e["patterns"], e.get("oses")
+              if oses and current_os not in oses:
+                  return False
+              return all(x in n for x in pats)
+          for root, dirs, files in os.walk(dist, topdown=True):
+              rp = Path(root)
+              for d in dirs[:]:
+                  if any(matches(rp / d, e) for e in blacklist):
+                      shutil.rmtree(rp / d, ignore_errors=True)
+                      dirs.remove(d)
+              for f in files:
+                  if any(matches(rp / f, e) for e in blacklist):
+                      (rp / f).unlink(missing_ok=True)
+          PYEOF
 
       - name: Create the Linux AppImage (Bash)
         run: |
