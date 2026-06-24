@@ -63,6 +63,7 @@ jobs:
           private_data: ${{ inputs.private_data }}
           install_system_dependencies: true
           repository_path: _cura_sources # we don't want the actual sources to interfere with the built conan package
+          cura_workflows_branch: ${{ github.ref_name }}
 
       - name: Set packages overrides
         id: set-overrides

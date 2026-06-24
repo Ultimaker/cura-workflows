@@ -70,7 +70,7 @@ jobs:
           install_system_dependencies: true
           repository_path: _cura_sources # we don't want the actual sources to interfere with the built conan package
           python_set_env_vars: false
-          cura_workflows_branch: CURA-12814
+          cura_workflows_branch: ${{ github.ref_name }}
 
       - name: Set packages overrides
         id: set-overrides
