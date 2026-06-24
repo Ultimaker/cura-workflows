@@ -108,6 +108,7 @@ jobs:
             "*Qt6LabsFolderListModel*" "*Qt6LabsPlatform*" "*Qt6LabsSettings*" "*Qt6LabsQmlModels*" \
             "*Qt6LabsSharedImage*" "*Qt6LabsWavefrontMesh*" \
             "*Qt6QuickParticles*" "*Qt6QuickVectorImage*" \
+            "*Qt6Quick3DXr*" "*Qt6Quick3DPhysics*" "*Qt6Quick3DSpatialAudio*" \
             "libavcodec*" "libavformat*" "libavutil*" "libswresample*" "libswscale*"; do
             find . -name "$pattern" -prune -exec rm -rf {} + 2>/dev/null || true
           done
@@ -118,6 +119,10 @@ jobs:
           # Remove unused Qt QML module directories
           for qml_mod in QtMultimedia QtNetwork QtPositioning QtRemoteObjects QtSensors QtTest QtTextToSpeech QtWebChannel QtWebSockets; do
             find . -type d -name "$qml_mod" -prune -exec rm -rf {} + 2>/dev/null || true
+          done
+          # Remove unused nested Qt QML module directories
+          for qt_path in "*/QtQuick3D/Xr" "*/QtQuick3D/Physics" "*/QtQuick3D/SpatialAudio" "*/QtQuick/Timeline" "*/QtQuick/Particles" "*/QtQuick/VectorImage" "*/QtQuick/Pdf"; do
+            find . -path "$qt_path" -type d -prune -exec rm -rf {} + 2>/dev/null || true
           done
           # Remove unused Qt translations
           for prefix in qtconnectivity_ qtlocation_ qtmultimedia_ qtserialport_ qtwebsockets_ qt_help_; do
