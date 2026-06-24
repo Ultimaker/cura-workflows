@@ -94,36 +94,8 @@ jobs:
 
           pyinstaller ./cura_inst/UltiMaker-Cura.spec
 
-      - name: Remove unused Qt packages
-        run: |
-          python - dist/UltiMaker-Cura Linux << 'PYEOF'
-          import yaml, os, shutil, sys
-          from pathlib import Path
-          dist, current_os = Path(sys.argv[1]), sys.argv[2]
-          with open("_cura_sources/conandata.yml") as f:
-              blacklist = yaml.safe_load(f)["pyinstaller"]["blacklist"]
-          if not blacklist:
-              print("Blacklist is empty or null")
-              sys.exit(0)
-          def matches(p, e):
-              n = p.as_posix().lower()
-              if isinstance(e, list):
-                  pats, oses = e, None
-              else:
-                  pats, oses = e["patterns"], e.get("oses")
-              if oses and current_os not in oses:
-                  return False
-              return all(x in n for x in pats)
-          for root, dirs, files in os.walk(dist, topdown=True):
-              rp = Path(root)
-              for d in dirs[:]:
-                  if any(matches(rp / d, e) for e in blacklist):
-                      shutil.rmtree(rp / d, ignore_errors=True)
-                      dirs.remove(d)
-              for f in files:
-                  if any(matches(rp / f, e) for e in blacklist):
-                      (rp / f).unlink(missing_ok=True)
-          PYEOF
+      - name: Remove unused packages in blacklist from "Cura/conandata.yml"
+        run: python Cura-workflows/runner_scripts/cleanup_distribution.py dist/UltiMaker-Cura --conandata _cura_sources/conandata.yml
 
       - name: Create the Linux AppImage (Bash)
         run: |
