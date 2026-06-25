@@ -62,7 +62,7 @@ jobs:
     steps:
       - name: Setup the build environment
         id: setup-environment
-        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@CURA-12814
+        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@main
         with:
           conan_user: ${{ secrets.CONAN_USER }}
           conan_password: ${{ secrets.CONAN_PASS }}
@@ -70,11 +70,10 @@ jobs:
           install_system_dependencies: true
           repository_path: _cura_sources # we don't want the actual sources to interfere with the built conan package
           python_set_env_vars: false
-          cura_workflows_branch: CURA-12814
 
       - name: Set packages overrides
         id: set-overrides
-        uses: ultimaker/cura-workflows/.github/actions/set-package-overrides@CURA-12814
+        uses: ultimaker/cura-workflows/.github/actions/set-package-overrides@main
         with:
           package_overrides: ${{ inputs.package_overrides }}
           profile: installer.jinja
