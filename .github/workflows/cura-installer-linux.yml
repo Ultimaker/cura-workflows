@@ -63,6 +63,7 @@ jobs:
           private_data: ${{ inputs.private_data }}
           install_system_dependencies: true
           repository_path: _cura_sources # we don't want the actual sources to interfere with the built conan package
+          cura_workflows_branch: main
 
       - name: Set packages overrides
         id: set-overrides
@@ -93,6 +94,9 @@ jobs:
           python Cura-workflows/runner_scripts/prepare_installer.py --os ${{ runner.os }} --architecture X64 ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }} --summary-output "$GITHUB_STEP_SUMMARY" --variables-output "$GITHUB_OUTPUT"
 
           pyinstaller ./cura_inst/UltiMaker-Cura.spec
+
+      - name: Remove unused packages in blacklist from "Cura/conandata.yml"
+        run: python Cura-workflows/runner_scripts/cleanup_distribution.py dist/UltiMaker-Cura --conandata _cura_sources/conandata.yml --os Linux
 
       - name: Create the Linux AppImage (Bash)
         run: |

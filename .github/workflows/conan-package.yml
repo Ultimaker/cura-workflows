@@ -38,6 +38,11 @@ on:
         default: true
         type: boolean
 
+      platform_windows_arm64:
+        required: false
+        default: false
+        type: boolean
+
       platform_wasm:
         required: false
         default: false
@@ -94,6 +99,7 @@ jobs:
       platform_linux: ${{ inputs.platform_linux }}
       platform_windows: ${{ inputs.platform_windows }}
       platform_mac: ${{ inputs.platform_mac }}
+      platform_windows_arm64: ${{ inputs.platform_windows_arm64 }}
       platform_wasm: ${{ inputs.platform_wasm }}
 
   conan-package-create:

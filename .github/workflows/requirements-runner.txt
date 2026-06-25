@@ -1,6 +1,6 @@
 conan==2.25.0
 sip==6.8.6
-sentry-cli==2.21.2
+sentry-cli>=3.5.1
 pyyaml
 semver
 gitpython
