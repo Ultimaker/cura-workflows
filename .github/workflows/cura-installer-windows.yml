@@ -75,6 +75,7 @@ jobs:
           install_system_dependencies: true
           repository_path: _cura_sources # we don't want the actual sources to interfere with the built conan package
           python_set_env_vars: false
+          cura_workflows_branch: main
 
       - name: Set packages overrides
         id: set-overrides
@@ -133,21 +134,11 @@ jobs:
         run: |
           copy Cura-workflows/python_dll_workaround/* dist/UltiMaker-Cura/.
 
-      - name: Yet another step deleting unwanted additional Qt files and folders
-        working-directory: dist/UltiMaker-Cura
+      - name: Remove unused packages in blacklist from "Cura/conandata.yml"
         run: |
-         Remove-Item .\* -Include "*assimp*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6charts*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6coap*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6datavis*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6labsani*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6mqtt*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6networkauth*" -Recurse -Force
-         Remove-Item .\* -Include "*quick3d*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6timeline*" -Recurse -Force
-         Remove-Item .\* -Include "*qt6virtualkey*" -Recurse -Force
-         Remove-Item .\* -Include "*waylandcomp*" -Recurse -Force
-         Remove-Item .\* -Include "*qt5compat*" -Recurse -Force
+          $pydir = type pydir.txt
+          $env:PATH += ";$pydir;$pydir/Scripts"
+          python Cura-workflows/runner_scripts/cleanup_distribution.py dist\UltiMaker-Cura --conandata _cura_sources\conandata.yml --os Windows
 
       - name: Create the Windows exe installer (Powershell)
         run: |
