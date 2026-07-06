@@ -99,9 +99,18 @@ runs:
       with:
         repository: ${{ inputs.repository }}
         ref: ${{ inputs.branch }}
-        path: ${{ inputs.repository_path }}
+        path: tmp_repo_checkout
         lfs: ${{ inputs.download_lfs_files }}
-        clean: false
+
+    - name: Move repository to target destination
+      shell: bash
+      run: |
+        if [[ "${{ inputs.repository_path }}" == "." ]]; then
+          mv tmp_repo_checkout/* .
+          rm -rf tmp_repo_checkout
+        else
+          mv tmp_repo_checkout "${{ inputs.repository_path }}"
+        fi
 
     - name: Setup Python and pip
       uses: actions/setup-python@v6
