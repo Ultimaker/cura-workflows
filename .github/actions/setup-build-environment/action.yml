@@ -76,6 +76,7 @@ runs:
 
     - name: Install git LFS
       if: ${{ inputs.download_lfs_files == 'true' }}
+      shell: bash
       run: git lfs install
 
     - name: Checkout repo
