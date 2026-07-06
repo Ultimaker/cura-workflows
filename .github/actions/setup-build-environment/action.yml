@@ -74,6 +74,13 @@ runs:
         set -e
         find . -mindepth 1 -delete
 
+    - name: Checkout repo
+      uses: actions/checkout@v6
+      with:
+        repository: ${{ inputs.repository }}
+        ref: ${{ inputs.branch }}
+        path: ${{ inputs.repository_path }}
+
     - name: Checkout Cura-workflows repo
       uses: actions/checkout@v6
       with:
@@ -94,22 +101,13 @@ runs:
           fi
         fi
 
-    - name: Checkout repo
-      uses: actions/checkout@v6
-      with:
-        repository: ${{ inputs.repository }}
-        ref: ${{ inputs.branch }}
-        path: tmp_repo_checkout
-        lfs: ${{ inputs.download_lfs_files }}
-
-    - name: Move repository to target destination
+    - name: Download git LFS content
       shell: bash
       run: |
-        if [[ "${{ inputs.repository_path }}" == "." ]]; then
-          mv tmp_repo_checkout/* .
-          rm -rf tmp_repo_checkout
-        else
-          mv tmp_repo_checkout "${{ inputs.repository_path }}"
+        if [ "${{ inputs.download_lfs_files }}" == "true" ]; then
+          cd "${{ inputs.repository_path }}"
+          git lfs install
+          git lfs pull
         fi
 
     - name: Setup Python and pip
