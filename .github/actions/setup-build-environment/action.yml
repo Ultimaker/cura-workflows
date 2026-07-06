@@ -74,6 +74,13 @@ runs:
         set -e
         find . -mindepth 1 -delete
 
+    - name: Checkout Cura-workflows repo
+      uses: actions/checkout@v6
+      with:
+        repository: Ultimaker/Cura-workflows
+        path: Cura-workflows
+        ref: ${{ inputs.cura_workflows_branch }}
+
     - name: Install system dependencies
       shell: bash
       run: |
@@ -94,13 +101,6 @@ runs:
         ref: ${{ inputs.branch }}
         path: ${{ inputs.repository_path }}
         lfs: ${{ inputs.download_lfs_files }}
-
-    - name: Checkout Cura-workflows repo
-      uses: actions/checkout@v6
-      with:
-        repository: Ultimaker/Cura-workflows
-        path: Cura-workflows
-        ref: ${{ inputs.cura_workflows_branch }}
 
     - name: Setup Python and pip
       uses: actions/setup-python@v6
