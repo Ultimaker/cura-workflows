@@ -74,10 +74,18 @@ runs:
         set -e
         find . -mindepth 1 -delete
 
-    - name: Install git LFS
-      if: ${{ inputs.download_lfs_files == 'true' }}
+    - name: Install system dependencies
       shell: bash
-      run: git lfs install
+      run: |
+        if [ "${{ inputs.install_system_dependencies }}" == "true" ]; then
+          if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+            chmod +x Cura-workflows/runner_scripts/ubuntu_setup.sh
+            sudo ./Cura-workflows/runner_scripts/ubuntu_setup.sh
+          elif [[ "$OSTYPE" == "darwin"* ]]; then
+            chmod +x Cura-workflows/runner_scripts/macos_setup.sh
+            ./Cura-workflows/runner_scripts/macos_setup.sh
+          fi
+        fi
 
     - name: Checkout repo
       uses: actions/checkout@v6
@@ -121,16 +129,6 @@ runs:
       id: setup-environment
       shell: bash
       run: |
-        if [ "${{ inputs.install_system_dependencies }}" == "true" ]; then
-          if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-            chmod +x Cura-workflows/runner_scripts/ubuntu_setup.sh
-            sudo ./Cura-workflows/runner_scripts/ubuntu_setup.sh
-          elif [[ "$OSTYPE" == "darwin"* ]]; then
-            chmod +x Cura-workflows/runner_scripts/macos_setup.sh
-            ./Cura-workflows/runner_scripts/macos_setup.sh
-          fi
-        fi
-        
         if [[ "${{ inputs.python_set_env_vars }}" == "false" ]]; then
           if [[ "$RUNNER_ARCH" == "ARM64" && "$RUNNER_OS" == "Windows" ]]; then
             pydir="$(dirname "${{ steps.setup-python-win-arm.outputs.python-path }}")"
@@ -143,16 +141,6 @@ runs:
         fi
 
         python -m pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
-
-        if [ "${{ inputs.install_system_dependencies }}" == "true" ]; then
-          if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-            chmod +x Cura-workflows/runner_scripts/ubuntu_setup.sh
-            sudo ./Cura-workflows/runner_scripts/ubuntu_setup.sh
-          elif [[ "$OSTYPE" == "darwin"* ]]; then
-            chmod +x Cura-workflows/runner_scripts/macos_setup.sh
-            ./Cura-workflows/runner_scripts/macos_setup.sh
-          fi
-        fi
 
         conan profile detect -f
         conan config install https://github.com/Ultimaker/conan-config.git -a "-b ${{ inputs.conan_config_branch }}"
