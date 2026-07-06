@@ -74,6 +74,10 @@ runs:
         set -e
         find . -mindepth 1 -delete
 
+    - name: Install git LFS
+      if: ${{ inputs.download_lfs_files == 'true' }}
+      run: git lfs install
+
     - name: Checkout repo
       uses: actions/checkout@v6
       with:
