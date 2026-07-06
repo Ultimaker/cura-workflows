@@ -54,6 +54,11 @@ inputs:
     default: 'main'
     type: string
 
+  download_lfs_files:
+    required: false
+    default: false
+    type: boolean
+
 outputs:
   package_name:
     value: ${{ steps.setup-environment.outputs.package_name }}
@@ -75,6 +80,7 @@ runs:
         repository: ${{ inputs.repository }}
         ref: ${{ inputs.branch }}
         path: ${{ inputs.repository_path }}
+        lfs: ${{ inputs.download_lfs_files }}
 
     - name: Checkout Cura-workflows repo
       uses: actions/checkout@v6
