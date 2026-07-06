@@ -101,6 +101,7 @@ runs:
         ref: ${{ inputs.branch }}
         path: ${{ inputs.repository_path }}
         lfs: ${{ inputs.download_lfs_files }}
+        clean: false
 
     - name: Setup Python and pip
       uses: actions/setup-python@v6
