@@ -54,6 +54,11 @@ inputs:
     default: 'main'
     type: string
 
+  download_lfs_files:
+    required: false
+    default: false
+    type: boolean
+
 outputs:
   package_name:
     value: ${{ steps.setup-environment.outputs.package_name }}
@@ -83,6 +88,28 @@ runs:
         path: Cura-workflows
         ref: ${{ inputs.cura_workflows_branch }}
 
+    - name: Install system dependencies
+      shell: bash
+      run: |
+        if [ "${{ inputs.install_system_dependencies }}" == "true" ]; then
+          if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+            chmod +x Cura-workflows/runner_scripts/ubuntu_setup.sh
+            sudo ./Cura-workflows/runner_scripts/ubuntu_setup.sh
+          elif [[ "$OSTYPE" == "darwin"* ]]; then
+            chmod +x Cura-workflows/runner_scripts/macos_setup.sh
+            ./Cura-workflows/runner_scripts/macos_setup.sh
+          fi
+        fi
+
+    - name: Download git LFS content
+      shell: bash
+      run: |
+        if [ "${{ inputs.download_lfs_files }}" == "true" ]; then
+          cd "${{ inputs.repository_path }}"
+          git lfs install
+          git lfs pull
+        fi
+
     - name: Setup Python and pip
       uses: actions/setup-python@v6
       id: setup-python
@@ -110,16 +137,6 @@ runs:
       id: setup-environment
       shell: bash
       run: |
-        if [ "${{ inputs.install_system_dependencies }}" == "true" ]; then
-          if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-            chmod +x Cura-workflows/runner_scripts/ubuntu_setup.sh
-            sudo ./Cura-workflows/runner_scripts/ubuntu_setup.sh
-          elif [[ "$OSTYPE" == "darwin"* ]]; then
-            chmod +x Cura-workflows/runner_scripts/macos_setup.sh
-            ./Cura-workflows/runner_scripts/macos_setup.sh
-          fi
-        fi
-        
         if [[ "${{ inputs.python_set_env_vars }}" == "false" ]]; then
           if [[ "$RUNNER_ARCH" == "ARM64" && "$RUNNER_OS" == "Windows" ]]; then
             pydir="$(dirname "${{ steps.setup-python-win-arm.outputs.python-path }}")"
@@ -132,16 +149,6 @@ runs:
         fi
 
         python -m pip install -r Cura-workflows/.github/workflows/requirements-runner.txt
-
-        if [ "${{ inputs.install_system_dependencies }}" == "true" ]; then
-          if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-            chmod +x Cura-workflows/runner_scripts/ubuntu_setup.sh
-            sudo ./Cura-workflows/runner_scripts/ubuntu_setup.sh
-          elif [[ "$OSTYPE" == "darwin"* ]]; then
-            chmod +x Cura-workflows/runner_scripts/macos_setup.sh
-            ./Cura-workflows/runner_scripts/macos_setup.sh
-          fi
-        fi
 
         conan profile detect -f
         conan config install https://github.com/Ultimaker/conan-config.git -a "-b ${{ inputs.conan_config_branch }}"
