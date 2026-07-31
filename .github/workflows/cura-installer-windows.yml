@@ -115,6 +115,7 @@ jobs:
         timeout-minutes: 2
 
       - name: Workaround (need exact version of msvc redistributables)
+        if: ${{ always() }}
         run: |
           $PRE_MSDIR="C:/Program Files/Microsoft Visual Studio"
           if ( (dir $PRE_MSDIR).Count -ne 1 ) { throw "(!!!) MULTIPLE VISUAL STUDIO VERSIONS IN '$PRE_MSDIR' -- NEED EXACTLY ONE (cant even sort since 18 > 2022 in this context) (!!!)" }
@@ -131,16 +132,19 @@ jobs:
           copy $MSDIR_DLLS/vcruntime140_1.dll dist/UltiMaker-Cura/.
 
       - name: Workaround (some libs linking against python3 instead of python312)
+        if: ${{ always() }}
         run: |
           copy Cura-workflows/python_dll_workaround/* dist/UltiMaker-Cura/.
 
       - name: Remove unused packages in blacklist from "Cura/conandata.yml"
+        if: ${{ always() }}
         run: |
           $pydir = type pydir.txt
           $env:PATH += ";$pydir;$pydir/Scripts"
           python Cura-workflows/runner_scripts/cleanup_distribution.py dist\UltiMaker-Cura --conandata _cura_sources\conandata.yml --os Windows
 
       - name: Create the Windows exe installer (Powershell)
+        if: ${{ always() }}
         run: |
           $pydir = type ../pydir.txt
           $env:PATH += ";$pydir;$pydir/Scripts"
