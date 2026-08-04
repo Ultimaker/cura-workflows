@@ -116,7 +116,7 @@ runs:
       if: ${{ !(runner.arch == 'ARM64' && runner.os == 'Windows') }}
       with:
         update-environment: ${{ inputs.python_set_env_vars }}
-        python-version: '3.13'
+        python-version: '3.12'
 
     - name: Setup Python (Windows ARM64 self-hosted)
       id: setup-python-win-arm
