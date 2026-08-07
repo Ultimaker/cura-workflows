@@ -1,0 +1,47 @@
+name: Get changed files
+description: >-
+  Gets changed files matching specified patterns and exposes them as step
+  outputs for use by downstream steps.
+
+inputs:
+  files:
+    description: Newline-separated glob patterns to filter changed files.
+    required: true
+  include_deleted:
+    description: Whether to include deleted files in the output.
+    required: false
+    default: 'false'
+
+outputs:
+  files:
+    description: Space-separated list of changed files.
+    value: ${{ steps.export.outputs.files }}
+  files_quoted:
+    description: Space-separated list of changed files, each wrapped in single quotes.
+    value: ${{ steps.export.outputs.files_quoted }}
+
+runs:
+  using: composite
+  steps:
+    - name: Get changed files
+      id: changed-files
+      uses: tj-actions/changed-files@v46
+      with:
+        files: ${{ inputs.files }}
+
+    - name: Export diff outputs
+      id: export
+      shell: bash
+      run: |
+        CHANGED="${{ steps.changed-files.outputs.all_changed_files }}"
+        if [[ "${{ inputs.include_deleted }}" == "true" ]]; then
+          DELETED="${{ steps.changed-files.outputs.deleted_files }}"
+          ALL_FILES="${CHANGED}${CHANGED:+ }${DELETED}"
+        else
+          ALL_FILES="${CHANGED}"
+        fi
+        if [ -n "${ALL_FILES}" ]; then
+          FILES_QUOTED=$(echo "${ALL_FILES}" | sed "s/\([^ ]\+\)/'\1'/g")
+          echo "files=${ALL_FILES}" >> "$GITHUB_OUTPUT"
+          echo "files_quoted=${FILES_QUOTED}" >> "$GITHUB_OUTPUT"
+        fi
