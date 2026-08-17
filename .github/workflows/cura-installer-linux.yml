@@ -37,7 +37,7 @@ on:
       operating_system:
         description: 'OS'
         required: true
-        default: 'ubuntu-22.04'
+        default: 'ubuntu-24.04'
         type: string
 
       private_data:
@@ -63,7 +63,7 @@ jobs:
           private_data: ${{ inputs.private_data }}
           install_system_dependencies: true
           repository_path: _cura_sources # we don't want the actual sources to interfere with the built conan package
-          cura_workflows_branch: CURA-13021-new-linux-runner
+          cura_workflows_branch: main
 
       - name: Set packages overrides
         id: set-overrides
