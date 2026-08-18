@@ -53,7 +53,7 @@ jobs:
       conan_args: ${{ inputs.conan_args }}
       enterprise: ${{ inputs.enterprise }}
       staging: ${{ inputs.staging }}
-      operating_system: self-hosted-Ubuntu22-X64
+      operating_system: self-hosted-Ubuntu24-X64
       private_data: ${{ inputs.private_data }}
     secrets: inherit
 
