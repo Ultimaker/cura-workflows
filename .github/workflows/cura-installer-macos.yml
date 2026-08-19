@@ -112,6 +112,24 @@ jobs:
       - name: Unlock Macos keychain (Bash)
         run: security unlock -p "${{  steps.macos-keychain-developer-cert.outputs.keychain-password }}" signing_temp.keychain
 
+      - name: Verify Macos signing certificates (Bash)
+        run: |
+          set -euo pipefail
+
+          security find-identity -v -p codesigning signing_temp.keychain
+
+          CERT_DIR=$(mktemp -d)
+          security find-certificate -a -p signing_temp.keychain > "$CERT_DIR/certificates.pem"
+          awk '
+            /BEGIN CERTIFICATE/ { n++; file=sprintf("%s/certificate-%02d.pem", dir, n) }
+            { print > file }
+          ' dir="$CERT_DIR" "$CERT_DIR/certificates.pem"
+
+          for CERTIFICATE in "$CERT_DIR"/certificate-*.pem; do
+            echo "$CERTIFICATE"
+            openssl x509 -in "$CERTIFICATE" -noout -subject -issuer -enddate
+          done
+
       - name: Gather/build the packages
         run: conan install --requires "${{ inputs.cura_conan_version != '' && inputs.cura_conan_version || format('cura/{0}@ultimaker/testing', steps.setup-environment.outputs.package_version) }}" ${{ inputs.conan_args }} --build=missing --update -of cura_inst --deployer-package="*" --profile ${{ steps.set-overrides.outputs.profile }} -c user.sentry:token="${{ secrets.CURAENGINE_SENTRY_TOKEN }}" ${{ inputs.enterprise && '-o "cura/*:enterprise=True"' || '' }} ${{ inputs.staging && '-o "cura/*:staging=True"' || '' }} ${{ inputs.private_data && '-o "cura/*:internal=True"' || '' }}
 
