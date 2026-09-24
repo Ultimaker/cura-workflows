@@ -22,22 +22,18 @@ jobs:
       - name: Setup the build environment
         uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@main
 
-      - uses: greguintow/get-diff-action@v7
+      - id: get-diff
+        uses: ultimaker/cura-workflows/.github/actions/get-diff@main
         with:
-          PATTERNS: ${{ inputs.file_patterns }}
+          files: ${{ inputs.file_patterns }}
 
       - name: Format files
-        if: env.GIT_DIFF && !env.MATCHED_FILES
-        run: ${{ inputs.command }} ${{ env.GIT_DIFF_FILTERED }}
-
-      - name: Convert files list
-        id: convert-files-list
-        if: env.GIT_DIFF && !env.MATCHED_FILES
-        run: echo "files_list=${{ env.GIT_DIFF_FILTERED }}" | sed "s/'//g" >> $GITHUB_OUTPUT
+        if: steps.get-diff.outputs.files != ''
+        run: ${{ inputs.command }} ${{ steps.get-diff.outputs.files_quoted }}
 
       - uses: stefanzweifel/git-auto-commit-action@v7
-        if: env.GIT_DIFF && !env.MATCHED_FILES
+        if: steps.get-diff.outputs.files != ''
         with:
           commit_message: ${{ inputs.commit_message }}
-          file_pattern: ${{ steps.convert-files-list.outputs.files_list }}
+          file_pattern: ${{ steps.get-diff.outputs.files }}
 
