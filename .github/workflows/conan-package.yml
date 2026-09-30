@@ -7,50 +7,48 @@ on:
         required: false
         default: false
         type: boolean
-
       conan_extra_args:
         required: false
         default: ""
         type: string
-
       install_system_dependencies:
         required: false
         default: true
         type: boolean
-
       conan_recipe_root:
         required: false
         default: "."
         type: string
-
       platform_linux:
         required: false
         default: true
         type: boolean
-
       platform_windows:
         required: false
         default: true
         type: boolean
-
       platform_mac:
         required: false
         default: true
         type: boolean
-
       platform_windows_arm64:
         required: false
         default: false
         type: boolean
-
       platform_wasm:
         required: false
         default: false
         type: boolean
-
+      cura_workflows_ref:
+        required: false
+        default: main
+        type: string
+      allow_non_default_branch_package_create:
+        required: false
+        default: false
+        type: boolean
     outputs:
       package_version_full:
-        description: The full version number
         value: ${{ jobs.conan-recipe-version.outputs.package_version_full }}
 
 permissions:
@@ -66,10 +64,11 @@ jobs:
     with:
       conan_recipe_root: ${{ inputs.conan_recipe_root }}
       internal: ${{ inputs.private_data }}
+      cura_workflows_ref: ${{ inputs.cura_workflows_ref }}
 
   conan-recipe-export-specific:
     name: Upload specific package recipe
-    needs: [ conan-recipe-version ]
+    needs: [conan-recipe-version]
     uses: ./.github/workflows/conan-recipe-export.yml
     with:
       version: ${{ needs.conan-recipe-version.outputs.version_full }}
@@ -77,11 +76,13 @@ jobs:
       channel: ${{ needs.conan-recipe-version.outputs.channel }}
       private_data: ${{ inputs.private_data }}
       conan_recipe_root: ${{ inputs.conan_recipe_root }}
+      cura_workflows_ref: ${{ inputs.cura_workflows_ref }}
+      provenance_instance: conan-recipe-export-specific
     secrets: inherit
 
   conan-recipe-export-latest:
     name: Upload latest package recipe
-    needs: [ conan-recipe-version ]
+    needs: [conan-recipe-version]
     uses: ./.github/workflows/conan-recipe-export.yml
     with:
       version: ${{ needs.conan-recipe-version.outputs.version_base }}
@@ -89,39 +90,271 @@ jobs:
       channel: ${{ needs.conan-recipe-version.outputs.channel }}
       private_data: ${{ inputs.private_data }}
       conan_recipe_root: ${{ inputs.conan_recipe_root }}
+      cura_workflows_ref: ${{ inputs.cura_workflows_ref }}
+      provenance_instance: conan-recipe-export-latest
     secrets: inherit
 
   make-runners-list:
     name: Make the proper runners list
     uses: ./.github/workflows/make-runners-list.yml
-    if: ${{ github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master') }}
+    if: ${{ github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master' || inputs.allow_non_default_branch_package_create) }}
     with:
       platform_linux: ${{ inputs.platform_linux }}
       platform_windows: ${{ inputs.platform_windows }}
       platform_mac: ${{ inputs.platform_mac }}
       platform_windows_arm64: ${{ inputs.platform_windows_arm64 }}
       platform_wasm: ${{ inputs.platform_wasm }}
+      cura_workflows_ref: ${{ inputs.cura_workflows_ref }}
 
   conan-package-create:
     name: Build package
-    needs: [ conan-recipe-version, conan-recipe-export-latest, make-runners-list ]
+    needs: [conan-recipe-version, conan-recipe-export-specific, conan-recipe-export-latest, make-runners-list]
     runs-on: ${{ matrix.runner }}
-    if: ${{ fromJson(needs.make-runners-list.outputs.matrix).include.length != 0 }}
+    if: ${{ needs.make-runners-list.outputs.has_runners == 'true' && (github.ref_name == 'main' || github.ref_name == 'master' || inputs.allow_non_default_branch_package_create) }}
+    outputs:
+      package-reference: ${{ steps.produced-reference.outputs.reference }}
     strategy:
       matrix: ${{ fromJson(needs.make-runners-list.outputs.matrix) }}
-
     steps:
-      - name: Setup the build environment
-        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@main
+      - name: Require native Windows Arm64 identity
+        if: ${{ matrix.runner == 'windows-11-arm' }}
+        shell: pwsh
+        run: |
+          if ('${{ runner.os }}' -ne 'Windows') { throw 'runner.os must be Windows' }
+          if ('${{ runner.arch }}' -ne 'ARM64') { throw 'runner.arch must be ARM64' }
+          if ($env:PROCESSOR_ARCHITECTURE -ne 'ARM64') { throw 'PROCESSOR_ARCHITECTURE must be ARM64' }
+          $machine = python -c "import platform; print(platform.machine())"
+          if ($machine -ne 'ARM64') { throw "Python must be ARM64, got $machine" }
+          "runner.os=${{ runner.os }}`nrunner.arch=${{ runner.arch }}`nPROCESSOR_ARCHITECTURE=$env:PROCESSOR_ARCHITECTURE`npython.machine=$machine" | Out-File -Append $env:GITHUB_STEP_SUMMARY
+
+      - name: Clean workspace
+        shell: bash
+        run: find "${GITHUB_WORKSPACE:?}" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+
+      - name: Checkout pinned workflow actions
+        uses: actions/checkout@v6
         with:
+          repository: Ultimaker/Cura-workflows
+          ref: ${{ inputs.cura_workflows_ref }}
+          path: _cura_workflows_action
+
+      - name: Capture action revision
+        id: action-revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          requested='${{ inputs.cura_workflows_ref }}'
+          resolved=$(git -C _cura_workflows_action rev-parse HEAD)
+          echo "Requested Cura-workflows ref: $requested"
+          echo "Resolved Cura-workflows SHA: $resolved"
+          echo "sha=$resolved" >> "$GITHUB_OUTPUT"
+          if [[ "$requested" =~ ^[0-9a-fA-F]{40}$ ]] && [[ "${resolved,,}" != "${requested,,}" ]]; then exit 1; fi
+
+      - name: Setup the build environment
+        id: setup-environment
+        uses: ./_cura_workflows_action/.github/actions/setup-build-environment
+        with:
+          cleanup_workspace: false
+          cura_workflows_branch: ${{ inputs.cura_workflows_ref }}
           conan_user: ${{ secrets.CONAN_USER }}
           conan_password: ${{ secrets.CONAN_PASS }}
           private_data: ${{ inputs.private_data }}
           install_system_dependencies: ${{ inputs.install_system_dependencies }}
+          repository_path: _package_sources
+
+      - name: Verify package provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          requested='${{ inputs.cura_workflows_ref }}'
+          action_sha=$(git -C _cura_workflows_action rev-parse HEAD)
+          helper_sha=$(git -C Cura-workflows rev-parse HEAD)
+          workflow_sha='${{ job.workflow_sha }}'
+          workflow_ref='${{ job.workflow_ref }}'
+          [[ "$action_sha" == '${{ steps.action-revision.outputs.sha }}' ]]
+          if [[ "$requested" =~ ^[0-9a-fA-F]{40}$ ]]; then
+            [[ "${action_sha,,}" == "${requested,,}" ]]
+            [[ "${helper_sha,,}" == "${requested,,}" ]]
+            python _cura_workflows_action/runner_scripts/workflow_provenance.py verify-invocation \
+              --workflow-ref "$workflow_ref" --workflow-sha "$workflow_sha" \
+              --requested-ref "$requested" --component-path .github/workflows/conan-package.yml
+          fi
+          {
+            echo "| instance | component_path | requested_ref | resolved_sha | status |"
+            echo "|---|---|---|---|---|"
+            echo "| conan-package/workflow | .github/workflows/conan-package.yml | $requested | $workflow_sha | PASS |"
+            echo "| conan-package-create/setup-action | .github/actions/setup-build-environment/action.yml | $requested | $action_sha | PASS |"
+            echo "| conan-package-create/setup-helper-checkout | Cura-workflows | $requested | $helper_sha | PASS |"
+            echo ""
+            echo "caller_repository=${{ github.repository }}"
+            echo "caller_sha=${{ github.sha }}"
+            echo "cura_workflows_ref=$requested"
+            echo "platform=${{ matrix.platform }}"
+            echo "runner_label=${{ matrix.runner }}"
+            echo "runner.os=${{ runner.os }}"
+            echo "runner.arch=${{ runner.arch }}"
+            echo "python.path=${{ steps.setup-environment.outputs.python-path }}"
+            echo "python.version=${{ steps.setup-environment.outputs.python-version }}"
+            echo "python.machine=${{ steps.setup-environment.outputs.python-machine }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+          for file in \
+            .github/workflows/conan-package.yml \
+            .github/workflows/conan-recipe-version.yml \
+            .github/workflows/conan-recipe-export.yml \
+            .github/workflows/make-runners-list.yml \
+            .github/actions/setup-build-environment/action.yml \
+            .github/actions/upload-conan-package/action.yml \
+            runner_scripts/make_runners_list.py \
+            runner_scripts/workflow_provenance.py; do
+            sha256sum "_cura_workflows_action/$file" >> "$GITHUB_STEP_SUMMARY"
+          done
+          python _cura_workflows_action/runner_scripts/workflow_provenance.py create \
+            --output provenance/conan-package-create.json --requested-ref "$requested" \
+            --row "conan-package/workflow|.github/workflows/conan-package.yml|$workflow_sha" \
+            --row "conan-package-create/setup-action|.github/actions/setup-build-environment/action.yml|$action_sha" \
+            --row "conan-package-create/setup-helper-checkout|Cura-workflows|$helper_sha"
+
+      - name: Validate immutable source callers
+        if: ${{ inputs.allow_non_default_branch_package_create }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          requested='${{ inputs.cura_workflows_ref }}'
+          validation_sha='${{ github.sha }}'
+          if [[ ! "$requested" =~ ^[0-9a-fA-F]{40}$ ]]; then
+            echo "::error::allow_non_default_branch_package_create requires cura_workflows_ref to be an exact 40-hex SHA"
+            exit 1
+          fi
+          git -C _package_sources fetch --no-tags --depth=2 origin "$validation_sha"
+          python _cura_workflows_action/runner_scripts/workflow_provenance.py validate-callers \
+            --repository _package_sources --validation-sha "$validation_sha" \
+            --workflow-sha "$requested" \
+            --output package-chain/source-chain.json
 
       - name: Install TypeScript 5.6.2
         if: ${{ inputs.platform_wasm == true }}
         run: npm install -g typescript@5.6.2
 
       - name: Create the Package (binaries)
-        run: conan create ${{ inputs.conan_recipe_root }} --version ${{ needs.conan-recipe-version.outputs.version_base }} --user ${{ needs.conan-recipe-version.outputs.user }} --channel ${{ needs.conan-recipe-version.outputs.channel }} ${{ inputs.conan_extra_args }} --build=missing ${{ matrix.conan_extra_args }}
+        env:
+          CURA_WINDOWS_ARM64_X64_BUILD_CONTEXT: ${{ matrix.runner == 'windows-11-arm' && '1' || '0' }}
+        run: conan create "_package_sources/${{ inputs.conan_recipe_root }}" --version ${{ needs.conan-recipe-version.outputs.version_base }} --user ${{ needs.conan-recipe-version.outputs.user }} --channel ${{ needs.conan-recipe-version.outputs.channel }} ${{ inputs.conan_extra_args }} --build=missing ${{ matrix.conan_extra_args }}
+
+      - name: Record produced Conan reference
+        id: produced-reference
+        shell: bash
+        run: |
+          reference="${{ steps.setup-environment.outputs.package_name }}/${{ needs.conan-recipe-version.outputs.version_base }}@${{ needs.conan-recipe-version.outputs.user }}/${{ needs.conan-recipe-version.outputs.channel }}"
+          echo "reference=$reference" >> "$GITHUB_OUTPUT"
+          echo "produced_conan_reference=$reference" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Bind package reference to immutable source chain
+        if: ${{ inputs.allow_non_default_branch_package_create }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python _cura_workflows_action/runner_scripts/workflow_provenance.py create-package-chain \
+            --source-chain package-chain/source-chain.json \
+            --package-reference '${{ steps.produced-reference.outputs.reference }}' \
+            --run-id '${{ github.run_id }}' --run-attempt '${{ github.run_attempt }}' \
+            --output package-chain/package-chain.json
+
+      - name: Upload package-create provenance
+        uses: actions/upload-artifact@v7
+        with:
+          name: package-provenance-create-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.platform }}
+          path: provenance/conan-package-create.json
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Upload immutable package chain
+        if: ${{ inputs.allow_non_default_branch_package_create }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: package-validation-chain-${{ github.run_id }}-${{ github.run_attempt }}
+          path: package-chain
+          retention-days: 5
+          if-no-files-found: error
+
+  validate-package-provenance:
+    name: Validate immutable package provenance
+    needs:
+      - conan-recipe-version
+      - conan-recipe-export-specific
+      - conan-recipe-export-latest
+      - make-runners-list
+      - conan-package-create
+    runs-on: ubuntu-latest
+    if: ${{ inputs.allow_non_default_branch_package_create }}
+    steps:
+      - name: Clean workspace
+        shell: bash
+        run: find "${GITHUB_WORKSPACE:?}" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+
+      - name: Checkout pinned workflow tools
+        uses: actions/checkout@v6
+        with:
+          repository: Ultimaker/Cura-workflows
+          ref: ${{ inputs.cura_workflows_ref }}
+          path: _cura_workflows_action
+
+      - name: Download recipe-version provenance
+        uses: actions/download-artifact@v8
+        with:
+          name: package-provenance-recipe-version-${{ github.run_id }}-${{ github.run_attempt }}
+          path: provenance
+
+      - name: Download specific-export provenance
+        uses: actions/download-artifact@v8
+        with:
+          name: package-provenance-conan-recipe-export-specific-${{ github.run_id }}-${{ github.run_attempt }}
+          path: provenance
+
+      - name: Download latest-export provenance
+        uses: actions/download-artifact@v8
+        with:
+          name: package-provenance-conan-recipe-export-latest-${{ github.run_id }}-${{ github.run_attempt }}
+          path: provenance
+
+      - name: Download runner provenance
+        uses: actions/download-artifact@v8
+        with:
+          name: package-provenance-runners-${{ github.run_id }}-${{ github.run_attempt }}
+          path: provenance
+
+      - name: Download package-create provenance
+        uses: actions/download-artifact@v8
+        with:
+          pattern: package-provenance-create-${{ github.run_id }}-${{ github.run_attempt }}-*
+          path: provenance
+          merge-multiple: true
+
+      - name: Download immutable package chain
+        uses: actions/download-artifact@v8
+        with:
+          name: package-validation-chain-${{ github.run_id }}-${{ github.run_attempt }}
+          path: package-chain
+
+      - name: Validate complete provenance evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          requested='${{ inputs.cura_workflows_ref }}'
+          resolved=$(git -C _cura_workflows_action rev-parse HEAD)
+          [[ "$requested" =~ ^[0-9a-fA-F]{40}$ ]]
+          [[ "${resolved,,}" == "${requested,,}" ]]
+          python _cura_workflows_action/runner_scripts/workflow_provenance.py validate --directory provenance --requested-ref "$requested" --summary "$GITHUB_STEP_SUMMARY"
+          python _cura_workflows_action/runner_scripts/workflow_provenance.py validate-package-chain \
+            --chain package-chain/package-chain.json \
+            --source-chain package-chain/source-chain.json \
+            --package-reference '${{ needs.conan-package-create.outputs.package-reference }}' \
+            --run-id '${{ github.run_id }}' --run-attempt '${{ github.run_attempt }}' \
+            --summary "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload validated package provenance
+        uses: actions/upload-artifact@v7
+        with:
+          name: validated-package-provenance-${{ github.run_id }}-${{ github.run_attempt }}
+          path: package-chain
+          retention-days: 5
+          if-no-files-found: error

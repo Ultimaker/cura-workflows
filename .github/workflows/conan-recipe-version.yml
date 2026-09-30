@@ -7,67 +7,50 @@ on:
         required: false
         default: ''
         type: string
-
       branch:
         required: false
         default: ''
         type: string
-
       conan_recipe_root:
         required: false
         default: "."
         type: string
-
       release:
         required: false
         default: false
         type: boolean
-
       internal:
         required: false
         default: false
         type: boolean
-
       version:
         required: false
         default: ''
         type: string
-
+      cura_workflows_ref:
+        required: false
+        default: main
+        type: string
     outputs:
       package_name:
-        description: "Package name"
         value: ${{ inputs.package_name }}
-
       version_base:
-        description: "Base version number: <major>.<minor>.<patch>-<releasetag>"
         value: ${{ jobs.make-versions.outputs.version_base }}
-
       version_full:
-        description: "Full unique version number: <major>.<minor>.<patch>-<releasetag>+<commit>"
         value: ${{ jobs.make-versions.outputs.version_full }}
-
       channel:
-        description: "The conan channel"
         value: ${{ jobs.make-versions.outputs.channel }}
-
       user:
-        description: "The conan user"
         value: ${{ jobs.make-versions.outputs.user }}
-
       package_version_full:
-        description: "The unique Conan package id: <name>/<version>+<commit>@<user>/<channel>"
         value: ${{ jobs.make-versions.outputs.package_version_full }}
-
       package_version_latest:
-        description: "The most recent version for the user+channel: <name>/<version>@<user>/<channel>"
         value: ${{ jobs.make-versions.outputs.package_version_latest }}
 
 jobs:
   make-versions:
     name: Generate version numbers
-
     runs-on: ubuntu-latest
-
     outputs:
       version_base: ${{ steps.get-conan-broadcast-data.outputs.version_base }}
       version_full: ${{ steps.get-conan-broadcast-data.outputs.version_full }}
@@ -75,17 +58,83 @@ jobs:
       user: ${{ steps.get-conan-broadcast-data.outputs.user }}
       package_version_full: ${{ steps.get-conan-broadcast-data.outputs.package_version_full }}
       package_version_latest: ${{ steps.get-conan-broadcast-data.outputs.package_version_latest }}
-
     steps:
-      - name: Setup the build environment
-        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@main
+      - name: Clean workspace
+        shell: bash
+        run: find "${GITHUB_WORKSPACE:?}" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+
+      - name: Checkout pinned workflow actions
+        uses: actions/checkout@v6
         with:
+          repository: Ultimaker/Cura-workflows
+          ref: ${{ inputs.cura_workflows_ref }}
+          path: _cura_workflows_action
+
+      - name: Capture action revision
+        id: action-revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          requested='${{ inputs.cura_workflows_ref }}'
+          resolved=$(git -C _cura_workflows_action rev-parse HEAD)
+          echo "requested=$requested"
+          echo "resolved=$resolved"
+          echo "sha=$resolved" >> "$GITHUB_OUTPUT"
+          if [[ "$requested" =~ ^[0-9a-fA-F]{40}$ ]] && [[ "${resolved,,}" != "${requested,,}" ]]; then
+            exit 1
+          fi
+
+      - name: Setup the build environment
+        uses: ./_cura_workflows_action/.github/actions/setup-build-environment
+        with:
+          cleanup_workspace: false
+          cura_workflows_branch: ${{ inputs.cura_workflows_ref }}
           repository: ${{ inputs.repository }}
           branch: ${{ inputs.branch }}
+          repository_path: _package_sources
+
+      - name: Verify setup provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          requested='${{ inputs.cura_workflows_ref }}'
+          action_sha=$(git -C _cura_workflows_action rev-parse HEAD)
+          helper_sha=$(git -C Cura-workflows rev-parse HEAD)
+          workflow_sha='${{ job.workflow_sha }}'
+          workflow_ref='${{ job.workflow_ref }}'
+          if [[ "$action_sha" != '${{ steps.action-revision.outputs.sha }}' ]]; then exit 1; fi
+          if [[ "$requested" =~ ^[0-9a-fA-F]{40}$ ]]; then
+            [[ "${action_sha,,}" == "${requested,,}" ]]
+            [[ "${helper_sha,,}" == "${requested,,}" ]]
+            python _cura_workflows_action/runner_scripts/workflow_provenance.py verify-invocation \
+              --workflow-ref "$workflow_ref" --workflow-sha "$workflow_sha" \
+              --requested-ref "$requested" --component-path .github/workflows/conan-recipe-version.yml
+          fi
+          {
+            echo "| instance | component_path | requested_ref | resolved_sha | status |"
+            echo "|---|---|---|---|---|"
+            echo "| conan-recipe-version/workflow | .github/workflows/conan-recipe-version.yml | $requested | $workflow_sha | PASS |"
+            echo "| conan-recipe-version/setup-action | .github/actions/setup-build-environment/action.yml | $requested | $action_sha | PASS |"
+            echo "| conan-recipe-version/setup-helper-checkout | Cura-workflows | $requested | $helper_sha | PASS |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          python _cura_workflows_action/runner_scripts/workflow_provenance.py create \
+            --output provenance/conan-recipe-version.json --requested-ref "$requested" \
+            --row "conan-recipe-version/workflow|.github/workflows/conan-recipe-version.yml|$workflow_sha" \
+            --row "conan-recipe-version/setup-action|.github/actions/setup-build-environment/action.yml|$action_sha" \
+            --row "conan-recipe-version/setup-helper-checkout|Cura-workflows|$helper_sha"
+
+      - name: Upload recipe-version provenance
+        uses: actions/upload-artifact@v7
+        with:
+          name: package-provenance-recipe-version-${{ github.run_id }}-${{ github.run_attempt }}
+          path: provenance/conan-recipe-version.json
+          retention-days: 1
+          if-no-files-found: error
 
       - id: get-conan-broadcast-data
         name: Get Conan broadcast data
+        shell: bash
+        working-directory: _package_sources/${{ inputs.conan_recipe_root }}
         run: |
-          package_name=$(conan inspect "${{ inputs.conan_recipe_root }}" | awk '/^name:/ {print $2}')
-
-          python Cura-workflows/runner_scripts/get_conan_broadcast_data.py --package_name "$package_name" --sha "${{ github.sha }}" --event_name "${{ github.event_name }}" --ref_name "${{ inputs.branch != '' && inputs.branch || github.ref_name }}" --head_ref "${{ github.head_ref }}" ${{ inputs.release && '--release' || '' }} --version "${{ inputs.version }}" ${{ inputs.internal && '--internal' || '' }} --version-output "$GITHUB_OUTPUT" --summary-output "$GITHUB_STEP_SUMMARY"
+          package_name=$(conan inspect "." | awk '/^name:/ {print $2}')
+          python "$GITHUB_WORKSPACE/Cura-workflows/runner_scripts/get_conan_broadcast_data.py" --package_name "$package_name" --sha "${{ github.sha }}" --event_name "${{ github.event_name }}" --ref_name "${{ inputs.branch != '' && inputs.branch || github.ref_name }}" --head_ref "${{ github.head_ref }}" ${{ inputs.release && '--release' || '' }} --version "${{ inputs.version }}" ${{ inputs.internal && '--internal' || '' }} --version-output "$GITHUB_OUTPUT" --summary-output "$GITHUB_STEP_SUMMARY"

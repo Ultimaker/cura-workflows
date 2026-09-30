@@ -28,6 +28,10 @@ on:
         required: false
         default: false
         type: boolean
+      cura_workflows_ref:
+        required: false
+        default: main
+        type: string
 
 
 jobs:
@@ -95,5 +99,7 @@ jobs:
       enterprise: ${{ inputs.enterprise }}
       staging: ${{ inputs.staging }}
       operating_system: self-hosted-Windows-ARM64
+      signing_operating_system: self-hosted-Windows-X64
+      cura_workflows_ref: ${{ inputs.cura_workflows_ref }}
       private_data: ${{ inputs.private_data }}
     secrets: inherit

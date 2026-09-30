@@ -6,27 +6,28 @@ on:
       platform_linux:
         required: true
         type: boolean
-
       platform_windows:
         required: true
         type: boolean
-
       platform_mac:
         required: true
         type: boolean
-
       platform_windows_arm64:
         required: true
         type: boolean
-
       platform_wasm:
         required: true
         type: boolean
-
+      cura_workflows_ref:
+        required: false
+        default: main
+        type: string
     outputs:
       matrix:
-        description: The runners list as a JSON text
         value: ${{ jobs.make-runners-list.outputs.matrix }}
+      has_runners:
+        description: Whether the generated runner matrix contains any entries
+        value: ${{ jobs.make-runners-list.outputs.has_runners }}
 
 permissions:
   contents: read
@@ -37,17 +38,60 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.call-make-runner-script.outputs.matrix }}
-
+      has_runners: ${{ steps.call-make-runner-script.outputs.has_runners }}
     steps:
-    - name: Checkout Cura-workflows repo
-      uses: actions/checkout@v6
-      with:
-        repository: Ultimaker/Cura-workflows
-        path: Cura-workflows
-        ref: main
+      - name: Clean workspace
+        shell: bash
+        run: find "${GITHUB_WORKSPACE:?}" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
 
-    - name: Make the runners list from script
-      id: call-make-runner-script
-      run: |
-        RUNNERS_LIST=$(python ./Cura-workflows/runner_scripts/make_runners_list.py ${{ inputs.platform_linux && '--platform-linux' || '' }} ${{ inputs.platform_windows && '--platform-windows' || '' }} ${{ inputs.platform_mac && '--platform-mac' || '' }} ${{ inputs.platform_windows_arm64 && '--platform-windows-arm64' || '' }} ${{ inputs.platform_wasm && '--platform-wasm' || '' }})
-        echo "matrix=$RUNNERS_LIST" >> $GITHUB_OUTPUT
+      - name: Checkout Cura-workflows repo
+        uses: actions/checkout@v6
+        with:
+          repository: Ultimaker/Cura-workflows
+          path: Cura-workflows
+          ref: ${{ inputs.cura_workflows_ref }}
+
+      - name: Verify script checkout
+        id: checkout-revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          requested='${{ inputs.cura_workflows_ref }}'
+          resolved=$(git -C Cura-workflows rev-parse HEAD)
+          workflow_sha='${{ job.workflow_sha }}'
+          workflow_ref='${{ job.workflow_ref }}'
+          echo "Requested Cura-workflows ref: $requested"
+          echo "Resolved Cura-workflows SHA: $resolved"
+          if [[ "$requested" =~ ^[0-9a-fA-F]{40}$ ]]; then
+            [[ "${resolved,,}" == "${requested,,}" ]]
+            python Cura-workflows/runner_scripts/workflow_provenance.py verify-invocation \
+              --workflow-ref "$workflow_ref" --workflow-sha "$workflow_sha" \
+              --requested-ref "$requested" --component-path .github/workflows/make-runners-list.yml
+          fi
+          {
+            echo "| instance | component_path | requested_ref | resolved_sha | status |"
+            echo "|---|---|---|---|---|"
+            echo "| make-runners-list/workflow | .github/workflows/make-runners-list.yml | $requested | $workflow_sha | PASS |"
+            echo "| make-runners-list/script-checkout | runner_scripts/make_runners_list.py | $requested | $resolved | PASS |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          python Cura-workflows/runner_scripts/workflow_provenance.py create \
+            --output provenance/make-runners-list.json --requested-ref "$requested" \
+            --row "make-runners-list/workflow|.github/workflows/make-runners-list.yml|$workflow_sha" \
+            --row "make-runners-list/script-checkout|runner_scripts/make_runners_list.py|$resolved"
+
+      - name: Make the runners list from script
+        id: call-make-runner-script
+        shell: bash
+        run: |
+          RUNNERS_LIST=$(python ./Cura-workflows/runner_scripts/make_runners_list.py ${{ inputs.platform_linux && '--platform-linux' || '' }} ${{ inputs.platform_windows && '--platform-windows' || '' }} ${{ inputs.platform_mac && '--platform-mac' || '' }} ${{ inputs.platform_windows_arm64 && '--platform-windows-arm64' || '' }} ${{ inputs.platform_wasm && '--platform-wasm' || '' }})
+          HAS_RUNNERS=$(python -c 'import json, sys; print("true" if json.loads(sys.argv[1]).get("include") else "false")' "$RUNNERS_LIST")
+          echo "matrix=$RUNNERS_LIST" >> "$GITHUB_OUTPUT"
+          echo "has_runners=$HAS_RUNNERS" >> "$GITHUB_OUTPUT"
+
+      - name: Upload runner-list provenance
+        uses: actions/upload-artifact@v7
+        with:
+          name: package-provenance-runners-${{ github.run_id }}-${{ github.run_attempt }}
+          path: provenance/make-runners-list.json
+          retention-days: 1
+          if-no-files-found: error
