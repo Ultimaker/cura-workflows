@@ -2,15 +2,30 @@
 
 ## Developer Conan config
 
-UltiMaker developers working on Cura need to install the conan-config from the `dev` branch in the https://github.com/Ultimaker/conan-config/tree/dev 
+UltiMaker developers working on Cura need to install the conan-config from the `dev` (or `master`) branch in https://github.com/Ultimaker/conan-config:
 
+```bash
+conan config install https://github.com/Ultimaker/conan-config.git -a "-b master"
 ```
-conan config install https://github.com/Ultimaker/conan-config.git -a "-b dev"
-```
+
+The config sets up remotes pointing to **https://conan.ultimaker.com**:
+- `cura-conan2`: Public registry (`https://conan.ultimaker.com/api/packages/cura/conan`). Anonymous reads are allowed without authentication.
+- `cura-private-conan2`: Private registry (`https://conan.ultimaker.com/api/packages/cura-private/conan`). Requires authentication.
+
+### Authentication
+
+To log in or publish packages:
+1. Log in to [conan.ultimaker.com](https://conan.ultimaker.com) via Microsoft Entra ID (SSO).
+2. Go to **Settings > Applications** (`https://conan.ultimaker.com/user/settings/applications`) and generate a **Personal Access Token (PAT)**.
+3. Authenticate locally:
+   ```bash
+   conan remote login cura-conan2 <your_username> -p <your_pat_token>
+   conan remote login cura-private-conan2 <your_username> -p <your_pat_token>
+   ```
 
 ## Pipeline caching over workflows
 
-Ported a lot of workflows to this repo. All of the reusable workflows have pipeline chacing enabled for Conan downloads and Conan data folders. The caching key have a default fallback key. This ensures that the cache is updated with the latest changes on the Artifactory remote server but reuses the previous stored downloads and data, greatly reducing our download bandwidth and flexible costs.
+Ported a lot of workflows to this repo. All of the reusable workflows have pipeline caching enabled for Conan downloads and Conan data folders. The caching key has a default fallback key. This ensures that the cache is updated with the latest changes on the Conan remote server (`conan.ultimaker.com`) but reuses previous stored downloads and data, greatly reducing download bandwidth and flexible costs.
 
 The runner conan-config branches have been updated to ensure that the download cache will be in a known location, see: 
 - https://github.com/Ultimaker/conan-config/blob/4ddbd291944aff9c22c96a910021afd5f843a034/conan.conf#L6
