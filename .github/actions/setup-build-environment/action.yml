@@ -10,16 +10,19 @@ inputs:
     type: string
 
   conan_user:
+    description: 'Conan remote username (optional for public packages on conan.ultimaker.com, required for uploading or cura-private-conan2)'
     required: false
     default: ''
     type: string
 
   conan_password:
+    description: 'Conan remote password or Personal Access Token (PAT)'
     required: false
     default: ''
     type: string
 
   private_data:
+    description: 'Enable private Conan remote (cura-private-conan2)'
     required: false
     default: false
     type: boolean
@@ -153,10 +156,13 @@ runs:
         conan profile detect -f
         conan config install https://github.com/Ultimaker/conan-config.git -a "-b ${{ inputs.conan_config_branch }}"
 
+        # Authenticate with cura-conan2 (conan.ultimaker.com) if credentials are provided.
+        # Note: Anonymous read is supported for public packages; authentication is required for publishing.
         if [ "${{ inputs.conan_user }}" != "" ] && [ "${{ inputs.conan_password }}" != "" ]; then
           conan remote login cura-conan2 ${{ inputs.conan_user }} -p ${{ inputs.conan_password }}
         fi
 
+        # cura-private-conan2 is disabled by default in remotes.json; enable and authenticate if private data is needed.
         if [ "${{ inputs.private_data }}" == "true" ]; then
           conan remote enable cura-private-conan2
           if [ "${{ inputs.conan_user }}" != "" ] && [ "${{ inputs.conan_password }}" != "" ]; then
