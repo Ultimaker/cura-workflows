@@ -51,12 +51,21 @@ def parse_threshold(threshold: str) -> float:
     return float(threshold.strip().rstrip("%")) / 100.0
 
 
-def find_alerts(entries: list, baseline_runs: int, tool: str, threshold: float) -> list:
+def worse_ratio(reference: float, current: float, bigger_is_better: bool) -> float:
+    """Ratio above 1 means the current value is worse than the reference."""
+    numerator, denominator = (reference, current) if bigger_is_better else (current, reference)
+    if denominator == 0:
+        return 1.0 if numerator == 0 else float("inf")
+    return numerator / denominator
+
+
+def compare_runs(entries: list, baseline_runs: int, tool: str) -> list:
     current = entries[-1]
     baseline_entries = entries[max(0, len(entries) - 1 - baseline_runs):-1]
+    last_values = {b["name"]: b["value"] for b in entries[-2]["benches"]}
     bigger_is_better = tool not in SMALLER_IS_BETTER_TOOLS
 
-    alerts = []
+    rows = []
     for bench in current["benches"]:
         history = [
             b["value"]
@@ -64,26 +73,59 @@ def find_alerts(entries: list, baseline_runs: int, tool: str, threshold: float) 
             for b in entry["benches"]
             if b["name"] == bench["name"]
         ]
-        if not history:
-            continue
+        average = statistics.mean(history) if history else None
+        last_value = last_values.get(bench["name"])
 
-        average = statistics.mean(history)
-        if average == 0 and bench["value"] == 0:
-            ratio = 1.0
-        else:
-            ratio = (average / bench["value"]) if bigger_is_better else (bench["value"] / average)
+        rows.append({
+            "name": bench["name"],
+            "unit": bench["unit"],
+            "current": bench["value"],
+            "average": average,
+            "sample_count": len(history),
+            "average_ratio": worse_ratio(average, bench["value"], bigger_is_better) if average is not None else None,
+            "last": last_value,
+            "last_ratio": worse_ratio(last_value, bench["value"], bigger_is_better) if last_value is not None else None,
+        })
 
-        if ratio > threshold:
-            alerts.append({
-                "name": bench["name"],
-                "current": bench["value"],
-                "average": average,
-                "unit": bench["unit"],
-                "ratio": ratio,
-                "sample_count": len(history),
-            })
+    return rows
 
-    return alerts
+
+def find_alerts(rows: list, threshold: float) -> list:
+    return [r for r in rows if r["average_ratio"] is not None and r["average_ratio"] > threshold]
+
+
+def format_change(ratio: float | None) -> str:
+    if ratio is None:
+        return "n/a"
+    if ratio == float("inf"):
+        return "+inf%"
+    return f"{(ratio - 1) * 100:+.1f}%"
+
+
+def format_value(value: float | None, unit: str) -> str:
+    return "n/a" if value is None else f"{value:.4g} {unit}"
+
+
+def build_summary(rows: list, name: str, baseline_runs: int, threshold: float) -> str:
+    lines = [
+        f"## Benchmark variation: {name}",
+        "",
+        f"Current run compared with the average of up to {baseline_runs} previous runs, and with the previous run. "
+        f"Positive change means worse. Alert threshold vs average: `{threshold * 100:.0f}%`.",
+        "",
+        "| Benchmark | Current | Average | Change vs average | Previous run | Change vs previous | Status |",
+        "|-|-|-|-|-|-|-|",
+    ]
+    for row in rows:
+        is_alert = row["average_ratio"] is not None and row["average_ratio"] > threshold
+        lines.append(
+            f"| `{row['name']}` | {format_value(row['current'], row['unit'])} "
+            f"| {format_value(row['average'], row['unit'])} | {format_change(row['average_ratio'])} "
+            f"| {format_value(row['last'], row['unit'])} | {format_change(row['last_ratio'])} "
+            f"| {'**regression**' if is_alert else 'ok'} |"
+        )
+    lines.append("")
+    return "\n".join(lines)
 
 
 def build_comment_body(alerts: list, name: str, baseline_runs: int, threshold: float, cc_users: str) -> str:
@@ -101,7 +143,7 @@ def build_comment_body(alerts: list, name: str, baseline_runs: int, threshold: f
         lines.append(
             f"| `{alert['name']}` | `{alert['current']}` {alert['unit']} "
             f"| `{alert['average']:.2f}` {alert['unit']} (of {alert['sample_count']} runs) "
-            f"| `{alert['ratio']:.2f}` |"
+            f"| `{alert['average_ratio']:.2f}` |"
         )
     lines.append("")
     cc = [u.strip() for u in cc_users.split(",") if u.strip()]
@@ -135,7 +177,14 @@ def main() -> int:
         return 0
 
     threshold = parse_threshold(args.alert_threshold)
-    alerts = find_alerts(entries, args.baseline_runs, args.tool, threshold)
+    rows = compare_runs(entries, args.baseline_runs, args.tool)
+    summary = build_summary(rows, args.name, args.baseline_runs, threshold)
+
+    if "GITHUB_STEP_SUMMARY" in os.environ:
+        with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as f:
+            f.write(summary + "\n")
+
+    alerts = find_alerts(rows, threshold)
 
     if not alerts:
         print(f"No performance regression detected for '{args.name}' against the rolling average.")
@@ -145,17 +194,12 @@ def main() -> int:
     for alert in alerts:
         print(
             f"::warning::Performance alert for '{alert['name']}': current value {alert['current']} "
-            f"{alert['unit']} is {alert['ratio']:.2f}x worse than the average of the last "
+            f"{alert['unit']} is {alert['average_ratio']:.2f}x worse than the average of the last "
             f"{alert['sample_count']} runs ({alert['average']:.2f} {alert['unit']}), "
             f"exceeding the {threshold * 100:.0f}% threshold."
         )
 
     body = build_comment_body(alerts, args.name, args.baseline_runs, threshold, args.cc_users)
-
-    if "GITHUB_STEP_SUMMARY" in os.environ:
-        with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as f:
-            f.write(body + "\n")
-
     Path(args.comment_body_path).write_text(body, encoding="utf-8")
     set_output("has_alert", "true")
 
