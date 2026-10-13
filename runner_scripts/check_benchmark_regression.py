@@ -106,12 +106,28 @@ def format_value(value: float | None, unit: str) -> str:
     return "n/a" if value is None else f"{value:.4g} {unit}"
 
 
-def build_summary(rows: list, name: str, baseline_runs: int, threshold: float) -> str:
+def build_report(
+    rows: list, alerts: list, name: str, baseline_runs: int, threshold: float, cc_users: str, commit_id: str
+) -> str:
+    marker = f"<!-- benchmark-regression: {name} -->"
+    limit = f"`{threshold * 100:.0f}%`"
+    if alerts:
+        title = f"## :warning: Performance regression: {name}"
+        verdict = (
+            f"{len(alerts)} benchmark(s) exceed the {limit} alert threshold "
+            f"compared to the average of the last {baseline_runs} runs."
+        )
+    else:
+        title = f"## :white_check_mark: No performance regression: {name}"
+        verdict = f"All benchmarks are within the {limit} alert threshold of the average of the last {baseline_runs} runs."
+
     lines = [
-        f"## Benchmark variation: {name}",
+        marker,
+        title,
         "",
-        f"Current run compared with the average of up to {baseline_runs} previous runs, and with the previous run. "
-        f"Positive change means worse. Alert threshold vs average: `{threshold * 100:.0f}%`.",
+        verdict,
+        "",
+        f"Latest run: commit `{commit_id[:8]}`. Positive change means worse.",
         "",
         "| Benchmark | Current | Average | Change vs average | Previous run | Change vs previous | Status |",
         "|-|-|-|-|-|-|-|",
@@ -122,32 +138,12 @@ def build_summary(rows: list, name: str, baseline_runs: int, threshold: float) -
             f"| `{row['name']}` | {format_value(row['current'], row['unit'])} "
             f"| {format_value(row['average'], row['unit'])} | {format_change(row['average_ratio'])} "
             f"| {format_value(row['last'], row['unit'])} | {format_change(row['last_ratio'])} "
-            f"| {'**regression**' if is_alert else 'ok'} |"
+            f"| {':warning: regression' if is_alert else ':white_check_mark:'} |"
         )
     lines.append("")
-    return "\n".join(lines)
 
-
-def build_comment_body(alerts: list, name: str, baseline_runs: int, threshold: float, cc_users: str) -> str:
-    benchmark_text = "" if name == "Benchmark" else f" **'{name}'**"
-    lines = [
-        "# :warning: **Performance Alert** :warning:",
-        "",
-        f"Benchmark{benchmark_text} regressed compared to the "
-        f"average of its last {baseline_runs} runs, exceeding the `{threshold * 100:.0f}%` alert threshold.",
-        "",
-        "| Benchmark | Current | Average (last N runs) | Ratio |",
-        "|-|-|-|-|",
-    ]
-    for alert in alerts:
-        lines.append(
-            f"| `{alert['name']}` | `{alert['current']}` {alert['unit']} "
-            f"| `{alert['average']:.2f}` {alert['unit']} (of {alert['sample_count']} runs) "
-            f"| `{alert['average_ratio']:.2f}` |"
-        )
-    lines.append("")
     cc = [u.strip() for u in cc_users.split(",") if u.strip()]
-    if cc:
+    if alerts and cc:
         lines.append(f"CC: {' '.join(cc)}")
     return "\n".join(lines)
 
@@ -178,30 +174,29 @@ def main() -> int:
 
     threshold = parse_threshold(args.alert_threshold)
     rows = compare_runs(entries, args.baseline_runs, args.tool)
-    summary = build_summary(rows, args.name, args.baseline_runs, threshold)
+    alerts = find_alerts(rows, threshold)
+    report = build_report(
+        rows, alerts, args.name, args.baseline_runs, threshold, args.cc_users, entries[-1]["commit"]["id"]
+    )
+
+    Path(args.comment_body_path).write_text(report, encoding="utf-8")
+    set_output("has_report", "true")
+    set_output("has_alert", "true" if alerts else "false")
 
     if "GITHUB_STEP_SUMMARY" in os.environ:
         with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as f:
-            f.write(summary + "\n")
-
-    alerts = find_alerts(rows, threshold)
+            f.write(report + "\n")
 
     if not alerts:
         print(f"No performance regression detected for '{args.name}' against the rolling average.")
-        set_output("has_alert", "false")
         return 0
 
     for alert in alerts:
         print(
-            f"::warning::Performance alert for '{alert['name']}': current value {alert['current']} "
-            f"{alert['unit']} is {alert['average_ratio']:.2f}x worse than the average of the last "
-            f"{alert['sample_count']} runs ({alert['average']:.2f} {alert['unit']}), "
-            f"exceeding the {threshold * 100:.0f}% threshold."
+            f"::warning::Performance alert for '{alert['name']}': current value {format_value(alert['current'], alert['unit'])} "
+            f"is {alert['average_ratio']:.2f}x worse than the average of the last {alert['sample_count']} runs "
+            f"({format_value(alert['average'], alert['unit'])}), exceeding the {threshold * 100:.0f}% threshold."
         )
-
-    body = build_comment_body(alerts, args.name, args.baseline_runs, threshold, args.cc_users)
-    Path(args.comment_body_path).write_text(body, encoding="utf-8")
-    set_output("has_alert", "true")
 
     return 0
 
