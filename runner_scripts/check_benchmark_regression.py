@@ -106,6 +106,11 @@ def format_value(value: float | None, unit: str) -> str:
     return "n/a" if value is None else f"{value:.4g} {unit}"
 
 
+def wrappable_name(name: str) -> str:
+    # Benchmark names have no spaces, so add zero-width spaces to let table cells wrap.
+    return name.replace("/", "/\u200b").replace("_", "_\u200b")
+
+
 def build_report(
     rows: list, alerts: list, name: str, baseline_runs: int, threshold: float, cc_users: str, commit_id: str
 ) -> str:
@@ -135,7 +140,7 @@ def build_report(
     for row in rows:
         is_alert = row["average_ratio"] is not None and row["average_ratio"] > threshold
         lines.append(
-            f"| `{row['name']}` | {format_value(row['current'], row['unit'])} "
+            f"| `{wrappable_name(row['name'])}` | {format_value(row['current'], row['unit'])} "
             f"| {format_value(row['average'], row['unit'])} | {format_change(row['average_ratio'])} "
             f"| {format_value(row['last'], row['unit'])} | {format_change(row['last_ratio'])} "
             f"| {':warning: regression' if is_alert else ':white_check_mark:'} |"
