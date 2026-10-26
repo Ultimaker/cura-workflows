@@ -65,6 +65,11 @@ jobs:
 
       - name: Publish to GitHub Packages
         run: |
-          npm publish
+          version=$(node -p "require('./package.json').version")
+          if [[ "${version}" == *-* ]]; then
+            npm publish --tag dev
+          else
+            npm publish
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
