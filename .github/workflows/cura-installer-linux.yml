@@ -45,6 +45,11 @@ on:
         default: false
         type: boolean
 
+      conan_config_branch:
+        required: false
+        default: 'master'
+        type: string
+
 permissions:
   contents: read
 
@@ -61,6 +66,7 @@ jobs:
           conan_user: ${{ secrets.CONAN_USER }}
           conan_password: ${{ secrets.CONAN_PASS }}
           private_data: ${{ inputs.private_data }}
+          conan_config_branch: ${{ inputs.conan_config_branch }}
           install_system_dependencies: true
           repository_path: _cura_sources # we don't want the actual sources to interfere with the built conan package
           cura_workflows_branch: main
