@@ -45,7 +45,7 @@ on:
         default: false
         type: boolean
 
-     conan_config_branch:
+      conan_config_branch:
         required: false
         default: 'master'
         type: string
