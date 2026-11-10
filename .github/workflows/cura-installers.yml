@@ -28,6 +28,10 @@ on:
         required: false
         default: false
         type: boolean
+      conan_config_branch:
+        required: false
+        default: 'master'
+        type: string
 
 
 jobs:
@@ -42,6 +46,7 @@ jobs:
       staging: ${{ inputs.staging }}
       operating_system: self-hosted-Windows-X64
       private_data: ${{ inputs.private_data }}
+      conan_config_branch: ${{ inputs.conan_config_branch }}
     secrets: inherit
 
   linux-installer:
@@ -55,6 +60,7 @@ jobs:
       staging: ${{ inputs.staging }}
       operating_system: self-hosted-Ubuntu24-X64
       private_data: ${{ inputs.private_data }}
+      conan_config_branch: ${{ inputs.conan_config_branch }}
     secrets: inherit
 
   macos-installer:
@@ -69,6 +75,7 @@ jobs:
       architecture: X64
       operating_system: self-hosted-macos-15
       private_data: ${{ inputs.private_data }}
+      conan_config_branch: ${{ inputs.conan_config_branch }}
     secrets: inherit
 
   macos-arm-installer:
@@ -83,6 +90,7 @@ jobs:
       architecture: ARM64
       operating_system: self-hosted-macos-15
       private_data: ${{ inputs.private_data }}
+      conan_config_branch: ${{ inputs.conan_config_branch }}
     secrets: inherit
 
   # Workflow has been disabled until we have a workaround for the runner.
@@ -98,4 +106,5 @@ jobs:
       staging: ${{ inputs.staging }}
       operating_system: self-hosted-Windows-ARM64
       private_data: ${{ inputs.private_data }}
+      conan_config_branch: ${{ inputs.conan_config_branch }}
     secrets: inherit
