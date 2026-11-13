@@ -111,7 +111,13 @@ jobs:
         working-directory: dist/UltiMaker-Cura
         run: |
           & signtool sign /v /fd sha256 /tr http://timestamp.sectigo.com /td sha256 /f C:\actions-runner\code_sign.cer /csp "eToken Base Cryptographic Provider" /kc ${{ secrets.WIN_TOKEN_CONTAINER }} "CuraEngine.exe"
+          if ($LASTEXITCODE -ne 0) { throw "CuraEngine signing failed" }
+          & signtool verify /pa /all /v "CuraEngine.exe"
+          if ($LASTEXITCODE -ne 0) { throw "CuraEngine signature verification failed" }
           & signtool sign /v /fd sha256 /tr http://timestamp.sectigo.com /td sha256 /f C:\actions-runner\code_sign.cer /csp "eToken Base Cryptographic Provider" /kc ${{ secrets.WIN_TOKEN_CONTAINER }} "UltiMaker-Cura.exe"
+          if ($LASTEXITCODE -ne 0) { throw "Cura signing failed" }
+          & signtool verify /pa /all /v "UltiMaker-Cura.exe"
+          if ($LASTEXITCODE -ne 0) { throw "Cura signature verification failed" }
         timeout-minutes: 2
 
       - name: Workaround (need exact version of msvc redistributables)
@@ -143,64 +149,97 @@ jobs:
           $env:PATH += ";$pydir;$pydir/Scripts"
           python Cura-workflows/runner_scripts/cleanup_distribution.py dist\UltiMaker-Cura --conandata _cura_sources\conandata.yml --os Windows
 
+      - name: Validate complete X64 payload
+        run: |
+          New-Item -ItemType Directory -Force -Path metadata | Out-Null
+          python _cura_sources\packaging\windows\validate_pe_architecture.py dist\UltiMaker-Cura --architecture x64 `
+            --require python3.dll --require concrt140.dll --require msvcp140.dll --require msvcp140_1.dll `
+            --require msvcp140_2.dll --require vcruntime140.dll --require vcruntime140_1.dll `
+            --require UltiMaker-Cura.exe --require CuraEngine.exe --manifest-out metadata\x64-pe.json
+          if ($LASTEXITCODE -ne 0) { throw "X64 payload validation failed" }
+
+      - name: Upload X64 PE manifest
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-x64-pe-manifest-${{ github.run_id }}-${{ github.run_attempt }}
+          path: metadata/x64-pe.json
+          retention-days: 5
+          if-no-files-found: error
+
       - name: Create the Windows exe installer (Powershell)
-        if: ${{ always() }}
         run: |
           $pydir = type ../pydir.txt
           $env:PATH += ";$pydir;$pydir/Scripts"
           python ..\cura_inst\packaging\NSIS\create_windows_installer.py --source_path ../cura_inst --dist_path . --filename "${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.exe" --version "${{ steps.prepare-distribution.outputs.CURA_VERSION_FULL }}"
+          if (!(Test-Path -LiteralPath "${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.exe" -PathType Leaf) -or (Get-Item "${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.exe").Length -eq 0) { throw "EXE installer missing or empty" }
         working-directory: dist
 
       - name: Sign the Windows exe installer (Powershell)
         run: |
           & signtool sign /v /fd sha256 /tr http://timestamp.sectigo.com /td sha256 /f C:\actions-runner\code_sign.cer /csp "eToken Base Cryptographic Provider" /kc ${{ secrets.WIN_TOKEN_CONTAINER }} "${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.exe"
+          if ($LASTEXITCODE -ne 0) { throw "EXE installer signing failed" }
+          & signtool verify /pa /all /v "${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.exe"
+          if ($LASTEXITCODE -ne 0) { throw "EXE installer signature verification failed" }
         working-directory: dist
         timeout-minutes: 2
 
       - name: Upload the installer exe
-        if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
           name: ${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}-exe
           path: dist/${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.exe
           retention-days: 5
+          if-no-files-found: error
 
       - name: Create the Windows msi installer (Powershell)
         run: |
           $pydir = type ../pydir.txt
           $env:PATH += ";$pydir;$pydir/Scripts"
-          python ..\cura_inst\packaging\msi\create_windows_msi.py --source_path ..\cura_inst --dist_path .\UltiMaker-Cura --filename "${{ steps.prepare-distribution.outputs.INSTALLER_FILENAME }}.msi" --name "${{ steps.prepare-distribution.outputs.CURA_APP_NAME }}" --version "${{ steps.prepare-distribution.outputs.CURA_VERSION_FULL }}"
+          python ..\cura_inst\packaging\msi\create_windows_msi.py --source_path ..\cura_inst --dist_path .\UltiMaker-Cura --filename "${{ steps.prepare-distribution.outputs.INSTALLER_FILENAME }}.msi" --name "${{ steps.prepare-distribution.outputs.CURA_APP_NAME }}" --version "${{ steps.prepare-distribution.outputs.CURA_VERSION_FULL }}" --architecture x64
+          if (!(Test-Path -LiteralPath "${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.msi" -PathType Leaf) -or (Get-Item "${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.msi").Length -eq 0) { throw "MSI installer missing or empty" }
         working-directory: dist
+
+      - name: Validate X64 MSI database
+        run: |
+          $installer = New-Object -ComObject WindowsInstaller.Installer
+          $path = (Resolve-Path "dist\${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.msi").Path
+          $database = $installer.GetType().InvokeMember('OpenDatabase','InvokeMethod',$null,$installer,@($path,0))
+          $summary = $database.GetType().InvokeMember('SummaryInformation','GetProperty',$null,$database,@(0))
+          $template = [string]$summary.GetType().InvokeMember('Property','GetProperty',$null,$summary,@(7))
+          if (-not $template.StartsWith('x64;')) { throw "MSI template is not x64: $template" }
 
       - name: Sign the Windows msi installer (Powershell)
         run: |
           & signtool sign /v /fd sha256 /tr http://timestamp.sectigo.com /td sha256 /f C:\actions-runner\code_sign.cer /csp "eToken Base Cryptographic Provider" /kc ${{ secrets.WIN_TOKEN_CONTAINER }} "${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.msi"
+          if ($LASTEXITCODE -ne 0) { throw "MSI installer signing failed" }
+          & signtool verify /pa /all /v "${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.msi"
+          if ($LASTEXITCODE -ne 0) { throw "MSI installer signature verification failed" }
         working-directory: dist
         timeout-minutes: 2
 
       - name: Upload the installer msi
-        if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
           name: ${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}-msi
           path: dist/${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.msi
           retention-days: 5
+          if-no-files-found: error
 
       - name: Upload the application exe
-        if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: UltiMaker-Cura.exe
+          name: windows-x64-UltiMaker-Cura.exe
           path: dist/UltiMaker-Cura/UltiMaker-Cura.exe
           retention-days: 5
+          if-no-files-found: error
 
       - name: Upload the engine exe
-        if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: CuraEngine.exe
+          name: windows-x64-CuraEngine.exe
           path: dist/UltiMaker-Cura/CuraEngine.exe
           retention-days: 5
+          if-no-files-found: error
 
       - name: Clean local cache
         if: ${{ always() && startsWith(inputs.operating_system, 'self-hosted') }}

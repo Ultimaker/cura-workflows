@@ -7,39 +7,39 @@ on:
         required: false
         default: ''
         type: string
-
       branch:
         required: false
         default: ''
         type: string
-
       version:
         required: true
         type: string
-
       user:
         required: false
         default: ''
         type: string
-
       channel:
         required: false
         default: ''
         type: string
-
       private_data:
         required: false
         default: false
         type: boolean
-
       conan_extra_args:
         required: false
         default: ""
         type: string
-
       conan_recipe_root:
         required: false
         default: "."
+        type: string
+      cura_workflows_ref:
+        required: false
+        default: main
+        type: string
+      provenance_instance:
+        required: true
         type: string
 
 permissions:
@@ -49,26 +49,103 @@ jobs:
   package-export:
     name: Upload package recipe
     runs-on: ubuntu-latest
-
     steps:
-      - name: Setup the build environment
-        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@main
+      - name: Clean workspace
+        shell: bash
+        run: find "${GITHUB_WORKSPACE:?}" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+
+      - name: Checkout pinned workflow actions
+        uses: actions/checkout@v6
         with:
+          repository: Ultimaker/Cura-workflows
+          ref: ${{ inputs.cura_workflows_ref }}
+          path: _cura_workflows_action
+
+      - name: Capture action revision
+        id: action-revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          requested='${{ inputs.cura_workflows_ref }}'
+          resolved=$(git -C _cura_workflows_action rev-parse HEAD)
+          echo "requested=$requested"
+          echo "resolved=$resolved"
+          echo "sha=$resolved" >> "$GITHUB_OUTPUT"
+          if [[ "$requested" =~ ^[0-9a-fA-F]{40}$ ]] && [[ "${resolved,,}" != "${requested,,}" ]]; then exit 1; fi
+
+      - name: Setup the build environment
+        uses: ./_cura_workflows_action/.github/actions/setup-build-environment
+        with:
+          cleanup_workspace: false
+          cura_workflows_branch: ${{ inputs.cura_workflows_ref }}
           repository: ${{ inputs.repository }}
           branch: ${{ inputs.branch }}
+          repository_path: _package_sources
           conan_user: ${{ secrets.CONAN_USER }}
           conan_password: ${{ secrets.CONAN_PASS }}
           private_data: ${{ inputs.private_data }}
 
+      - name: Verify setup provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          requested='${{ inputs.cura_workflows_ref }}'
+          action_sha=$(git -C _cura_workflows_action rev-parse HEAD)
+          helper_sha=$(git -C Cura-workflows rev-parse HEAD)
+          workflow_sha='${{ job.workflow_sha }}'
+          workflow_ref='${{ job.workflow_ref }}'
+          [[ "$action_sha" == '${{ steps.action-revision.outputs.sha }}' ]]
+          if [[ "$requested" =~ ^[0-9a-fA-F]{40}$ ]]; then
+            [[ "${action_sha,,}" == "${requested,,}" ]]
+            [[ "${helper_sha,,}" == "${requested,,}" ]]
+            python _cura_workflows_action/runner_scripts/workflow_provenance.py verify-invocation \
+              --workflow-ref "$workflow_ref" --workflow-sha "$workflow_sha" \
+              --requested-ref "$requested" --component-path .github/workflows/conan-recipe-export.yml
+          fi
+          {
+            echo "| instance | component_path | requested_ref | resolved_sha | status |"
+            echo "|---|---|---|---|---|"
+            echo "| ${{ inputs.provenance_instance }}/workflow | .github/workflows/conan-recipe-export.yml | $requested | $workflow_sha | PASS |"
+            echo "| ${{ inputs.provenance_instance }}/setup-action | .github/actions/setup-build-environment/action.yml | $requested | $action_sha | PASS |"
+            echo "| ${{ inputs.provenance_instance }}/setup-helper-checkout | Cura-workflows | $requested | $helper_sha | PASS |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Export the Package to local cache
         id: export-local-cache
+        shell: bash
         run: |
-          conan export ${{ inputs.conan_recipe_root }} --version ${{ inputs.version }} --user "${{ inputs.user }}" --channel "${{ inputs.channel }}" ${{ inputs.conan_extra_args }} -f json > export_output.json
-          PACKAGE_REFERENCE=$(cat export_output.json | jq -r '.reference')
-          echo "package_reference=$PACKAGE_REFERENCE" >> $GITHUB_OUTPUT
+          conan export "_package_sources/${{ inputs.conan_recipe_root }}" --version ${{ inputs.version }} --user "${{ inputs.user }}" --channel "${{ inputs.channel }}" ${{ inputs.conan_extra_args }} -f json > export_output.json
+          PACKAGE_REFERENCE=$(jq -r '.reference' export_output.json)
+          echo "package_reference=$PACKAGE_REFERENCE" >> "$GITHUB_OUTPUT"
+
+      - name: Verify upload action revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          requested='${{ inputs.cura_workflows_ref }}'
+          resolved=$(git -C _cura_workflows_action rev-parse HEAD)
+          [[ "$resolved" == '${{ steps.action-revision.outputs.sha }}' ]]
+          if [[ "$requested" =~ ^[0-9a-fA-F]{40}$ ]]; then [[ "${resolved,,}" == "${requested,,}" ]]; fi
+          echo "| ${{ inputs.provenance_instance }}/upload-action | .github/actions/upload-conan-package/action.yml | $requested | $resolved | PASS |" >> "$GITHUB_STEP_SUMMARY"
+          helper_sha=$(git -C Cura-workflows rev-parse HEAD)
+          workflow_sha='${{ job.workflow_sha }}'
+          python _cura_workflows_action/runner_scripts/workflow_provenance.py create \
+            --output "provenance/${{ inputs.provenance_instance }}.json" --requested-ref "$requested" \
+            --row "${{ inputs.provenance_instance }}/workflow|.github/workflows/conan-recipe-export.yml|$workflow_sha" \
+            --row "${{ inputs.provenance_instance }}/setup-action|.github/actions/setup-build-environment/action.yml|$resolved" \
+            --row "${{ inputs.provenance_instance }}/setup-helper-checkout|Cura-workflows|$helper_sha" \
+            --row "${{ inputs.provenance_instance }}/upload-action|.github/actions/upload-conan-package/action.yml|$resolved"
 
       - name: Upload the Recipe
-        uses: ultimaker/cura-workflows/.github/actions/upload-conan-package@main
+        uses: ./_cura_workflows_action/.github/actions/upload-conan-package
         with:
           package_name: ${{ steps.export-local-cache.outputs.package_reference }}
           private_data: ${{ inputs.private_data }}
+
+      - name: Upload recipe-export provenance
+        uses: actions/upload-artifact@v7
+        with:
+          name: package-provenance-${{ inputs.provenance_instance }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: provenance/${{ inputs.provenance_instance }}.json
+          retention-days: 1
+          if-no-files-found: error

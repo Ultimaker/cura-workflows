@@ -59,16 +59,30 @@ inputs:
     default: false
     type: boolean
 
+  cleanup_workspace:
+    required: false
+    default: true
+    type: boolean
+
 outputs:
   package_name:
     value: ${{ steps.setup-environment.outputs.package_name }}
   package_version:
     value: ${{ steps.setup-environment.outputs.package_version }}
+  python-path:
+    value: ${{ steps.python-identity.outputs.python-path }}
+  python-base-prefix:
+    value: ${{ steps.python-identity.outputs.python-base-prefix }}
+  python-version:
+    value: ${{ steps.python-identity.outputs.python-version }}
+  python-machine:
+    value: ${{ steps.python-identity.outputs.python-machine }}
 
 runs:
   using: "composite"
   steps:
     - name: Cleanup workspace
+      if: ${{ inputs.cleanup_workspace == 'true' }}
       shell: bash
       run: |
         set -e
@@ -87,6 +101,19 @@ runs:
         repository: Ultimaker/Cura-workflows
         path: Cura-workflows
         ref: ${{ inputs.cura_workflows_branch }}
+
+    - name: Verify Cura-workflows checkout
+      shell: bash
+      run: |
+        set -euo pipefail
+        requested='${{ inputs.cura_workflows_branch }}'
+        resolved=$(git -C Cura-workflows rev-parse HEAD)
+        echo "Requested Cura-workflows ref: $requested"
+        echo "Resolved Cura-workflows SHA: $resolved"
+        if [[ "$requested" =~ ^[0-9a-fA-F]{40}$ ]] && [[ "${resolved,,}" != "${requested,,}" ]]; then
+          echo "Cura-workflows checkout mismatch: requested $requested, resolved $resolved" >&2
+          exit 1
+        fi
 
     - name: Install system dependencies
       shell: bash
@@ -118,20 +145,40 @@ runs:
         update-environment: ${{ inputs.python_set_env_vars }}
         python-version: '3.13'
 
-    - name: Setup Python (Windows ARM64 self-hosted)
+    - name: Setup Python (Windows ARM64)
       id: setup-python-win-arm
       if: ${{ runner.arch == 'ARM64' && runner.os == 'Windows' }}
       shell: powershell
       run: |
-        # Python must already be installed on this self-hosted runner.
-        # Run runner_scripts/windows_arm_setup.ps1 once to set it up.
         $pyExe = (Get-Command python.exe -ErrorAction Stop).Source
         $arch = & $pyExe -c "import platform; print(platform.machine())"
-        if ($arch -notmatch "ARM64") {
+        if ($arch -ne "ARM64") {
             throw "python.exe in PATH is $arch, not ARM64. Check runner setup."
         }
         Write-Host "Using ARM64 Python at: $pyExe"
         echo "python-path=$pyExe" >> $env:GITHUB_OUTPUT
+
+    - name: Record Python identity
+      id: python-identity
+      shell: bash
+      run: |
+        set -euo pipefail
+        if [[ "$RUNNER_ARCH" == "ARM64" && "$RUNNER_OS" == "Windows" ]]; then
+          python_exe='${{ steps.setup-python-win-arm.outputs.python-path }}'
+        else
+          python_exe='${{ steps.setup-python.outputs.python-path }}'
+        fi
+        python_base_prefix=$("$python_exe" -c "import sys; print(sys.base_prefix)")
+        python_version=$("$python_exe" -c "import platform; print(platform.python_version())")
+        python_machine=$("$python_exe" -c "import platform; print(platform.machine())")
+        echo "python-path=$python_exe" >> "$GITHUB_OUTPUT"
+        echo "python-base-prefix=$python_base_prefix" >> "$GITHUB_OUTPUT"
+        echo "python-version=$python_version" >> "$GITHUB_OUTPUT"
+        echo "python-machine=$python_machine" >> "$GITHUB_OUTPUT"
+        if [[ "$RUNNER_ARCH" == "ARM64" && "$RUNNER_OS" == "Windows" && "$python_machine" != "ARM64" ]]; then
+          echo "Native ARM64 Python is required, got $python_machine" >&2
+          exit 1
+        fi
 
     - name: Install Python requirements and setup Conan environment (Bash)
       id: setup-environment

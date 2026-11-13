@@ -5,168 +5,803 @@ on:
   workflow_call:
     inputs:
       cura_conan_version:
-        description: 'Cura Conan Version'
         default: ''
         required: false
         type: string
-
       package_overrides:
-        description: 'List of specific packages to be used (space-separated)'
         default: ''
         required: false
         type: string
-
       conan_args:
-        description: 'Conan args'
         default: ''
         required: false
         type: string
-
       enterprise:
-        description: 'Build Cura as an Enterprise edition'
         default: false
         required: true
         type: boolean
-
       staging:
-        description: 'Use staging API'
         default: false
         required: true
         type: boolean
-
       operating_system:
-        description: 'OS'
         required: true
-        default: 'self-hosted-Windows-ARM64'
+        default: self-hosted-Windows-ARM64
         type: string
-
+      signing_operating_system:
+        required: false
+        default: self-hosted-Windows-X64
+        type: string
       private_data:
         required: false
         default: false
         type: boolean
+      cura_workflows_ref:
+        required: false
+        default: main
+        type: string
+      package_workflow_run_id:
+        required: false
+        default: ''
+        type: string
+      package_workflow_run_attempt:
+        required: false
+        default: ''
+        type: string
 
 permissions:
+  actions: read
   contents: read
 
 env:
-  WIN_CERT_INSTALLER_CER: ${{ secrets.WIN_CERT_INSTALLER_CER }}
-  WIN_CERT_INSTALLER_CER_PASS: ${{ secrets.WIN_CERT_INSTALLER_CER_PASS }}
   SENTRY_TOKEN: ${{ secrets.CURAENGINE_SENTRY_TOKEN }}
 
-
 jobs:
-  cura-installer-create:
-    name: Build Windows ARM64 installers
+  build-arm-payload:
+    name: Build unsigned Windows Arm64 payload
     runs-on: ${{ inputs.operating_system }}
-
+    outputs:
+      artifact-name: ${{ steps.artifact-name.outputs.name }}
+      artifact-id: ${{ steps.upload-unsigned.outputs.artifact-id }}
+      artifact-digest: ${{ steps.upload-unsigned.outputs.artifact-digest }}
+      contract-sha256: ${{ steps.contract-sha.outputs.sha256 }}
     steps:
+      - name: Clean workspace
+        shell: pwsh
+        run: Get-ChildItem -LiteralPath $env:GITHUB_WORKSPACE -Force | Remove-Item -Recurse -Force
+
+      - name: Require native Windows Arm64 host
+        shell: pwsh
+        run: |
+          if ('${{ runner.os }}' -ne 'Windows') { throw 'runner.os must be Windows' }
+          if ('${{ runner.arch }}' -ne 'ARM64') { throw 'runner.arch must be ARM64' }
+          if ($env:PROCESSOR_ARCHITECTURE -ne 'ARM64') { throw 'PROCESSOR_ARCHITECTURE must be ARM64' }
+          $pythonExe = (Get-Command python.exe -ErrorAction Stop).Source
+          $pythonMachine = & $pythonExe -c "import platform; print(platform.machine())"
+          if ($pythonMachine -ne 'ARM64') { throw "Native ARM64 Python required, got $pythonMachine" }
+          "runner.os=${{ runner.os }}`nrunner.arch=${{ runner.arch }}`nPROCESSOR_ARCHITECTURE=$env:PROCESSOR_ARCHITECTURE`npython.executable=$pythonExe`npython.machine=$pythonMachine" |
+            Out-File -Append -FilePath $env:GITHUB_STEP_SUMMARY
+
+      - name: Checkout pinned workflow tools
+        uses: actions/checkout@v6
+        with:
+          repository: Ultimaker/Cura-workflows
+          ref: ${{ inputs.cura_workflows_ref }}
+          path: _cura_workflows_action
+
+      - name: Capture workflow tool revision
+        id: workflow-revision
+        shell: pwsh
+        run: |
+          $requested = '${{ inputs.cura_workflows_ref }}'
+          $resolved = (git -C _cura_workflows_action rev-parse HEAD).Trim()
+          Write-Host "Requested Cura-workflows ref: $requested"
+          Write-Host "Resolved Cura-workflows SHA: $resolved"
+          if ($requested -match '^[0-9a-fA-F]{40}$' -and $resolved -ine $requested) { throw 'Cura-workflows SHA mismatch' }
+          if ([string]::IsNullOrWhiteSpace('${{ inputs.package_workflow_run_id }}') -ne [string]::IsNullOrWhiteSpace('${{ inputs.package_workflow_run_attempt }}')) {
+            throw 'Package workflow run ID and attempt must be supplied together'
+          }
+          "sha=$resolved" >> $env:GITHUB_OUTPUT
+
       - name: Setup the build environment
         id: setup-environment
-        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@main
+        uses: ./_cura_workflows_action/.github/actions/setup-build-environment
         with:
+          cleanup_workspace: false
+          cura_workflows_branch: ${{ inputs.cura_workflows_ref }}
           conan_user: ${{ secrets.CONAN_USER }}
           conan_password: ${{ secrets.CONAN_PASS }}
           private_data: ${{ inputs.private_data }}
           install_system_dependencies: true
-          repository_path: _cura_sources # we don't want the actual sources to interfere with the built conan package
+          repository_path: _cura_sources
           python_set_env_vars: false
 
-      - name: Set packages overrides
+      - name: Download validated package provenance
+        if: ${{ inputs.package_workflow_run_id != '' }}
+        uses: actions/download-artifact@v8
+        with:
+          name: validated-package-provenance-${{ inputs.package_workflow_run_id }}-${{ inputs.package_workflow_run_attempt }}
+          path: package-proof
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.package_workflow_run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Verify setup and action provenance
+        shell: pwsh
+        run: |
+          $requested = '${{ inputs.cura_workflows_ref }}'
+          $actionSha = (git -C _cura_workflows_action rev-parse HEAD).Trim()
+          $helperSha = (git -C Cura-workflows rev-parse HEAD).Trim()
+          $workflowSha = '${{ job.workflow_sha }}'
+          $workflowRef = '${{ job.workflow_ref }}'
+          if ($actionSha -ne '${{ steps.workflow-revision.outputs.sha }}') { throw 'Action checkout changed' }
+          if ($requested -match '^[0-9a-fA-F]{40}$') {
+            if ($actionSha -ine $requested -or $helperSha -ine $requested) { throw 'Pinned setup provenance mismatch' }
+            python _cura_workflows_action\runner_scripts\workflow_provenance.py verify-invocation `
+              --workflow-ref $workflowRef --workflow-sha $workflowSha --requested-ref $requested `
+              --component-path .github/workflows/cura-installer-windows-arm.yml
+            if ($LASTEXITCODE -ne 0) { throw 'Reusable installer invocation provenance mismatch' }
+          }
+          @"
+          | instance | component_path | requested_ref | resolved_sha | status |
+          |---|---|---|---|---|
+          | cura-installer-windows-arm/workflow | .github/workflows/cura-installer-windows-arm.yml | $requested | $workflowSha | PASS |
+          | cura-installer-windows-arm/build/setup-action | .github/actions/setup-build-environment/action.yml | $requested | $actionSha | PASS |
+          | cura-installer-windows-arm/build/setup-helper-checkout | Cura-workflows | $requested | $helperSha | PASS |
+          "@ | Out-File -Append -FilePath $env:GITHUB_STEP_SUMMARY
+          foreach ($file in @(
+            '.github\workflows\cura-installer-windows-arm.yml',
+            '.github\actions\setup-build-environment\action.yml',
+            '.github\actions\set-package-overrides\action.yml',
+            'runner_scripts\windows_arm_artifact_contract.py')) {
+            $hash = (Get-FileHash -Algorithm SHA256 (Join-Path '_cura_workflows_action' $file)).Hash.ToLowerInvariant()
+            "$file $hash" | Out-File -Append -FilePath $env:GITHUB_STEP_SUMMARY
+          }
+          New-Item -ItemType Directory -Force -Path metadata | Out-Null
+          if ('${{ inputs.package_workflow_run_id }}') {
+            if ($requested -notmatch '^[0-9a-fA-F]{40}$') {
+              throw 'package_workflow_run_id requires cura_workflows_ref to be an exact 40-hex SHA'
+            }
+            python _cura_workflows_action\runner_scripts\workflow_provenance.py validate-callers `
+              --repository _cura_sources --validation-sha '${{ github.sha }}' `
+              --workflow-sha $requested --output metadata\source-chain.json
+            if ($LASTEXITCODE -ne 0) { throw 'Installer validation callers are not one immutable C/V/W chain' }
+            python _cura_workflows_action\runner_scripts\workflow_provenance.py validate-package-chain `
+              --chain package-proof\package-chain.json --source-chain metadata\source-chain.json `
+              --package-reference '${{ inputs.cura_conan_version }}' `
+              --run-id '${{ inputs.package_workflow_run_id }}' `
+              --run-attempt '${{ inputs.package_workflow_run_attempt }}' `
+              --summary $env:GITHUB_STEP_SUMMARY
+            if ($LASTEXITCODE -ne 0) { throw 'Installer inputs do not match validated package provenance' }
+            Copy-Item -LiteralPath package-proof\package-chain.json -Destination metadata\package-provenance.json
+          } else {
+            '{"status":"NOT_REQUESTED"}' | Set-Content -Encoding utf8NoBOM metadata\package-provenance.json
+          }
+
+      - name: Set package overrides
         id: set-overrides
-        uses: ultimaker/cura-workflows/.github/actions/set-package-overrides@main
+        uses: ./_cura_workflows_action/.github/actions/set-package-overrides
         with:
           package_overrides: ${{ inputs.package_overrides }}
           profile: installer.jinja
 
-      - name: Gather/build the packages
+      - name: Record override action provenance
+        shell: pwsh
         run: |
-            $pydir = type pydir.txt
-            $env:PATH += ";$pydir;$pydir/Scripts"
-            conan install --requires "${{ inputs.cura_conan_version != '' && inputs.cura_conan_version || format('cura/{0}@ultimaker/testing', steps.setup-environment.outputs.package_version) }}" ${{ inputs.conan_args }} --build=missing --update -of cura_inst --deployer-package="*" --profile ${{ steps.set-overrides.outputs.profile }} -c user.sentry:token="${{ secrets.CURAENGINE_SENTRY_TOKEN }}" ${{ inputs.enterprise && '-o "cura/*:enterprise=True"' || '' }} ${{ inputs.staging && '-o "cura/*:staging=True"' || '' }} ${{ inputs.private_data && '-o "cura/*:internal=True"' || '' }}
+          $requested = '${{ inputs.cura_workflows_ref }}'
+          $resolved = (git -C _cura_workflows_action rev-parse HEAD).Trim()
+          if ($resolved -ne '${{ steps.workflow-revision.outputs.sha }}') { throw 'Override action checkout changed' }
+          "| cura-installer-windows-arm/build/set-package-overrides-action | .github/actions/set-package-overrides/action.yml | $requested | $resolved | PASS |" |
+            Out-File -Append -FilePath $env:GITHUB_STEP_SUMMARY
 
-      - name: Create the Cura distribution with pyinstaller
+      - name: Gather or build packages
+        shell: pwsh
+        run: |
+          $pydir = Get-Content pydir.txt
+          $env:PATH += ";$pydir;$pydir\Scripts"
+          conan install --requires "${{ inputs.cura_conan_version != '' && inputs.cura_conan_version || format('cura/{0}@ultimaker/testing', steps.setup-environment.outputs.package_version) }}" ${{ inputs.conan_args }} --build=missing --update -of cura_inst --deployer-package="*" --profile "${{ steps.set-overrides.outputs.profile }}" -c user.sentry:token="${{ secrets.CURAENGINE_SENTRY_TOKEN }}" ${{ inputs.enterprise && '-o "cura/*:enterprise=True"' || '' }} ${{ inputs.staging && '-o "cura/*:staging=True"' || '' }} ${{ inputs.private_data && '-o "cura/*:internal=True"' || '' }}
+          if ($LASTEXITCODE -ne 0) { throw "conan install failed: $LASTEXITCODE" }
+
+      - name: Create Cura distribution with PyInstaller
         id: prepare-distribution
         shell: cmd
         run: |
-            call cura_inst\conanrun.bat
+          call cura_inst\conanrun.bat
+          python -m venv cura_installer_venv
+          call cura_installer_venv\Scripts\Activate.bat
+          python -m pip install -r cura_inst\packaging\pip_requirements_core_basic.txt --no-warn-script-location
+          python -m pip install -r cura_inst\packaging\pip_requirements_core_hashes.txt --no-warn-script-location
+          python -m pip install -r cura_inst\packaging\pip_requirements_installer_basic.txt --no-warn-script-location
+          python Cura-workflows\runner_scripts\prepare_installer.py --os Windows --architecture ARM64 ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }} --summary-output %GITHUB_STEP_SUMMARY% --variables-output %GITHUB_OUTPUT%
+          pyinstaller cura_inst\UltiMaker-Cura.spec
 
-            python -m venv cura_installer_venv
-            call cura_installer_venv\Scripts\Activate.bat
-
-            python -m pip install -r cura_inst\packaging\pip_requirements_core_basic.txt --no-warn-script-location
-            python -m pip install -r cura_inst\packaging\pip_requirements_core_hashes.txt --no-warn-script-location
-            python -m pip install -r cura_inst\packaging\pip_requirements_installer_basic.txt --no-warn-script-location
-
-            python Cura-workflows\runner_scripts\prepare_installer.py --os ${{ runner.os }} --architecture ARM64 ${{ inputs.enterprise && '--enterprise' || '' }} ${{ inputs.private_data && '--internal' || '' }} --summary-output %GITHUB_STEP_SUMMARY% --variables-output %GITHUB_OUTPUT%
-
-            pyinstaller cura_inst\UltiMaker-Cura.spec
-
-      - name: Workaround (need exact version of msvc redistributables)
+      - name: Add native Arm64 runtimes and record metadata
+        shell: pwsh
         run: |
-          $MSDIR="C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Redist/MSVC"
-          if ( (dir -Exclude "v*" $MSDIR).Count -ne 1 ) { throw "(!!!) MULTIPLE MSVC VERSIONS IN '$MSDIR' -- NEED EXACTLY 1 TO SELECT A REDISTRIBUTABLE (!!!)" }
-          $MSDIR_R=(dir -Exclude "v*" $MSDIR)[0].FullName
-          $MSDIR_DLLS=(dir $MSDIR_R/x64/Microsoft.VC*.CRT)[0].FullName
-          copy $MSDIR_DLLS/concrt140.dll dist/UltiMaker-Cura/.
-          copy $MSDIR_DLLS/msvcp140.dll dist/UltiMaker-Cura/.
-          copy $MSDIR_DLLS/msvcp140_1.dll dist/UltiMaker-Cura/.
-          copy $MSDIR_DLLS/msvcp140_2.dll dist/UltiMaker-Cura/.
-          copy $MSDIR_DLLS/vcruntime140.dll dist/UltiMaker-Cura/.
-          copy $MSDIR_DLLS/vcruntime140_1.dll dist/UltiMaker-Cura/.
+          $ErrorActionPreference = 'Stop'
+          $validator = Resolve-Path '_cura_sources\packaging\windows\validate_pe_architecture.py'
+          $destination = Resolve-Path 'dist\UltiMaker-Cura'
+          $vswhere = (Get-Command vswhere.exe -ErrorAction Stop).Source
+          $installations = @(& $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Redist.14.Latest -property installationPath | Where-Object { $_ })
+          if ($installations.Count -ne 1) { throw "Expected one Visual Studio installation, got $($installations.Count)" }
+          $vs = $installations[0]
+          $redistRoot = Join-Path $vs 'VC\Redist\MSVC'
+          $versions = @(Get-ChildItem -LiteralPath $redistRoot -Directory | Where-Object { $_.Name -notlike 'v*' } | Sort-Object { [version]$_.Name } -Descending)
+          if ($versions.Count -lt 1) { throw 'No versioned MSVC redistributable directory found' }
+          $redist = $versions[0]
+          $crtDirectories = @(Get-ChildItem -LiteralPath (Join-Path $redist.FullName 'arm64') -Directory -Filter 'Microsoft.VC*.CRT')
+          if ($crtDirectories.Count -ne 1) { throw "Expected one Arm64 CRT directory, got $($crtDirectories.Count)" }
+          $crtDirectory = $crtDirectories[0].FullName
+          $crtRecords = @()
+          foreach ($name in @('concrt140.dll','msvcp140.dll','msvcp140_1.dll','msvcp140_2.dll','vcruntime140.dll','vcruntime140_1.dll')) {
+            $source = Join-Path $crtDirectory $name
+            if (!(Test-Path -LiteralPath $source -PathType Leaf) -or (Get-Item $source).Length -eq 0) { throw "Missing CRT: $source" }
+            & python $validator $source --architecture arm64
+            if ($LASTEXITCODE -ne 0) { throw "CRT is not Arm64: $source" }
+            $target = Join-Path $destination $name
+            Copy-Item -LiteralPath $source -Destination $target -Force
+            $sourceHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $source).Hash.ToLowerInvariant()
+            $targetHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $target).Hash.ToLowerInvariant()
+            if ($sourceHash -ne $targetHash) { throw "CRT hash mismatch: $name" }
+            $crtRecords += [ordered]@{ name=$name; source_path=$source; size=(Get-Item $source).Length; sha256=$sourceHash; machine='0xAA64' }
+          }
 
-      - name: Workaround (some libs linking against python3 instead of python312)
+          $pythonExe = (Get-Command python.exe -ErrorAction Stop).Source
+          $pythonBase = (& $pythonExe -c "import sys; print(sys.base_prefix)").Trim()
+          $pythonVersion = (& $pythonExe -c "import platform; print(platform.python_version())").Trim()
+          $pythonMachine = (& $pythonExe -c "import platform; print(platform.machine())").Trim()
+          if ($pythonMachine -ne 'ARM64') { throw "Python is not Arm64: $pythonMachine" }
+          $python3Dll = Join-Path $pythonBase 'python3.dll'
+          if (!(Test-Path -LiteralPath $python3Dll -PathType Leaf) -or (Get-Item $python3Dll).Length -eq 0) { throw "Native python3.dll is unavailable: $python3Dll" }
+          $dllVersion = (Get-Item $python3Dll).VersionInfo
+          $interpreterMajorMinor = (& $pythonExe -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')").Trim()
+          if ("$($dllVersion.FileMajorPart).$($dllVersion.FileMinorPart)" -ne $interpreterMajorMinor) { throw 'python3.dll version does not match Python' }
+          & $pythonExe $validator $python3Dll --architecture arm64
+          if ($LASTEXITCODE -ne 0) { throw 'python3.dll is not Arm64' }
+          $pythonTarget = Join-Path $destination 'python3.dll'
+          Copy-Item -LiteralPath $python3Dll -Destination $pythonTarget -Force
+          $pythonHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $python3Dll).Hash.ToLowerInvariant()
+          if ((Get-FileHash -Algorithm SHA256 -LiteralPath $pythonTarget).Hash.ToLowerInvariant() -ne $pythonHash) { throw 'python3.dll hash mismatch' }
+
+          $sourceSha = (git -C _cura_sources rev-parse HEAD).Trim()
+          if ($sourceSha -ne '${{ github.sha }}') { throw "Cura source SHA $sourceSha does not match caller SHA ${{ github.sha }}" }
+          $implementationSha = $sourceSha
+          $validationProof = [ordered]@{ status='NOT_REQUESTED' }
+          if (Test-Path -LiteralPath metadata\source-chain.json) {
+            $validationProof = Get-Content -Raw metadata\source-chain.json | ConvertFrom-Json
+            $implementationSha = [string]$validationProof.C
+            if ([string]$validationProof.V -ine $sourceSha -or [string]$validationProof.W -ine '${{ steps.workflow-revision.outputs.sha }}') {
+              throw 'Validated source chain changed before metadata creation'
+            }
+          }
+          $metadata = [ordered]@{
+            architecture='ARM64'
+            expected_machine='0xAA64'
+            installer_filename='${{ steps.prepare-distribution.outputs.INSTALLER_FILENAME }}'
+            cura_version_full='${{ steps.prepare-distribution.outputs.CURA_VERSION_FULL }}'
+            cura_app_name='${{ steps.prepare-distribution.outputs.CURA_APP_NAME }}'
+            cura_conan_reference="${{ inputs.cura_conan_version != '' && inputs.cura_conan_version || format('cura/{0}@ultimaker/testing', steps.setup-environment.outputs.package_version) }}"
+            caller_repository='${{ github.repository }}'
+            caller_sha='${{ github.sha }}'
+            cura_source_sha=$sourceSha
+            cura_implementation_sha=$implementationSha
+            cura_workflows_ref='${{ inputs.cura_workflows_ref }}'
+            cura_workflows_sha='${{ steps.workflow-revision.outputs.sha }}'
+            workflow_ref='${{ github.workflow_ref }}'
+            run_id='${{ github.run_id }}'
+            run_attempt='${{ github.run_attempt }}'
+            runner=[ordered]@{ os='${{ runner.os }}'; arch='${{ runner.arch }}' }
+            PROCESSOR_ARCHITECTURE=$env:PROCESSOR_ARCHITECTURE
+            python=[ordered]@{ executable=$pythonExe; base_prefix=$pythonBase; version=$pythonVersion; machine=$pythonMachine }
+            python3_dll=[ordered]@{ source_path=$python3Dll; version=$dllVersion.FileVersion; size=(Get-Item $python3Dll).Length; sha256=$pythonHash; machine='0xAA64' }
+            vs=[ordered]@{ installation_path=$vs; redist_version=$redist.Name; crt_directory=$crtDirectory }
+            crt=$crtRecords
+            validation_proof=$validationProof
+          }
+          if ($validationProof.status -ne 'NOT_REQUESTED') {
+            "C=$($validationProof.C)`nV=$($validationProof.V)`nW=$($validationProof.W)" |
+              Out-File -Append -FilePath $env:GITHUB_STEP_SUMMARY
+          } else {
+            'validation_proof=NOT_REQUESTED' | Out-File -Append -FilePath $env:GITHUB_STEP_SUMMARY
+          }
+          $metadata | ConvertTo-Json -Depth 8 | Set-Content -Encoding utf8NoBOM metadata\build-metadata.json
+
+      - name: Remove blacklisted packages
+        shell: pwsh
         run: |
-          copy Cura-workflows/python_dll_workaround/* dist/UltiMaker-Cura/.
+          $pydir = Get-Content pydir.txt
+          $env:PATH += ";$pydir;$pydir\Scripts"
+          python Cura-workflows\runner_scripts\cleanup_distribution.py dist\UltiMaker-Cura --conandata _cura_sources\conandata.yml --os Windows
+          if ($LASTEXITCODE -ne 0) { throw 'Distribution cleanup failed' }
 
-      - name: Remove unused packages in blacklist from "Cura/conandata.yml"
+      - name: Validate complete Arm64 payload
+        shell: pwsh
         run: |
-          $pydir = type pydir.txt
-          $env:PATH += ";$pydir;$pydir/Scripts"
-          python Cura-workflows/runner_scripts/cleanup_distribution.py dist\UltiMaker-Cura --conandata _cura_sources\conandata.yml --os Windows
+          python _cura_sources\packaging\windows\validate_pe_architecture.py dist\UltiMaker-Cura --architecture arm64 `
+            --require python3.dll --require concrt140.dll --require msvcp140.dll --require msvcp140_1.dll `
+            --require msvcp140_2.dll --require vcruntime140.dll --require vcruntime140_1.dll `
+            --require UltiMaker-Cura.exe --require CuraEngine.exe --manifest-out metadata\unsigned-pe.json
+          if ($LASTEXITCODE -ne 0) { throw 'Arm64 payload validation failed' }
 
-      - name: Create the Windows exe installer (Powershell)
+      - name: Stage and verify unsigned artifact contract
+        shell: pwsh
         run: |
-          $pydir = type ../pydir.txt
-          $env:PATH += ";$pydir;$pydir/Scripts"
-          python ..\cura_inst\packaging\NSIS\create_windows_installer.py --source_path ../cura_inst --dist_path . --filename "${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.exe" --version "${{ steps.prepare-distribution.outputs.CURA_VERSION_FULL }}"
-        working-directory: dist
+          New-Item -ItemType Directory -Force -Path unsigned\payload,unsigned\packaging,unsigned\metadata | Out-Null
+          Copy-Item -Recurse -LiteralPath dist\UltiMaker-Cura -Destination unsigned\payload\UltiMaker-Cura
+          Copy-Item -Recurse -Path cura_inst\packaging\* -Destination unsigned\packaging
+          Copy-Item -LiteralPath metadata\unsigned-pe.json,metadata\package-provenance.json -Destination unsigned\metadata
+          python _cura_workflows_action\runner_scripts\windows_arm_artifact_contract.py create --root unsigned --metadata metadata\build-metadata.json --output unsigned\metadata\build-contract.json --include payload --include packaging --include metadata\unsigned-pe.json --include metadata\package-provenance.json
+          if ($LASTEXITCODE -ne 0) { throw 'Contract creation failed' }
+          python _cura_workflows_action\runner_scripts\windows_arm_artifact_contract.py verify --root unsigned --contract unsigned\metadata\build-contract.json
+          if ($LASTEXITCODE -ne 0) { throw 'Contract verification failed' }
+          $empty = @(Get-ChildItem -LiteralPath unsigned -Recurse -File | Where-Object Length -eq 0)
+          if ($empty.Count) { throw "Empty staged files: $($empty.FullName -join ', ')" }
 
-      - name: Upload the installer exe
-        if: ${{ always() }}
+      - name: Record contract SHA-256
+        id: contract-sha
+        shell: pwsh
+        run: |
+          $sha = (Get-FileHash -Algorithm SHA256 unsigned\metadata\build-contract.json).Hash.ToLowerInvariant()
+          "sha256=$sha" >> $env:GITHUB_OUTPUT
+          "build-contract.sha256=$sha" >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Set unsigned artifact name
+        id: artifact-name
+        shell: pwsh
+        run: '"name=windows-arm64-unsigned-${{ github.run_id }}-${{ github.run_attempt }}" >> $env:GITHUB_OUTPUT'
+
+      - name: Upload unsigned payload
+        id: upload-unsigned
         uses: actions/upload-artifact@v7
         with:
-          name: ${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}-exe
-          path: dist/${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.exe
-          retention-days: 5
+          name: ${{ steps.artifact-name.outputs.name }}
+          path: unsigned
+          retention-days: 1
+          if-no-files-found: error
 
-      - name: Create the Windows msi installer (Powershell)
+      - name: Record unsigned artifact evidence
+        shell: pwsh
+        run: |
+          @"
+          unsigned_artifact_name=${{ steps.artifact-name.outputs.name }}
+          unsigned_artifact_id=${{ steps.upload-unsigned.outputs.artifact-id }}
+          unsigned_artifact_digest=${{ steps.upload-unsigned.outputs.artifact-digest }}
+          build_contract_sha256=${{ steps.contract-sha.outputs.sha256 }}
+          "@ | Out-File -Append -FilePath $env:GITHUB_STEP_SUMMARY
+
+      - name: Smoke-build unsigned Arm64 MSI
+        shell: pwsh
+        working-directory: dist
         run: |
           $pydir = type ../pydir.txt
           $env:PATH += ";$pydir;$pydir/Scripts"
           python ..\cura_inst\packaging\msi\create_windows_msi.py --source_path ..\cura_inst --dist_path .\UltiMaker-Cura --filename "${{ steps.prepare-distribution.outputs.INSTALLER_FILENAME }}.msi" --name "${{ steps.prepare-distribution.outputs.CURA_APP_NAME }}" --version "${{ steps.prepare-distribution.outputs.CURA_VERSION_FULL }}" --arch arm64
-        working-directory: dist
 
-      - name: Upload the installer msi
-        if: ${{ always() }}
+      - name: Clean local Conan cache
+        if: ${{ always() && startsWith(inputs.operating_system, 'self-hosted') }}
+        shell: pwsh
+        run: |
+          $pydir = Get-Content pydir.txt
+          $env:PATH += ";$pydir;$pydir\Scripts"
+          conan remove '*' --lru=1w -c
+
+  sign-and-package:
+    name: Sign and package Windows Arm64
+    needs: build-arm-payload
+    runs-on: ${{ inputs.signing_operating_system }}
+    outputs:
+      installer-filename: ${{ steps.contract-metadata.outputs.installer_filename }}
+      signed-artifact-name: ${{ steps.signed-name.outputs.name }}
+      signed-contract-sha256: ${{ steps.signed-contract-sha.outputs.sha256 }}
+    steps:
+      - name: Clean workspace
+        shell: pwsh
+        run: Get-ChildItem -LiteralPath $env:GITHUB_WORKSPACE -Force | Remove-Item -Recurse -Force
+
+      - name: Checkout pinned workflow tools
+        uses: actions/checkout@v6
+        with:
+          repository: Ultimaker/Cura-workflows
+          ref: ${{ inputs.cura_workflows_ref }}
+          path: _cura_workflows_action
+
+      - name: Verify workflow tool revision
+        id: workflow-revision
+        shell: pwsh
+        run: |
+          $requested = '${{ inputs.cura_workflows_ref }}'
+          $resolved = (git -C _cura_workflows_action rev-parse HEAD).Trim()
+          $workflowSha = '${{ job.workflow_sha }}'
+          $workflowRef = '${{ job.workflow_ref }}'
+          if ($requested -match '^[0-9a-fA-F]{40}$') {
+            if ($resolved -ine $requested) { throw 'Cura-workflows SHA mismatch' }
+            python _cura_workflows_action\runner_scripts\workflow_provenance.py verify-invocation `
+              --workflow-ref $workflowRef --workflow-sha $workflowSha --requested-ref $requested `
+              --component-path .github/workflows/cura-installer-windows-arm.yml
+            if ($LASTEXITCODE -ne 0) { throw 'Reusable installer invocation provenance mismatch' }
+          }
+          "sha=$resolved" >> $env:GITHUB_OUTPUT
+          @"
+          | instance | component_path | requested_ref | resolved_sha | status |
+          |---|---|---|---|---|
+          | cura-installer-windows-arm/sign/workflow | .github/workflows/cura-installer-windows-arm.yml | $requested | $workflowSha | PASS |
+          | cura-installer-windows-arm/sign/workflow-tools | runner_scripts | $requested | $resolved | PASS |
+          "@ | Out-File -Append -FilePath $env:GITHUB_STEP_SUMMARY
+
+      - name: Download unsigned payload
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ needs.build-arm-payload.outputs.artifact-name }}
+          path: unsigned
+
+      - name: Verify unsigned contract and payload
+        shell: pwsh
+        run: |
+          $actual = (Get-FileHash -Algorithm SHA256 unsigned\metadata\build-contract.json).Hash.ToLowerInvariant()
+          if ($actual -ne '${{ needs.build-arm-payload.outputs.contract-sha256 }}') { throw 'Build contract SHA-256 mismatch' }
+          python _cura_workflows_action\runner_scripts\windows_arm_artifact_contract.py verify --root unsigned --contract unsigned\metadata\build-contract.json
+          if ($LASTEXITCODE -ne 0) { throw 'Unsigned contract verification failed' }
+          python unsigned\packaging\windows\validate_pe_architecture.py unsigned\payload\UltiMaker-Cura --architecture arm64 `
+            --require python3.dll --require concrt140.dll --require msvcp140.dll --require msvcp140_1.dll `
+            --require msvcp140_2.dll --require vcruntime140.dll --require vcruntime140_1.dll `
+            --require UltiMaker-Cura.exe --require CuraEngine.exe
+          if ($LASTEXITCODE -ne 0) { throw 'Unsigned payload architecture verification failed' }
+
+      - name: Read verified contract metadata
+        id: contract-metadata
+        shell: pwsh
+        run: |
+          $contract = Get-Content -Raw unsigned\metadata\build-contract.json | ConvertFrom-Json
+          $metadata = $contract.metadata
+          foreach ($name in @('installer_filename','cura_version_full','cura_app_name')) {
+            $value = [string]$metadata.$name
+            if ([string]::IsNullOrWhiteSpace($value) -or $value -match '[/\\]') { throw "Unsafe or empty $name" }
+            "$name=$value" >> $env:GITHUB_OUTPUT
+          }
+          if ($metadata.architecture -ne 'ARM64') { throw 'Contract architecture is not ARM64' }
+          if (-not ([string]$metadata.installer_filename).EndsWith('-win64-ARM64', [StringComparison]::OrdinalIgnoreCase)) { throw 'Unexpected Arm64 installer filename' }
+          if ([string]$metadata.cura_workflows_sha -ine '${{ steps.workflow-revision.outputs.sha }}') { throw 'Contract workflow SHA mismatch' }
+
+      - name: Create isolated packaging environment
+        shell: pwsh
+        run: |
+          python -m venv packaging-venv
+          .\packaging-venv\Scripts\python.exe -m pip install -r unsigned\packaging\pip_requirements_installer_basic.txt
+          .\packaging-venv\Scripts\python.exe -c "import jinja2, semver"
+
+      - name: Preflight signing and packaging tools
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tools = [ordered]@{}
+          $venvPython = Get-Item (Resolve-Path 'packaging-venv\Scripts\python.exe')
+          $tools['python.exe'] = [ordered]@{ path=$venvPython.FullName; version=$venvPython.VersionInfo.FileVersion }
+          Write-Host "python.exe => $($venvPython.FullName) ($($venvPython.VersionInfo.FileVersion))"
+          foreach ($name in @('makensis.exe','signtool.exe','heat.exe','candle.exe','light.exe')) {
+            $command = Get-Command $name -ErrorAction Stop
+            $item = Get-Item $command.Source
+            $tools[$name] = [ordered]@{ path=$item.FullName; version=$item.VersionInfo.FileVersion }
+            Write-Host "$name => $($item.FullName) ($($item.VersionInfo.FileVersion))"
+          }
+          $certificate = 'C:\actions-runner\code_sign.cer'
+          if (!(Test-Path -LiteralPath $certificate -PathType Leaf) -or (Get-Item $certificate).Length -eq 0) { throw 'Signing certificate is missing or empty' }
+          $providers = certutil -csplist
+          if ($LASTEXITCODE -ne 0 -or ($providers -join "`n") -notmatch 'eToken Base Cryptographic Provider') { throw 'eToken provider is unavailable' }
+          if ([string]::IsNullOrWhiteSpace('${{ secrets.WIN_TOKEN_CONTAINER }}')) { throw 'WIN_TOKEN_CONTAINER is empty' }
+          $null = New-Object -ComObject WindowsInstaller.Installer
+          $preflight = [ordered]@{
+            tools=$tools
+            certificate_sha256=(Get-FileHash -Algorithm SHA256 $certificate).Hash.ToLowerInvariant()
+            provider='eToken Base Cryptographic Provider'
+            windows_installer_com='PASS'
+          }
+          $preflight | ConvertTo-Json -Depth 6 | Set-Content -Encoding utf8NoBOM unsigned\metadata\tool-preflight.json
+
+      - name: Sign and verify CuraEngine.exe
+        working-directory: unsigned\payload\UltiMaker-Cura
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          & signtool sign /v /fd sha256 /tr http://timestamp.sectigo.com /td sha256 /f C:\actions-runner\code_sign.cer /csp "eToken Base Cryptographic Provider" /kc '${{ secrets.WIN_TOKEN_CONTAINER }}' CuraEngine.exe
+          if ($LASTEXITCODE -ne 0) { throw 'CuraEngine signing failed' }
+          & signtool verify /pa /all /v CuraEngine.exe
+          if ($LASTEXITCODE -ne 0) { throw 'CuraEngine signature verification failed' }
+
+      - name: Sign and verify UltiMaker-Cura.exe
+        working-directory: unsigned\payload\UltiMaker-Cura
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          & signtool sign /v /fd sha256 /tr http://timestamp.sectigo.com /td sha256 /f C:\actions-runner\code_sign.cer /csp "eToken Base Cryptographic Provider" /kc '${{ secrets.WIN_TOKEN_CONTAINER }}' UltiMaker-Cura.exe
+          if ($LASTEXITCODE -ne 0) { throw 'Cura signing failed' }
+          & signtool verify /pa /all /v UltiMaker-Cura.exe
+          if ($LASTEXITCODE -ne 0) { throw 'Cura signature verification failed' }
+
+      - name: Revalidate signed Arm64 payload
+        shell: pwsh
+        run: |
+          python unsigned\packaging\windows\validate_pe_architecture.py unsigned\payload\UltiMaker-Cura --architecture arm64
+          if ($LASTEXITCODE -ne 0) { throw 'Signed payload architecture verification failed' }
+
+      - name: Build non-empty Arm64 installers
+        working-directory: unsigned\payload
+        shell: pwsh
+        run: |
+          ..\..\packaging-venv\Scripts\python.exe ..\packaging\NSIS\create_windows_installer.py --source_path .. --dist_path . --filename "${{ steps.contract-metadata.outputs.installer_filename }}.exe" --version "${{ steps.contract-metadata.outputs.cura_version_full }}"
+          ..\..\packaging-venv\Scripts\python.exe ..\packaging\msi\create_windows_msi.py --source_path .. --dist_path .\UltiMaker-Cura --filename "${{ steps.contract-metadata.outputs.installer_filename }}.msi" --name "${{ steps.contract-metadata.outputs.cura_app_name }}" --version "${{ steps.contract-metadata.outputs.cura_version_full }}" --architecture arm64
+          foreach ($path in @("${{ steps.contract-metadata.outputs.installer_filename }}.exe","${{ steps.contract-metadata.outputs.installer_filename }}.msi")) {
+            if (!(Test-Path -LiteralPath $path -PathType Leaf) -or (Get-Item $path).Length -eq 0) { throw "Installer missing or empty: $path" }
+          }
+
+      - name: Validate Arm64 MSI database
+        id: msi-validation
+        shell: pwsh
+        run: |
+          $installer = New-Object -ComObject WindowsInstaller.Installer
+          $path = (Resolve-Path "unsigned\payload\${{ steps.contract-metadata.outputs.installer_filename }}.msi").Path
+          $database = $installer.GetType().InvokeMember('OpenDatabase','InvokeMethod',$null,$installer,@($path,0))
+          $summary = $database.GetType().InvokeMember('SummaryInformation','GetProperty',$null,$database,@(0))
+          $template = [string]$summary.GetType().InvokeMember('Property','GetProperty',$null,$summary,@(7))
+          $pageCount = [int]$summary.GetType().InvokeMember('Property','GetProperty',$null,$summary,@(14))
+          if (-not $template.StartsWith('Arm64;')) { throw "MSI template is $template" }
+          if ($pageCount -lt 500) { throw "MSI page count is $pageCount" }
+          $view = $database.GetType().InvokeMember('OpenView','InvokeMethod',$null,$database,@('SELECT `Attributes` FROM `Component`'))
+          $view.GetType().InvokeMember('Execute','InvokeMethod',$null,$view,$null)
+          $count = 0
+          while ($record = $view.GetType().InvokeMember('Fetch','InvokeMethod',$null,$view,$null)) {
+            $attributes = [int]$record.GetType().InvokeMember('IntegerData','GetProperty',$null,$record,@(1))
+            if (($attributes -band 256) -eq 0) { throw 'MSI contains a 32-bit component' }
+            $count++
+          }
+          if ($count -eq 0) { throw 'MSI contains no components' }
+          "template=$template" >> $env:GITHUB_OUTPUT
+          "page_count=$pageCount" >> $env:GITHUB_OUTPUT
+          "component_count=$count" >> $env:GITHUB_OUTPUT
+
+      - name: Sign and verify final EXE
+        working-directory: unsigned\payload
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          & signtool sign /v /fd sha256 /tr http://timestamp.sectigo.com /td sha256 /f C:\actions-runner\code_sign.cer /csp "eToken Base Cryptographic Provider" /kc '${{ secrets.WIN_TOKEN_CONTAINER }}' "${{ steps.contract-metadata.outputs.installer_filename }}.exe"
+          if ($LASTEXITCODE -ne 0) { throw 'EXE signing failed' }
+          & signtool verify /pa /all /v "${{ steps.contract-metadata.outputs.installer_filename }}.exe"
+          if ($LASTEXITCODE -ne 0) { throw 'EXE signature verification failed' }
+
+      - name: Sign and verify final MSI
+        working-directory: unsigned\payload
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          & signtool sign /v /fd sha256 /tr http://timestamp.sectigo.com /td sha256 /f C:\actions-runner\code_sign.cer /csp "eToken Base Cryptographic Provider" /kc '${{ secrets.WIN_TOKEN_CONTAINER }}' "${{ steps.contract-metadata.outputs.installer_filename }}.msi"
+          if ($LASTEXITCODE -ne 0) { throw 'MSI signing failed' }
+          & signtool verify /pa /all /v "${{ steps.contract-metadata.outputs.installer_filename }}.msi"
+          if ($LASTEXITCODE -ne 0) { throw 'MSI signature verification failed' }
+
+      - name: Create and verify signed evidence contract
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path signed\payload,signed\packaging,signed\metadata,signed\installers | Out-Null
+          Copy-Item -Recurse -LiteralPath unsigned\payload\UltiMaker-Cura -Destination signed\payload\UltiMaker-Cura
+          Copy-Item -Recurse -Path unsigned\packaging\* -Destination signed\packaging
+          Copy-Item -LiteralPath unsigned\metadata\build-contract.json,unsigned\metadata\unsigned-pe.json,unsigned\metadata\package-provenance.json,unsigned\metadata\tool-preflight.json -Destination signed\metadata
+          Copy-Item -LiteralPath "unsigned\payload\${{ steps.contract-metadata.outputs.installer_filename }}.exe","unsigned\payload\${{ steps.contract-metadata.outputs.installer_filename }}.msi" -Destination signed\installers
+          python unsigned\packaging\windows\validate_pe_architecture.py signed\payload\UltiMaker-Cura --architecture arm64 --manifest-out signed\metadata\signed-pe.json
+          if ($LASTEXITCODE -ne 0) { throw 'Signed PE manifest failed' }
+          $preflight = Get-Content -Raw unsigned\metadata\tool-preflight.json | ConvertFrom-Json
+          $signing = [ordered]@{
+            tools=$preflight.tools
+            certificate_sha256=$preflight.certificate_sha256
+            provider=$preflight.provider
+            internal_signatures=[ordered]@{ 'CuraEngine.exe'='PASS'; 'UltiMaker-Cura.exe'='PASS' }
+            installer_signatures=[ordered]@{ exe='PASS'; msi='PASS' }
+          }
+          $signing | ConvertTo-Json -Depth 8 | Set-Content -Encoding utf8NoBOM signed\metadata\signing-evidence.json
+          $exe = Get-Item "signed\installers\${{ steps.contract-metadata.outputs.installer_filename }}.exe"
+          $msi = Get-Item "signed\installers\${{ steps.contract-metadata.outputs.installer_filename }}.msi"
+          $release = [ordered]@{
+            msi=[ordered]@{ template='${{ steps.msi-validation.outputs.template }}'; page_count=[int]'${{ steps.msi-validation.outputs.page_count }}'; component_count=[int]'${{ steps.msi-validation.outputs.component_count }}' }
+            files=@(
+              [ordered]@{ path="installers/$($exe.Name)"; size=$exe.Length; sha256=(Get-FileHash -Algorithm SHA256 $exe.FullName).Hash.ToLowerInvariant() },
+              [ordered]@{ path="installers/$($msi.Name)"; size=$msi.Length; sha256=(Get-FileHash -Algorithm SHA256 $msi.FullName).Hash.ToLowerInvariant() }
+            )
+          }
+          $release | ConvertTo-Json -Depth 8 | Set-Content -Encoding utf8NoBOM signed\metadata\release-evidence.json
+          $metadata = (Get-Content -Raw unsigned\metadata\build-contract.json | ConvertFrom-Json).metadata
+          $metadata | ConvertTo-Json -Depth 10 | Set-Content -Encoding utf8NoBOM signed-metadata.json
+          python _cura_workflows_action\runner_scripts\windows_arm_artifact_contract.py create --root signed --metadata signed-metadata.json --output signed\metadata\signed-contract.json --include payload --include installers --include packaging --include metadata\build-contract.json --include metadata\unsigned-pe.json --include metadata\package-provenance.json --include metadata\tool-preflight.json --include metadata\signed-pe.json --include metadata\signing-evidence.json --include metadata\release-evidence.json
+          if ($LASTEXITCODE -ne 0) { throw 'Signed contract creation failed' }
+          python _cura_workflows_action\runner_scripts\windows_arm_artifact_contract.py verify --root signed --contract signed\metadata\signed-contract.json
+          if ($LASTEXITCODE -ne 0) { throw 'Signed contract verification failed' }
+
+      - name: Record signed contract SHA-256
+        id: signed-contract-sha
+        shell: pwsh
+        run: |
+          $sha = (Get-FileHash -Algorithm SHA256 signed\metadata\signed-contract.json).Hash.ToLowerInvariant()
+          "sha256=$sha" >> $env:GITHUB_OUTPUT
+
+      - name: Set signed artifact name
+        id: signed-name
+        shell: pwsh
+        run: '"name=windows-arm64-signed-payload-${{ github.run_id }}-${{ github.run_attempt }}" >> $env:GITHUB_OUTPUT'
+
+      - name: Upload signed payload
+        id: upload-signed
         uses: actions/upload-artifact@v7
         with:
-          name: ${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}-msi
-          path: dist/${{steps.prepare-distribution.outputs.INSTALLER_FILENAME}}.msi
+          name: ${{ steps.signed-name.outputs.name }}
+          path: signed
           retention-days: 5
+          if-no-files-found: error
 
-      - name: Upload the application exe
-        if: ${{ always() }}
+      - name: Upload final EXE installer
+        id: upload-exe
         uses: actions/upload-artifact@v7
         with:
-          name: UltiMaker-Cura.exe
-          path: dist/UltiMaker-Cura/UltiMaker-Cura.exe
+          name: ${{ steps.contract-metadata.outputs.installer_filename }}-exe
+          path: signed/installers/${{ steps.contract-metadata.outputs.installer_filename }}.exe
           retention-days: 5
+          if-no-files-found: error
 
-      - name: Upload the engine exe
-        if: ${{ always() }}
+      - name: Upload final MSI installer
+        id: upload-msi
         uses: actions/upload-artifact@v7
         with:
-          name: CuraEngine.exe
-          path: dist/UltiMaker-Cura/CuraEngine.exe
+          name: ${{ steps.contract-metadata.outputs.installer_filename }}-msi
+          path: signed/installers/${{ steps.contract-metadata.outputs.installer_filename }}.msi
           retention-days: 5
+          if-no-files-found: error
 
+      - name: Upload signed application
+        id: upload-application
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-arm64-UltiMaker-Cura.exe
+          path: signed/payload/UltiMaker-Cura/UltiMaker-Cura.exe
+          retention-days: 5
+          if-no-files-found: error
+
+      - name: Upload signed engine
+        id: upload-engine
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-arm64-CuraEngine.exe
+          path: signed/payload/UltiMaker-Cura/CuraEngine.exe
+          retention-days: 5
+          if-no-files-found: error
+
+      - name: Record signed artifact evidence
+        shell: pwsh
+        run: |
+          @"
+          signed_contract_sha256=${{ steps.signed-contract-sha.outputs.sha256 }}
+          signed_payload_artifact_id=${{ steps.upload-signed.outputs.artifact-id }}
+          signed_payload_artifact_digest=${{ steps.upload-signed.outputs.artifact-digest }}
+          exe_artifact_id=${{ steps.upload-exe.outputs.artifact-id }}
+          exe_artifact_digest=${{ steps.upload-exe.outputs.artifact-digest }}
+          msi_artifact_id=${{ steps.upload-msi.outputs.artifact-id }}
+          msi_artifact_digest=${{ steps.upload-msi.outputs.artifact-digest }}
+          application_artifact_name=windows-arm64-UltiMaker-Cura.exe
+          application_artifact_id=${{ steps.upload-application.outputs.artifact-id }}
+          engine_artifact_name=windows-arm64-CuraEngine.exe
+          engine_artifact_id=${{ steps.upload-engine.outputs.artifact-id }}
+          "@ | Out-File -Append -FilePath $env:GITHUB_STEP_SUMMARY
+
+  smoke-test-on-hosted-arm:
+    name: Smoke test signed Windows Arm64
+    needs: sign-and-package
+    runs-on: windows-11-arm
+    steps:
+      - name: Clean workspace
+        shell: pwsh
+        run: Get-ChildItem -LiteralPath $env:GITHUB_WORKSPACE -Force | Remove-Item -Recurse -Force
+
+      - name: Require native hosted Windows Arm64
+        shell: pwsh
+        run: |
+          if ('${{ runner.os }}' -ne 'Windows' -or '${{ runner.arch }}' -ne 'ARM64' -or $env:PROCESSOR_ARCHITECTURE -ne 'ARM64') { throw 'Hosted runner is not native Windows Arm64' }
+          $machine = python -c "import platform; print(platform.machine())"
+          if ($machine -ne 'ARM64') { throw "Hosted Python is not Arm64: $machine" }
+
+      - name: Checkout pinned workflow tools
+        uses: actions/checkout@v6
+        with:
+          repository: Ultimaker/Cura-workflows
+          ref: ${{ inputs.cura_workflows_ref }}
+          path: _cura_workflows_action
+
+      - name: Verify workflow tool revision
+        shell: pwsh
+        run: |
+          $requested = '${{ inputs.cura_workflows_ref }}'
+          $resolved = (git -C _cura_workflows_action rev-parse HEAD).Trim()
+          if ($requested -match '^[0-9a-fA-F]{40}$') {
+            if ($resolved -ine $requested) { throw 'Cura-workflows SHA mismatch' }
+            python _cura_workflows_action\runner_scripts\workflow_provenance.py verify-invocation `
+              --workflow-ref '${{ job.workflow_ref }}' `
+              --workflow-sha '${{ job.workflow_sha }}' --requested-ref $requested `
+              --component-path .github/workflows/cura-installer-windows-arm.yml
+            if ($LASTEXITCODE -ne 0) { throw 'Reusable installer invocation provenance mismatch' }
+          }
+
+      - name: Download signed payload
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ needs.sign-and-package.outputs.signed-artifact-name }}
+          path: signed
+
+      - name: Download final EXE
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ needs.sign-and-package.outputs.installer-filename }}-exe
+          path: installers
+
+      - name: Download final MSI
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ needs.sign-and-package.outputs.installer-filename }}-msi
+          path: installers
+
+      - name: Verify signed contract and PE architecture
+        shell: pwsh
+        run: |
+          $sha = (Get-FileHash -Algorithm SHA256 signed\metadata\signed-contract.json).Hash.ToLowerInvariant()
+          if ($sha -ne '${{ needs.sign-and-package.outputs.signed-contract-sha256 }}') { throw 'Signed contract SHA mismatch' }
+          python _cura_workflows_action\runner_scripts\windows_arm_artifact_contract.py verify --root signed --contract signed\metadata\signed-contract.json
+          if ($LASTEXITCODE -ne 0) { throw 'Signed contract verification failed' }
+          python _cura_workflows_action\runner_scripts\windows_arm_artifact_contract.py verify-release `
+            --root installers --evidence signed\metadata\release-evidence.json
+          if ($LASTEXITCODE -ne 0) { throw 'Downloaded installers do not match signed release evidence' }
+          python signed\packaging\windows\validate_pe_architecture.py signed\payload\UltiMaker-Cura --architecture arm64 `
+            --require python3.dll --require concrt140.dll --require msvcp140.dll --require msvcp140_1.dll `
+            --require msvcp140_2.dll --require vcruntime140.dll --require vcruntime140_1.dll `
+            --require UltiMaker-Cura.exe --require CuraEngine.exe
+          if ($LASTEXITCODE -ne 0) { throw 'Signed payload architecture verification failed' }
+
+      - name: Validate signatures
+        shell: pwsh
+        run: |
+          foreach ($path in @(
+            'signed\payload\UltiMaker-Cura\CuraEngine.exe',
+            'signed\payload\UltiMaker-Cura\UltiMaker-Cura.exe',
+            'installers\${{ needs.sign-and-package.outputs.installer-filename }}.exe',
+            'installers\${{ needs.sign-and-package.outputs.installer-filename }}.msi')) {
+            & signtool verify /pa /all /v $path
+            if ($LASTEXITCODE -ne 0) { throw "Signature verification failed: $path" }
+          }
+
+      - name: Repeat MSI Arm64 validation
+        shell: pwsh
+        run: |
+          $installer = New-Object -ComObject WindowsInstaller.Installer
+          $path = (Resolve-Path "installers\${{ needs.sign-and-package.outputs.installer-filename }}.msi").Path
+          $database = $installer.GetType().InvokeMember('OpenDatabase','InvokeMethod',$null,$installer,@($path,0))
+          $summary = $database.GetType().InvokeMember('SummaryInformation','GetProperty',$null,$database,@(0))
+          $template = [string]$summary.GetType().InvokeMember('Property','GetProperty',$null,$summary,@(7))
+          $pageCount = [int]$summary.GetType().InvokeMember('Property','GetProperty',$null,$summary,@(14))
+          if (-not $template.StartsWith('Arm64;') -or $pageCount -lt 500) { throw 'Invalid Arm64 MSI summary' }
+          $view = $database.GetType().InvokeMember('OpenView','InvokeMethod',$null,$database,@('SELECT `Attributes` FROM `Component`'))
+          $view.GetType().InvokeMember('Execute','InvokeMethod',$null,$view,$null)
+          $count = 0
+          while ($record = $view.GetType().InvokeMember('Fetch','InvokeMethod',$null,$view,$null)) {
+            $attributes = [int]$record.GetType().InvokeMember('IntegerData','GetProperty',$null,$record,@(1))
+            if (($attributes -band 256) -eq 0) { throw 'MSI contains a 32-bit component' }
+            $count++
+          }
+          if ($count -eq 0) { throw 'MSI contains no components' }
+
+      - name: Run CuraEngine help smoke test
+        shell: pwsh
+        run: |
+          $stdout = Join-Path $env:GITHUB_WORKSPACE 'engine-stdout.txt'
+          $stderr = Join-Path $env:GITHUB_WORKSPACE 'engine-stderr.txt'
+          $process = Start-Process -FilePath 'signed\payload\UltiMaker-Cura\CuraEngine.exe' -ArgumentList 'help' -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+          if (-not $process.WaitForExit(60000)) {
+            Stop-Process -Id $process.Id -Force
+            throw 'CuraEngine help timed out'
+          }
+          $combined = (Get-Content -Raw $stdout) + "`n" + (Get-Content -Raw $stderr)
+          Write-Host $combined
+          if ($process.ExitCode -ne 0) { throw "CuraEngine exited $($process.ExitCode)" }
+          if ($combined -notmatch '(?i)usage') { throw 'CuraEngine help did not contain usage' }
